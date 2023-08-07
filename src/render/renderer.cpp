@@ -127,6 +127,10 @@ void OpenGLRenderer::init() {
     isInit = true;
 }
 
+void OpenGLRenderer::tick(float deltaTime) {
+    tickUserInputs(deltaTime);
+}
+
 void OpenGLRenderer::loadShaders(const std::filesystem::path &vertexShaderPath,
                                  const std::filesystem::path &fragmentShaderPath) {
     // Create the shaders
@@ -295,18 +299,12 @@ void OpenGLRenderer::loadTextureDDS(const std::filesystem::path &path) {
         if (width < 1) width = 1;
         if (height < 1) height = 1;
     }
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 }
 
 void OpenGLRenderer::startRendering() {
-    // Measure speed
-    double currentTime = glfwGetTime();
-    renderedFrames++;
-    if (currentTime - lastTime >= 1.0) {
-        std::cout << 1000.0 / (double) renderedFrames << " ms/frame\n";
-        renderedFrames = 0;
-        lastTime += 1.0;
-    }
-
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // use previously compiled shaders
@@ -317,7 +315,7 @@ void OpenGLRenderer::startRendering() {
     glBindTexture(GL_TEXTURE_2D, textureID);
     glUniform1i(textureSamplerID, 0);
 
-    glm::vec3 lightPos = glm::vec3(20, 25, 30);
+    glm::vec3 lightPos = cameraPos.toGlm();
     glUniform3f(lightID, lightPos.x, lightPos.y, lightPos.z);
 }
 
@@ -349,10 +347,25 @@ void OpenGLRenderer::renderMesh(const MeshContext &ctx) {
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexedMeshData.indices.size() * sizeof(unsigned short),
                  &indexedMeshData.indices[0], GL_STATIC_DRAW);
 
+    glm::vec3 direction(
+        cos(cameraRot.y) * sin(cameraRot.x),
+        sin(cameraRot.y),
+        cos(cameraRot.y) * cos(cameraRot.x)
+    );
+
     // compute MVP matrix and its components
     glm::mat4 modelMatrix = glm::mat4(1.0f);
-    glm::mat4 viewMatrix = glm::lookAt(glm::vec3(30, 25, 20), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
-    glm::mat4 projectionMatrix = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 0.1f, 100.0f);
+    glm::mat4 viewMatrix = glm::lookAt(
+        cameraPos.toGlm(),              // camera's position
+        cameraPos.toGlm() + direction,  // the point at which the camera is looking
+        glm::vec3(0, 1, 0)              // head vector
+    );
+    glm::mat4 projectionMatrix = glm::perspective(
+        glm::radians(80.0f),    // field of view
+        4.0f / 3.0f,            // aspect ratio
+        0.1f,                   // near clipping plane
+        100.0f                  // far clipping plane
+    );
     glm::mat4 mvpMatrix = projectionMatrix * viewMatrix * modelMatrix;
 
     glUniformMatrix4fv(mvpMatrixID, 1, GL_FALSE, &mvpMatrix[0][0]);
@@ -401,4 +414,61 @@ void OpenGLRenderer::renderMesh(const MeshContext &ctx) {
 void OpenGLRenderer::finishRendering() {
     glfwSwapBuffers(window);
     glfwPollEvents();
+}
+
+void OpenGLRenderer::tickUserInputs(float deltaTime) {
+    const float rotationSpeed = 2.5;
+    const float movementSpeed = 8.0;
+
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
+        cameraRot.y = std::clamp(
+            cameraRot.y + (double) (deltaTime * rotationSpeed),
+            -3.14 / 2,
+            3.14 / 2
+        );
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
+        cameraRot.y = std::clamp(
+            cameraRot.y - (double) (deltaTime * rotationSpeed),
+            -3.14 / 2,
+            3.14 / 2
+        );
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
+        cameraRot.x -= (double) (deltaTime * rotationSpeed);
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
+        cameraRot.x += (double) (deltaTime * rotationSpeed);
+    }
+
+    glm::vec3 direction(
+        cos(cameraRot.y) * sin(cameraRot.x),
+        sin(cameraRot.y),
+        cos(cameraRot.y) * cos(cameraRot.x)
+    );
+
+    glm::vec3 right = glm::vec3(
+        sin(cameraRot.x - 3.14 / 2.0),
+        0,
+        cos(cameraRot.x - 3.14 / 2.0)
+    );
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+        cameraPos += Vec3::fromGlm(direction * deltaTime * movementSpeed); // Move forward
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+        cameraPos -= Vec3::fromGlm(direction * deltaTime * movementSpeed); // Move backward
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+        cameraPos += Vec3::fromGlm(right * deltaTime * movementSpeed); // Strafe right
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+        cameraPos -= Vec3::fromGlm(right * deltaTime * movementSpeed); // Strafe left
+    }
 }

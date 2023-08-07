@@ -1,5 +1,10 @@
 #include "chunk.h"
+
+#include <libnoise/noise.h>
+#include <iostream>
+
 #include "src/render/renderer.h"
+#include "deps/noiseutils/noiseutils.h"
 
 void Chunk::load() {
     _isLoaded = true;
@@ -21,12 +26,28 @@ void Chunk::render(OpenGLRenderer &renderer) {
 //    renderer->translateWorldMatrix(x, y, z);
 
     if (isDirty) {
+        noise::module::Perlin noiseModule;
+        noiseutils::NoiseMap heightMap;
+        noiseutils::NoiseMapBuilderPlane heightMapBuilder;
+        heightMapBuilder.SetSourceModule(noiseModule);
+        heightMapBuilder.SetDestNoiseMap(heightMap);
+        heightMapBuilder.SetDestSize(CHUNK_SIZE, CHUNK_SIZE);
+        heightMapBuilder.SetBounds(pos.x, pos.x + 2.0, pos.z, pos.z + 2.0);
+        heightMapBuilder.Build();
+
         // remove some blocks to see what it looks like without them
         for (int x = 0; x < CHUNK_SIZE; x++) {
-            for (int y = 0; y < CHUNK_SIZE; y++) {
-                for (int z = 0; z < CHUNK_SIZE; z++) {
-                    if (rand() % 3 != 2)
-                        blocks[x][y][z].blockType = EBlockType::BlockType_None;
+            for (int z = 0; z < CHUNK_SIZE; z++) {
+                float height = (float) CHUNK_SIZE / 2 + std::clamp(
+                    heightMap.GetValue(x, z) * CHUNK_SIZE,
+                    (float) -CHUNK_SIZE / 2 + 1,
+                    (float) CHUNK_SIZE / 2
+                );
+
+                for (int y = 0; y < CHUNK_SIZE; y++) {
+                    blocks[x][y][z].blockType = y < height
+                        ? EBlockType::BlockType_Grass
+                        : EBlockType::BlockType_None;
                 }
             }
         }
@@ -40,27 +61,6 @@ void Chunk::render(OpenGLRenderer &renderer) {
     }
 }
 
-bool Chunk::hasInactiveNeighbor(int x, int y, int z) const {
-    if (x == 0 || x == CHUNK_SIZE - 1)
-        return true;
-    if (y == 0 || y == CHUNK_SIZE - 1)
-        return true;
-    if (z == 0 || z == CHUNK_SIZE - 1)
-        return true;
-
-    bool result = false;
-
-    for (int dx = -1; dx <= 1; dx += 2) {
-        for (int dy = -1; dy <= 1; dy += 2) {
-            for (int dz = -1; dz <= 1; dz += 2) {
-                result |= blocks[x + dx][y + dy][z + dz].isNone();
-            }
-        }
-    }
-
-    return result;
-}
-
 void Chunk::createMesh(OpenGLRenderer &renderer) {
     (void) renderer; // it's unused for now
 
@@ -70,8 +70,6 @@ void Chunk::createMesh(OpenGLRenderer &renderer) {
         for (int y = 0; y < CHUNK_SIZE; y++) {
             for (int z = 0; z < CHUNK_SIZE; z++) {
                 if (blocks[x][y][z].isNone())
-                    continue;
-                if (!hasInactiveNeighbor(x, y, z))
                     continue;
 
                 createCube(x, y, z);
@@ -153,7 +151,7 @@ void Chunk::createCube(const int x, const int y, const int z) {
     // bottom
     if (y == 0 || blocks[x][y - 1][z].isNone()) {
         normal = {0.0, -1.0, 0.0};
-        offset = {0, 2.0 / 4};
+        offset = {1.0 / 4, 1.0 / 4};
         createFace(p6, p5, p2, p1, offset, normal);
     }
 }

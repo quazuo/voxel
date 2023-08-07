@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 project(voxel)
 
 find_package(OpenGL REQUIRED)
+find_library(libnoise NAMES "libnoise" "libnoise0" "noise")
 
 # Compile external dependencies
 add_subdirectory(deps)
@@ -39,7 +40,8 @@ file(GLOB voxel_SRC
     "src/render/*"
     "src/voxel/*"
     "src/voxel/chunk/*"
+    "deps/noiseutils/*"
 )
 add_executable(voxel ${voxel_SRC})
 
-target_link_libraries(voxel ${ALL_LIBS})
+target_link_libraries(voxel ${ALL_LIBS} ${libnoise})

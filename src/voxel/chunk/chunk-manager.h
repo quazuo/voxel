@@ -4,7 +4,6 @@
 #include <vector>
 #include <array>
 #include <memory>
-
 #include "chunk.h"
 
 class ChunkManager {

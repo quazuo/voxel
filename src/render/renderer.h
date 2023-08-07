@@ -56,6 +56,7 @@ class OpenGLRenderer {
     bool isInit = false;
 
     Vec3 cameraPos{};
+    Vec2 cameraRot{};
 
     GLuint vertexArrayID{};
     GLuint programID{};
@@ -63,11 +64,10 @@ class OpenGLRenderer {
     GLuint textureID{}, textureSamplerID{};
     GLint lightID{};
 
-    long long renderedFrames = 0;
-    double lastTime{};
-
 public:
     void init();
+
+    void tick(float deltaTime);
 
     void startRendering();
 
@@ -83,6 +83,8 @@ private:
 
     // todo - move this to a separate texture map class or smth like that
     void loadTextureDDS(const std::filesystem::path &path);
+
+    void tickUserInputs(float deltaTime);
 };
 
 #endif //MYGE_RENDERER_H

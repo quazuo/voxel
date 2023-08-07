@@ -1,8 +1,10 @@
 #ifndef MYGE_BLOCK_H
 #define MYGE_BLOCK_H
 
-enum class EBlockType {
-    BlockType_None = 0,
+#include "src/utils/vec.h"
+
+enum class EBlockType : std::uint8_t {
+    BlockType_None,
     BlockType_Stone,
     BlockType_Grass,
     BlockType_NumTypes
