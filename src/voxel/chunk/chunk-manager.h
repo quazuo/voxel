@@ -25,7 +25,7 @@ class ChunkManager {
     // list of chunks that should be rendered
     std::vector<ChunkPtr> renderChunks;
 
-    static constexpr size_t MAX_CHUNKS_LOAD_PER_PRAME = 4;
+    static constexpr size_t MAX_CHUNKS_SERVE_PER_PRAME = 4;
     static constexpr size_t RENDER_DISTANCE = 4;
 
 public:

@@ -1,6 +1,16 @@
 #include "chunk.h"
 #include "src/render/renderer.h"
 
+void Chunk::load() {
+    _isLoaded = true;
+    // todo - check if is stored on the disk and if it is, load it, otherwise generate terrain for it
+    // todo - ^ this should probably be done in the chunk manager
+}
+
+void Chunk::unload() {
+    // todo
+}
+
 void Chunk::updateBlock(int x, int y, int z, EBlockType type) {
     blocks[x][y][z].blockType = type;
     isDirty = true;

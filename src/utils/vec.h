@@ -60,6 +60,11 @@ struct Vec3 {
     }
 
     [[maybe_unused]] [[nodiscard]]
+    Vec3 operator+(Vec3 other) const {
+        return {x + other.x, y + other.y, z + other.z};
+    }
+
+    [[maybe_unused]] [[nodiscard]]
     Vec3 operator*(double coeff) const {
         return {x * coeff, y * coeff, z * coeff};
     }
