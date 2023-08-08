@@ -44,18 +44,80 @@ void MeshContext::indexVertex(const PackedVertex &vertex, IndexedMeshData &data,
  * IndexedMeshData
  */
 
-IndexedMeshData MeshContext::makeIndexed() const {
-    IndexedMeshData data;
+void MeshContext::makeIndexed() {
+    if (isIndexed)
+        return;
 
     std::map<PackedVertex, unsigned short> vertexToOutIndex;
 
     for (const auto &[v1, v2, v3]: triangles) {
-        indexVertex(v1, data, vertexToOutIndex);
-        indexVertex(v2, data, vertexToOutIndex);
-        indexVertex(v3, data, vertexToOutIndex);
+        indexVertex(v1, indexedData, vertexToOutIndex);
+        indexVertex(v2, indexedData, vertexToOutIndex);
+        indexVertex(v3, indexedData, vertexToOutIndex);
     }
 
-    return data;
+    isIndexed = true;
+}
+
+void MeshContext::initBuffers() {
+    glGenBuffers(1, &vertexBufferID);
+    glGenBuffers(1, &uvBufferID);
+    glGenBuffers(1, &normalBufferID);
+    glGenBuffers(1, &elementBufferID);
+
+    // 1st attribute buffer: vertices
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferID);
+    glVertexAttribPointer(
+        0,              // attribute
+        3,              // size
+        GL_FLOAT,       // type
+        GL_FALSE,       // normalized?
+        0,              // stride
+        nullptr         // array buffer offset
+    );
+
+    // 2nd attribute buffer: UVs
+    glBindBuffer(GL_ARRAY_BUFFER, uvBufferID);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+    // 3rd attribute buffer: normals
+    glBindBuffer(GL_ARRAY_BUFFER, normalBufferID);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+    // initialize the buffers
+    size_t bufferSize = USHRT_MAX / 2;
+
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferID);
+    glBufferData(GL_ARRAY_BUFFER, bufferSize * sizeof(glm::vec3), nullptr, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ARRAY_BUFFER, uvBufferID);
+    glBufferData(GL_ARRAY_BUFFER, bufferSize * sizeof(glm::vec2), nullptr, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ARRAY_BUFFER, normalBufferID);
+    glBufferData(GL_ARRAY_BUFFER, bufferSize * sizeof(glm::vec3), nullptr, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBufferID);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, bufferSize * sizeof(unsigned short), nullptr, GL_STATIC_DRAW);
+}
+
+GLuint MeshContext::getBufferID(MeshContext::EBufferType bufferType) const {
+    switch (bufferType) {
+        case EBufferType::Vertex:
+            return vertexBufferID;
+        case EBufferType::UV:
+            return uvBufferID;
+        case EBufferType::Normal:
+            return normalBufferID;
+        case EBufferType::Element:
+        default:
+            return elementBufferID;
+    }
+}
+
+void MeshContext::freeBuffers() {
+    const size_t nBuffers = 4;
+    const GLuint buffers[nBuffers] = {vertexBufferID, uvBufferID, normalBufferID, elementBufferID};
+    glDeleteBuffers(nBuffers, buffers);
 }
 
 /**
@@ -331,32 +393,26 @@ void OpenGLRenderer::startRendering() {
 }
 
 void OpenGLRenderer::renderMesh(const MeshContext &ctx) {
-    IndexedMeshData indexedMeshData = ctx.makeIndexed();
+    const IndexedMeshData &indexedData = ctx.getIndexedData();
 
     // make buffers
-    GLuint vertexBufferID;
-    glGenBuffers(1, &vertexBufferID);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferID);
-    glBufferData(GL_ARRAY_BUFFER, indexedMeshData.vertices.size() * sizeof(glm::vec3),
-                 &indexedMeshData.vertices[0], GL_STATIC_DRAW);
+    if (ctx.isFreshlyUpdated) {
+        glBindBuffer(GL_ARRAY_BUFFER, ctx.getBufferID(MeshContext::EBufferType::Vertex));
+        glBufferSubData(GL_ARRAY_BUFFER, 0, indexedData.vertices.size() * sizeof(glm::vec3),
+                        &indexedData.vertices[0]);
 
-    GLuint uvBufferID;
-    glGenBuffers(1, &uvBufferID);
-    glBindBuffer(GL_ARRAY_BUFFER, uvBufferID);
-    glBufferData(GL_ARRAY_BUFFER, indexedMeshData.uvs.size() * sizeof(glm::vec2),
-                 &indexedMeshData.uvs[0], GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, ctx.getBufferID(MeshContext::EBufferType::UV));
+        glBufferSubData(GL_ARRAY_BUFFER, 0, indexedData.uvs.size() * sizeof(glm::vec2),
+                        &indexedData.uvs[0]);
 
-    GLuint normalBufferID;
-    glGenBuffers(1, &normalBufferID);
-    glBindBuffer(GL_ARRAY_BUFFER, normalBufferID);
-    glBufferData(GL_ARRAY_BUFFER, indexedMeshData.normals.size() * sizeof(glm::vec3),
-                 &indexedMeshData.normals[0], GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, ctx.getBufferID(MeshContext::EBufferType::Normal));
+        glBufferSubData(GL_ARRAY_BUFFER, 0, indexedData.normals.size() * sizeof(glm::vec3),
+                        &indexedData.normals[0]);
 
-    GLuint elementBufferID;
-    glGenBuffers(1, &elementBufferID);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBufferID);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexedMeshData.indices.size() * sizeof(unsigned short),
-                 &indexedMeshData.indices[0], GL_STATIC_DRAW);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ctx.getBufferID(MeshContext::EBufferType::Element));
+        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, indexedData.indices.size() * sizeof(unsigned short),
+                        &indexedData.indices[0]);
+    }
 
     glm::vec3 direction(
         cos(cameraRot.y) * sin(cameraRot.x),
@@ -385,34 +441,35 @@ void OpenGLRenderer::renderMesh(const MeshContext &ctx) {
     glUniformMatrix4fv(projectionMatrixID, 1, GL_FALSE, &projectionMatrix[0][0]);
 
     // 1st attribute buffer: vertices
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferID);
+    glBindBuffer(GL_ARRAY_BUFFER, ctx.getBufferID(MeshContext::EBufferType::Vertex));
     glVertexAttribPointer(
-        0,                  // attribute
-        3,                  // size
-        GL_FLOAT,           // type
-        GL_FALSE,           // normalized?
-        0,                  // stride
-        nullptr             // array buffer offset
+        0,              // attribute
+        3,              // size
+        GL_FLOAT,       // type
+        GL_FALSE,       // normalized?
+        0,              // stride
+        nullptr         // array buffer offset
     );
 
     // 2nd attribute buffer: UVs
-    glEnableVertexAttribArray(1);
-    glBindBuffer(GL_ARRAY_BUFFER, uvBufferID);
+    glBindBuffer(GL_ARRAY_BUFFER, ctx.getBufferID(MeshContext::EBufferType::UV));
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
 
     // 3rd attribute buffer: normals
-    glEnableVertexAttribArray(2);
-    glBindBuffer(GL_ARRAY_BUFFER, normalBufferID);
+    glBindBuffer(GL_ARRAY_BUFFER, ctx.getBufferID(MeshContext::EBufferType::Normal));
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
+
     // index buffer
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBufferID);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ctx.getBufferID(MeshContext::EBufferType::Element));
 
     // draw the triangles
     glDrawElements(
         GL_TRIANGLES,                       // mode
-        indexedMeshData.indices.size(),     // count
+        indexedData.indices.size(),         // count
         GL_UNSIGNED_SHORT,                  // type
         nullptr                             // element array buffer offset
     );

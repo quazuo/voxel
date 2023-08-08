@@ -29,11 +29,16 @@ class ChunkManager {
 
 public:
     ChunkManager() {
-        renderChunks.push_back(std::make_shared<Chunk>(Chunk({0, 0, 0})));
-        renderChunks.push_back(std::make_shared<Chunk>(Chunk({1, 0, 0})));
-        renderChunks.push_back(std::make_shared<Chunk>(Chunk({0, 0, 1})));
-        renderChunks.push_back(std::make_shared<Chunk>(Chunk({1, 0, 1})));
-        for (auto& chunk : renderChunks)
+        int max = 5;
+        int min = -max;
+
+        for (int x = min; x <= max; x++) {
+            for (int z = min; z <= max; z++) {
+                renderChunks.push_back(std::make_shared<Chunk>(Chunk({(double) x, 0.0, (double) z})));
+            }
+        }
+
+        for (auto &chunk: renderChunks)
             chunk->load();
     }
 

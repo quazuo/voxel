@@ -39,13 +39,37 @@ struct IndexedMeshData {
 class MeshContext {
     std::vector<std::tuple<PackedVertex, PackedVertex, PackedVertex>> triangles{};
 
+    IndexedMeshData indexedData;
+
+    bool isIndexed = false;
+
+    GLuint vertexBufferID{}, uvBufferID{}, normalBufferID{}, elementBufferID{};
+
 public:
     Vec3 modelTranslate;
 
+    bool isFreshlyUpdated = false;
+
     void addTriangle(PackedVertex &vertex1, PackedVertex &vertex2, PackedVertex &vertex3);
 
+    void makeIndexed();
+
     [[nodiscard]]
-    IndexedMeshData makeIndexed() const;
+    const IndexedMeshData& getIndexedData() const { return indexedData; }
+
+    void initBuffers();
+
+    void freeBuffers();
+
+    enum class EBufferType : std::uint8_t {
+        Vertex,
+        UV,
+        Normal,
+        Element
+    };
+
+    [[nodiscard]]
+    GLuint getBufferID(EBufferType bufferType) const;
 
 private:
     static void indexVertex(const PackedVertex &vertex, IndexedMeshData &data,
@@ -62,6 +86,7 @@ class OpenGLRenderer {
 
     // OpenGL handles for various objects
     GLuint vertexArrayID{};
+    GLuint vertexBufferID{}, uvBufferID{}, normalBufferID{}, elementBufferID{};
     GLuint programID{};
     GLint mvpMatrixID{}, modelMatrixID{}, viewMatrixID{}, projectionMatrixID{};
     GLuint textureID{}, textureSamplerID{};

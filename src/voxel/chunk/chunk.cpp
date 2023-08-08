@@ -4,6 +4,7 @@
 
 #include "src/render/renderer.h"
 #include "deps/noiseutils/noiseutils.h"
+#include "src/voxel/world-gen.h"
 
 void Chunk::load() {
     _isLoaded = true;
@@ -11,20 +12,11 @@ void Chunk::load() {
     // todo - check if is stored on the disk and if it is, load it, otherwise generate terrain for it
     // todo - ^ this should probably be done in the chunk manager
 
-    noise::module::Perlin noiseModule;
-    noiseutils::NoiseMap heightMap;
-    noiseutils::NoiseMapBuilderPlane heightMapBuilder;
-    heightMapBuilder.SetSourceModule(noiseModule);
-    heightMapBuilder.SetDestNoiseMap(heightMap);
-    heightMapBuilder.SetDestSize(CHUNK_SIZE, CHUNK_SIZE);
-    heightMapBuilder.SetBounds(pos.x, pos.x + 1.0, pos.z, pos.z + 1.0);
-    heightMapBuilder.Build();
-
     // remove some blocks to see what it looks like without them
     for (int x = 0; x < CHUNK_SIZE; x++) {
         for (int z = 0; z < CHUNK_SIZE; z++) {
             float height = (float) CHUNK_SIZE / 2 + std::clamp(
-                heightMap.GetValue(x, z) * CHUNK_SIZE,
+                WorldGen::getHeight(pos, x, z) * CHUNK_SIZE / 2,
                 (float) -CHUNK_SIZE / 2 + 1,
                 (float) CHUNK_SIZE / 2
             );
@@ -39,28 +31,33 @@ void Chunk::load() {
 }
 
 void Chunk::unload() {
-    // todo
+    meshContext->freeBuffers();
 }
 
 void Chunk::updateBlock(int x, int y, int z, EBlockType type) {
     blocks[x][y][z].blockType = type;
-    isDirty = true;
+    _isDirty = true;
 }
 
 void Chunk::render(OpenGLRenderer &renderer) {
-    if (isDirty) {
+    if (_isDirty) {
+        std::cout << "creating mesh\n";
         createMesh();
-        isDirty = false;
+        _isDirty = false;
     }
 
     if (isMesh) {
         renderer.renderMesh(*meshContext);
+        meshContext->isFreshlyUpdated = false;
     }
 }
 
 void Chunk::createMesh() {
-    meshContext = std::make_shared<MeshContext>(MeshContext());
-    meshContext->modelTranslate = pos * CHUNK_SIZE;
+    if (!meshContext) {
+        meshContext = std::make_shared<MeshContext>(MeshContext());
+        meshContext->modelTranslate = pos * CHUNK_SIZE;
+        meshContext->initBuffers();
+    }
 
     for (int x = 0; x < CHUNK_SIZE; x++) {
         for (int y = 0; y < CHUNK_SIZE; y++) {
@@ -73,6 +70,8 @@ void Chunk::createMesh() {
         }
     }
 
+    meshContext->makeIndexed();
+    meshContext->isFreshlyUpdated = true;
     isMesh = true;
 }
 
