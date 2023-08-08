@@ -7,6 +7,12 @@ find_library(libnoise NAMES "libnoise" "libnoise0" "noise")
 # Compile external dependencies
 add_subdirectory(deps)
 
+# On Visual 2005 and above, this module can set the debug working directory
+cmake_policy(SET CMP0026 OLD)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/external/rpavlik-cmake-modules-fe2273")
+include(CreateLaunchers)
+include(MSVCMultipleProcessCompile) # /MP
+
 include_directories(
     deps/glfw/include/
     deps/glm/

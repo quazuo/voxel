@@ -10,6 +10,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+/**
+ * MeshContext
+ */
+
 void MeshContext::addTriangle(PackedVertex &vertex1, PackedVertex &vertex2, PackedVertex &vertex3) {
     triangles.emplace_back(vertex1, vertex2, vertex3);
 }
@@ -36,6 +40,10 @@ void MeshContext::indexVertex(const PackedVertex &vertex, IndexedMeshData &data,
     }
 }
 
+/**
+ * IndexedMeshData
+ */
+
 IndexedMeshData MeshContext::makeIndexed() const {
     IndexedMeshData data;
 
@@ -49,6 +57,10 @@ IndexedMeshData MeshContext::makeIndexed() const {
 
     return data;
 }
+
+/**
+ * OpenGLRenderer
+ */
 
 void OpenGLRenderer::init() {
     if (isInit) return;
@@ -216,7 +228,6 @@ void OpenGLRenderer::loadShaders(const std::filesystem::path &vertexShaderPath,
     glDeleteShader(fragmentShaderID);
 }
 
-
 void OpenGLRenderer::loadTextureDDS(const std::filesystem::path &path) {
     std::ifstream fileStream(path, std::ios::in);
     if (!fileStream.is_open()) {
@@ -354,7 +365,7 @@ void OpenGLRenderer::renderMesh(const MeshContext &ctx) {
     );
 
     // compute MVP matrix and its components
-    glm::mat4 modelMatrix = glm::mat4(1.0f);
+    glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), ctx.modelTranslate.toGlm());
     glm::mat4 viewMatrix = glm::lookAt(
         cameraPos.toGlm(),              // camera's position
         cameraPos.toGlm() + direction,  // the point at which the camera is looking

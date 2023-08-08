@@ -17,8 +17,8 @@ struct PackedVertex {
     Vec2 uv;
     Vec3 normal;
 
-    bool operator<(const PackedVertex that) const {
-        return memcmp((void *) this, (void *) &that, sizeof(PackedVertex)) > 0;
+    bool operator<(const PackedVertex other) const {
+        return memcmp((void *) this, (void *) &other, sizeof(PackedVertex)) > 0;
     };
 };
 
@@ -40,6 +40,8 @@ class MeshContext {
     std::vector<std::tuple<PackedVertex, PackedVertex, PackedVertex>> triangles{};
 
 public:
+    Vec3 modelTranslate;
+
     void addTriangle(PackedVertex &vertex1, PackedVertex &vertex2, PackedVertex &vertex3);
 
     [[nodiscard]]
@@ -58,6 +60,7 @@ class OpenGLRenderer {
     Vec3 cameraPos{};
     Vec2 cameraRot{};
 
+    // OpenGL handles for various objects
     GLuint vertexArrayID{};
     GLuint programID{};
     GLint mvpMatrixID{}, modelMatrixID{}, viewMatrixID{}, projectionMatrixID{};

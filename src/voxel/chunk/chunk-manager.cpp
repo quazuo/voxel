@@ -1,9 +1,15 @@
 #include "chunk-manager.h"
 
+#include "src/render/renderer.h"
+
 void ChunkManager::render(OpenGLRenderer &renderer) const {
+    renderer.startRendering();
+
     for (auto &chunk: renderChunks) {
         chunk->render(renderer);
     }
+
+    renderer.finishRendering();
 }
 
 void ChunkManager::update() {

@@ -12,9 +12,9 @@ class VEngine {
     std::shared_ptr<OpenGLRenderer> renderer;
     std::shared_ptr<ChunkManager> chunkManager;
 
-    Chunk chunk; // todo - placeholder just to check if one chunk renders
+    // todo - placeholder just to check if one chunk renders
+    std::vector<Chunk> chunks;
 
-    int renderedFrames = 0;
     float lastTime = 0.f;
 
 public:
@@ -38,21 +38,11 @@ public:
         // Measure speed
         auto currentTime = (float) glfwGetTime();
         const float deltaTime = currentTime - lastTime;
-
-        renderedFrames++;
-        if (currentTime - lastTime >= 1.0f) {
-            std::cout << 1000.0 / (double) renderedFrames << " ms/frame\n";
-            renderedFrames = 0;
-        }
-
+        std::cout << "frametime: " << deltaTime << "s, fps: " << 1 / deltaTime << "\n";
         lastTime = currentTime;
 
         renderer->tick(deltaTime);
-
-        renderer->startRendering();
         chunkManager->render(*renderer);
-        chunk.render(*renderer);
-        renderer->finishRendering();
     }
 };
 

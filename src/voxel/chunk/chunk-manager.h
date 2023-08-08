@@ -28,7 +28,16 @@ class ChunkManager {
     static constexpr size_t RENDER_DISTANCE = 4;
 
 public:
-    void render(OpenGLRenderer& renderer) const;
+    ChunkManager() {
+        renderChunks.push_back(std::make_shared<Chunk>(Chunk({0, 0, 0})));
+        renderChunks.push_back(std::make_shared<Chunk>(Chunk({1, 0, 0})));
+        renderChunks.push_back(std::make_shared<Chunk>(Chunk({0, 0, 1})));
+        renderChunks.push_back(std::make_shared<Chunk>(Chunk({1, 0, 1})));
+        for (auto& chunk : renderChunks)
+            chunk->load();
+    }
+
+    void render(OpenGLRenderer &renderer) const;
 
     void update();
 

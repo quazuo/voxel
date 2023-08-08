@@ -1,6 +1,5 @@
 #include "chunk.h"
 
-#include <libnoise/noise.h>
 #include <iostream>
 
 #include "src/render/renderer.h"
@@ -8,8 +7,35 @@
 
 void Chunk::load() {
     _isLoaded = true;
+
     // todo - check if is stored on the disk and if it is, load it, otherwise generate terrain for it
     // todo - ^ this should probably be done in the chunk manager
+
+    noise::module::Perlin noiseModule;
+    noiseutils::NoiseMap heightMap;
+    noiseutils::NoiseMapBuilderPlane heightMapBuilder;
+    heightMapBuilder.SetSourceModule(noiseModule);
+    heightMapBuilder.SetDestNoiseMap(heightMap);
+    heightMapBuilder.SetDestSize(CHUNK_SIZE, CHUNK_SIZE);
+    heightMapBuilder.SetBounds(pos.x, pos.x + 1.0, pos.z, pos.z + 1.0);
+    heightMapBuilder.Build();
+
+    // remove some blocks to see what it looks like without them
+    for (int x = 0; x < CHUNK_SIZE; x++) {
+        for (int z = 0; z < CHUNK_SIZE; z++) {
+            float height = (float) CHUNK_SIZE / 2 + std::clamp(
+                heightMap.GetValue(x, z) * CHUNK_SIZE,
+                (float) -CHUNK_SIZE / 2 + 1,
+                (float) CHUNK_SIZE / 2
+            );
+
+            for (int y = 0; y < CHUNK_SIZE; y++) {
+                blocks[x][y][z].blockType = y < height
+                                            ? EBlockType::BlockType_Grass
+                                            : EBlockType::BlockType_None;
+            }
+        }
+    }
 }
 
 void Chunk::unload() {
@@ -22,37 +48,8 @@ void Chunk::updateBlock(int x, int y, int z, EBlockType type) {
 }
 
 void Chunk::render(OpenGLRenderer &renderer) {
-//    auto [x, y, z] = pos;
-//    renderer->translateWorldMatrix(x, y, z);
-
     if (isDirty) {
-        noise::module::Perlin noiseModule;
-        noiseutils::NoiseMap heightMap;
-        noiseutils::NoiseMapBuilderPlane heightMapBuilder;
-        heightMapBuilder.SetSourceModule(noiseModule);
-        heightMapBuilder.SetDestNoiseMap(heightMap);
-        heightMapBuilder.SetDestSize(CHUNK_SIZE, CHUNK_SIZE);
-        heightMapBuilder.SetBounds(pos.x, pos.x + 2.0, pos.z, pos.z + 2.0);
-        heightMapBuilder.Build();
-
-        // remove some blocks to see what it looks like without them
-        for (int x = 0; x < CHUNK_SIZE; x++) {
-            for (int z = 0; z < CHUNK_SIZE; z++) {
-                float height = (float) CHUNK_SIZE / 2 + std::clamp(
-                    heightMap.GetValue(x, z) * CHUNK_SIZE,
-                    (float) -CHUNK_SIZE / 2 + 1,
-                    (float) CHUNK_SIZE / 2
-                );
-
-                for (int y = 0; y < CHUNK_SIZE; y++) {
-                    blocks[x][y][z].blockType = y < height
-                        ? EBlockType::BlockType_Grass
-                        : EBlockType::BlockType_None;
-                }
-            }
-        }
-
-        createMesh(renderer);
+        createMesh();
         isDirty = false;
     }
 
@@ -61,10 +58,9 @@ void Chunk::render(OpenGLRenderer &renderer) {
     }
 }
 
-void Chunk::createMesh(OpenGLRenderer &renderer) {
-    (void) renderer; // it's unused for now
-
+void Chunk::createMesh() {
     meshContext = std::make_shared<MeshContext>(MeshContext());
+    meshContext->modelTranslate = pos * CHUNK_SIZE;
 
     for (int x = 0; x < CHUNK_SIZE; x++) {
         for (int y = 0; y < CHUNK_SIZE; y++) {

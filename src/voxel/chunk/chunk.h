@@ -8,6 +8,10 @@
 
 class Chunk {
 public:
+    Chunk() = default;
+
+    explicit Chunk(Vec3 p) : pos(p) {}
+
     static constexpr int CHUNK_SIZE = 16;
 
     void load();
@@ -37,14 +41,11 @@ private:
 
     std::array<std::array<std::array<Block, CHUNK_SIZE>, CHUNK_SIZE>, CHUNK_SIZE> blocks;
 
-    void createMesh(OpenGLRenderer &renderer);
+    void createMesh();
 
     void createCube(int x, int y, int z);
 
     void createFace(Vec3 v1, Vec3 v2, Vec3 v3, Vec3 v4, Vec2 uvOffset, Vec3 normal);
-
-    [[nodiscard]]
-    bool hasInactiveNeighbor(int x, int y, int z) const;
 };
 
 #endif //MYGE_CHUNK_H
