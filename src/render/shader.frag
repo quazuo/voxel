@@ -11,9 +11,15 @@ in vec3 LightDirection_cameraspace;
 out vec3 color;
 
 // Values that stay constant for the whole mesh.
-uniform sampler2D textureSampler;
+uniform sampler2D texSampler[2];
 uniform mat4 MV;
 uniform vec3 LightPosition_worldspace;
+
+vec3 getTexSample(int texID, vec2 localUV) {
+    if (texID == 0)
+        return texture(texSampler[0], localUV).rgb;
+    return texture(texSampler[1], localUV).rgb;
+}
 
 void main() {
     // Light emission properties
@@ -21,10 +27,14 @@ void main() {
     vec3 LightColor = vec3(1);
     float LightPower = 50.0f;
 
+    int texID = int(UV.x);
+    vec2 localUV = UV;
+    localUV.x -= texID;
+
     // Material properties
-    vec3 MaterialDiffuseColor = texture(textureSampler, UV).rgb;
+    vec3 MaterialDiffuseColor = getTexSample(texID, localUV);
     vec3 MaterialAmbientColor = vec3(0.1) * MaterialDiffuseColor;
-    vec3 MaterialSpecularColor = vec3(0.3);
+    vec3 MaterialSpecularColor = vec3(0.1);
 
     // Distance to the light
     float distance = length(LightPosition_worldspace - Position_worldspace);
@@ -50,7 +60,7 @@ void main() {
     //  - Looking elsewhere => less than 1
     float cosAlpha = clamp(dot(E, R), 0, 1);
 
-    color = MaterialDiffuseColor;
+    color = //MaterialDiffuseColor + MaterialAmbientColor * 0.1;
         // Ambient : simulates indirect lighting
         MaterialAmbientColor +
         // Diffuse : "color" of the object

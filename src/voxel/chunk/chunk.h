@@ -28,7 +28,7 @@ public:
 
     void updateBlock(int x, int y, int z, EBlockType type);
 
-    void markDirty() { isDirty = true; }
+    void markDirty() { _isDirty = true; }
 
 private:
     Vec3 pos;
@@ -37,7 +37,7 @@ private:
     bool isMesh = false;
 
     bool _isLoaded = false;
-    bool isDirty = true;
+    bool _isDirty = true;
 
     std::array<std::array<std::array<Block, CHUNK_SIZE>, CHUNK_SIZE>, CHUNK_SIZE> blocks;
 
@@ -45,7 +45,7 @@ private:
 
     void createCube(int x, int y, int z);
 
-    void createFace(Vec3 v1, Vec3 v2, Vec3 v3, Vec3 v4, Vec2 uvOffset, Vec3 normal);
+    void createFace(Vec3 v1, Vec3 v2, Vec3 v3, Vec3 v4, Vec2 uvOffset, Vec3 normal, EBlockType blockType);
 };
 
 #endif //MYGE_CHUNK_H

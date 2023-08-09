@@ -5,24 +5,15 @@
 #include <GLFW/glfw3.h>
 
 #include "render/renderer.h"
-#include "src/voxel/chunk/chunk.h"
 #include "src/voxel/chunk/chunk-manager.h"
 
 class VEngine {
-    std::shared_ptr<OpenGLRenderer> renderer;
-    std::shared_ptr<ChunkManager> chunkManager;
-
-    // todo - placeholder just to check if one chunk renders
-    std::vector<Chunk> chunks;
+    std::shared_ptr<OpenGLRenderer> renderer = std::make_shared<OpenGLRenderer>();
+    std::shared_ptr<ChunkManager> chunkManager = std::make_shared<ChunkManager>();
 
     float lastTime = 0.f;
 
 public:
-    VEngine() {
-        renderer = std::make_shared<OpenGLRenderer>();
-        chunkManager = std::make_shared<ChunkManager>();
-    }
-
     void init() {
         renderer->init();
     }

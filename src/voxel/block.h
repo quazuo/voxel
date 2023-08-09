@@ -3,10 +3,10 @@
 
 #include "src/utils/vec.h"
 
-enum class EBlockType : std::uint8_t {
+enum EBlockType : std::uint8_t {
     BlockType_None,
-    BlockType_Stone,
     BlockType_Grass,
+    BlockType_Dirt,
     BlockType_NumTypes
 };
 
@@ -16,7 +16,7 @@ public:
 
     explicit Block(EBlockType type) : blockType(type) {}
 
-    EBlockType blockType = EBlockType::BlockType_Stone;
+    EBlockType blockType = EBlockType::BlockType_Grass;
 
     static constexpr double RENDER_SIZE = .5;
 

@@ -6,11 +6,9 @@
 #include "block.h"
 
 class WorldGen {
-    noise::module::Perlin noiseModule;
-
 public:
     [[nodiscard]]
-    float getHeight(Vec3 chunkPos, int blockX, int blockZ) const;
+    static float getHeight(Vec3 chunkPos, int blockX, int blockZ);
 };
 
 #endif //VOXEL_WORLD_GEN_H

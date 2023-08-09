@@ -11,6 +11,7 @@
 
 #include "src/voxel/chunk/chunk.h"
 #include "src/utils/vec.h"
+#include "texture-manager.h"
 
 struct PackedVertex {
     Vec3 position;
@@ -79,6 +80,8 @@ private:
 class OpenGLRenderer {
     struct GLFWwindow *window = nullptr;
 
+    std::shared_ptr<class TextureManager> texManager = std::make_shared<TextureManager>();
+
     bool isInit = false;
 
     Vec3 cameraPos{};
@@ -86,10 +89,8 @@ class OpenGLRenderer {
 
     // OpenGL handles for various objects
     GLuint vertexArrayID{};
-    GLuint vertexBufferID{}, uvBufferID{}, normalBufferID{}, elementBufferID{};
     GLuint programID{};
     GLint mvpMatrixID{}, modelMatrixID{}, viewMatrixID{}, projectionMatrixID{};
-    GLuint textureID{}, textureSamplerID{};
     GLint lightID{};
 
 public:
@@ -109,8 +110,7 @@ public:
 private:
     void loadShaders(const std::filesystem::path &vertexShaderPath, const std::filesystem::path &fragmentShaderPath);
 
-    // todo - move this to a separate texture map class or smth like that
-    void loadTextureDDS(const std::filesystem::path &path);
+    void loadTextures() const;
 
     void tickUserInputs(float deltaTime);
 };
