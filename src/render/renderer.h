@@ -12,6 +12,7 @@
 #include "src/voxel/chunk/chunk.h"
 #include "src/utils/vec.h"
 #include "texture-manager.h"
+#include "glm/ext/matrix_float4x4.hpp"
 
 struct PackedVertex {
     Vec3 position;
@@ -89,7 +90,8 @@ class OpenGLRenderer {
 
     // OpenGL handles for various objects
     GLuint vertexArrayID{};
-    GLuint programID{};
+    GLuint cubeShaderID{}, lineShaderID{};
+    GLuint lineVertexArrayID{};
     GLint mvpMatrixID{}, modelMatrixID{}, viewMatrixID{}, projectionMatrixID{};
     GLint lightID{};
 
@@ -105,14 +107,16 @@ public:
     [[nodiscard]]
     inline GLFWwindow *getWindow() const { return window; }
 
-    void renderMesh(const MeshContext &ctx);
+    void renderChunk(const MeshContext &ctx);
 
 private:
-    void loadShaders(const std::filesystem::path &vertexShaderPath, const std::filesystem::path &fragmentShaderPath);
+    GLuint loadShaders(const std::filesystem::path &vertexShaderPath, const std::filesystem::path &fragmentShaderPath);
 
     void loadTextures() const;
 
     void tickUserInputs(float deltaTime);
+
+    void renderLine(Vec3 start, Vec3 end, glm::mat4 mvpMatrix) const;
 };
 
 #endif //MYGE_RENDERER_H

@@ -65,35 +65,18 @@ void MeshContext::initBuffers() {
     glGenBuffers(1, &normalBufferID);
     glGenBuffers(1, &elementBufferID);
 
-    // 1st attribute buffer: vertices
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferID);
-    glVertexAttribPointer(
-        0,              // attribute
-        3,              // size
-        GL_FLOAT,       // type
-        GL_FALSE,       // normalized?
-        0,              // stride
-        nullptr         // array buffer offset
-    );
-
-    // 2nd attribute buffer: UVs
-    glBindBuffer(GL_ARRAY_BUFFER, uvBufferID);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
-
-    // 3rd attribute buffer: normals
-    glBindBuffer(GL_ARRAY_BUFFER, normalBufferID);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-
-    // initialize the buffers
     size_t bufferSize = USHRT_MAX / 2;
 
     glBindBuffer(GL_ARRAY_BUFFER, vertexBufferID);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glBufferData(GL_ARRAY_BUFFER, bufferSize * sizeof(glm::vec3), nullptr, GL_STATIC_DRAW);
 
     glBindBuffer(GL_ARRAY_BUFFER, uvBufferID);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
     glBufferData(GL_ARRAY_BUFFER, bufferSize * sizeof(glm::vec2), nullptr, GL_STATIC_DRAW);
 
     glBindBuffer(GL_ARRAY_BUFFER, normalBufferID);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glBufferData(GL_ARRAY_BUFFER, bufferSize * sizeof(glm::vec3), nullptr, GL_STATIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBufferID);
@@ -179,21 +162,26 @@ void OpenGLRenderer::init() {
     glBindVertexArray(vertexArrayID);
 
     // Create and compile our GLSL program from the shaders
-    std::filesystem::path vertexShaderPath = "shader.vert";
-    std::filesystem::path fragmentShaderPath = "shader.frag";
-    loadShaders(vertexShaderPath, fragmentShaderPath);
-    glUseProgram(programID);
+    cubeShaderID = loadShaders("cube-shader.vert", "cube-shader.frag");
+    lineShaderID = loadShaders("line-shader.vert", "line-shader.frag");
+    glUseProgram(cubeShaderID);
 
     // Get a handle for our "MVP" uniform
-    mvpMatrixID = glGetUniformLocation(programID, "MVP");
-    modelMatrixID = glGetUniformLocation(programID, "M");
-    viewMatrixID = glGetUniformLocation(programID, "V");
-    projectionMatrixID = glGetUniformLocation(programID, "P");
+    mvpMatrixID = glGetUniformLocation(cubeShaderID, "MVP");
+    modelMatrixID = glGetUniformLocation(cubeShaderID, "M");
+    viewMatrixID = glGetUniformLocation(cubeShaderID, "V");
+    projectionMatrixID = glGetUniformLocation(cubeShaderID, "P");
 
     loadTextures();
 
     // Get a handle for our "LightPosition" uniform
-    lightID = glGetUniformLocation(programID, "LightPosition_worldspace");
+    lightID = glGetUniformLocation(cubeShaderID, "LightPosition_worldspace");
+
+    // generate buffer for line vertices and allocate it beforehand
+    glGenBuffers(1, &lineVertexArrayID);
+    glBindBuffer(GL_ARRAY_BUFFER, lineVertexArrayID);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+    glBufferData(GL_ARRAY_BUFFER, 2 * sizeof(glm::vec3), nullptr, GL_STATIC_DRAW);
 
     isInit = true;
 }
@@ -202,8 +190,8 @@ void OpenGLRenderer::tick(float deltaTime) {
     tickUserInputs(deltaTime);
 }
 
-void OpenGLRenderer::loadShaders(const std::filesystem::path &vertexShaderPath,
-                                 const std::filesystem::path &fragmentShaderPath) {
+GLuint OpenGLRenderer::loadShaders(const std::filesystem::path &vertexShaderPath,
+                                   const std::filesystem::path &fragmentShaderPath) {
     // Create the shaders
     GLuint vertexShaderID = glCreateShader(GL_VERTEX_SHADER);
     GLuint fragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
@@ -266,25 +254,27 @@ void OpenGLRenderer::loadShaders(const std::filesystem::path &vertexShaderPath,
 
     // Link the program
     std::cout << "Linking program\n";
-    programID = glCreateProgram();
-    glAttachShader(programID, vertexShaderID);
-    glAttachShader(programID, fragmentShaderID);
-    glLinkProgram(programID);
+    GLuint shaderID = glCreateProgram();
+    glAttachShader(shaderID, vertexShaderID);
+    glAttachShader(shaderID, fragmentShaderID);
+    glLinkProgram(shaderID);
 
     // Check the program
-    glGetProgramiv(programID, GL_LINK_STATUS, &Result);
-    glGetProgramiv(programID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+    glGetProgramiv(shaderID, GL_LINK_STATUS, &Result);
+    glGetProgramiv(shaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
     if (InfoLogLength > 0) {
         std::vector<char> ProgramErrorMessage(InfoLogLength + 1);
-        glGetProgramInfoLog(programID, InfoLogLength, nullptr, &ProgramErrorMessage[0]);
+        glGetProgramInfoLog(shaderID, InfoLogLength, nullptr, &ProgramErrorMessage[0]);
         printf("%s\n", &ProgramErrorMessage[0]);
     }
 
-    glDetachShader(programID, vertexShaderID);
-    glDetachShader(programID, fragmentShaderID);
+    glDetachShader(shaderID, vertexShaderID);
+    glDetachShader(shaderID, fragmentShaderID);
 
     glDeleteShader(vertexShaderID);
     glDeleteShader(fragmentShaderID);
+
+    return shaderID;
 }
 
 void OpenGLRenderer::startRendering() {
@@ -294,8 +284,10 @@ void OpenGLRenderer::startRendering() {
     glUniform3f(lightID, lightPos.x, lightPos.y, lightPos.z);
 }
 
-void OpenGLRenderer::renderMesh(const MeshContext &ctx) {
+void OpenGLRenderer::renderChunk(const MeshContext &ctx) {
     const IndexedMeshData &indexedData = ctx.getIndexedData();
+
+    glUseProgram(cubeShaderID);
 
     // make buffers
     if (ctx.isFreshlyUpdated) {
@@ -342,22 +334,12 @@ void OpenGLRenderer::renderMesh(const MeshContext &ctx) {
     glUniformMatrix4fv(viewMatrixID, 1, GL_FALSE, &viewMatrix[0][0]);
     glUniformMatrix4fv(projectionMatrixID, 1, GL_FALSE, &projectionMatrix[0][0]);
 
-    // 1st attribute buffer: vertices
     glBindBuffer(GL_ARRAY_BUFFER, ctx.getBufferID(MeshContext::EBufferType::Vertex));
-    glVertexAttribPointer(
-        0,              // attribute
-        3,              // size
-        GL_FLOAT,       // type
-        GL_FALSE,       // normalized?
-        0,              // stride
-        nullptr         // array buffer offset
-    );
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
-    // 2nd attribute buffer: UVs
     glBindBuffer(GL_ARRAY_BUFFER, ctx.getBufferID(MeshContext::EBufferType::UV));
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
 
-    // 3rd attribute buffer: normals
     glBindBuffer(GL_ARRAY_BUFFER, ctx.getBufferID(MeshContext::EBufferType::Normal));
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
@@ -367,18 +349,60 @@ void OpenGLRenderer::renderMesh(const MeshContext &ctx) {
 
     // index buffer
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ctx.getBufferID(MeshContext::EBufferType::Element));
-
-    // draw the triangles
-    glDrawElements(
-        GL_TRIANGLES,                       // mode
-        indexedData.indices.size(),         // count
-        GL_UNSIGNED_SHORT,                  // type
-        nullptr                             // element array buffer offset
-    );
+    glDrawElements(GL_TRIANGLES, indexedData.indices.size(), GL_UNSIGNED_SHORT, nullptr);
 
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
     glDisableVertexAttribArray(2);
+
+    // draw cube outline around the chunk
+    const Vec3 offset = {-Block::RENDER_SIZE, -Block::RENDER_SIZE, -Block::RENDER_SIZE};
+    const double len = Chunk::CHUNK_SIZE;
+    Vec3 v = {0, 0, 0};
+    renderLine(v + offset, v + Vec3(len, 0, 0) + offset, mvpMatrix);
+    v += {0, len, 0};
+    renderLine(v + offset, v + Vec3(len, 0, 0) + offset, mvpMatrix);
+    v += {0, 0, len};
+    renderLine(v + offset, v + Vec3(len, 0, 0) + offset, mvpMatrix);
+    v -= {0, len, 0};
+    renderLine(v + offset, v + Vec3(len, 0, 0) + offset, mvpMatrix);
+
+    v = {0, 0, 0};
+    renderLine(v + offset, v + Vec3(0, len, 0) + offset, mvpMatrix);
+    v += {len, 0, 0};
+    renderLine(v + offset, v + Vec3(0, len, 0) + offset, mvpMatrix);
+    v += {0, 0, len};
+    renderLine(v + offset, v + Vec3(0, len, 0) + offset, mvpMatrix);
+    v -= {len, 0, 0};
+    renderLine(v + offset, v + Vec3(0, len, 0) + offset, mvpMatrix);
+
+    v = {0, 0, 0};
+    renderLine(v + offset, v + Vec3(0, 0, len) + offset, mvpMatrix);
+    v += {len, 0, 0};
+    renderLine(v + offset, v + Vec3(0, 0, len) + offset, mvpMatrix);
+    v += {0, len, 0};
+    renderLine(v + offset, v + Vec3(0, 0, len) + offset, mvpMatrix);
+    v -= {len, 0, 0};
+    renderLine(v + offset, v + Vec3(0, 0, len) + offset, mvpMatrix);
+}
+
+void OpenGLRenderer::renderLine(Vec3 start, Vec3 end, glm::mat4 mvpMatrix) const {
+    glUseProgram(lineShaderID);
+
+    const glm::vec3 lineVertices[2] = {start.toGlm(), end.toGlm()};
+
+    glBindBuffer(GL_ARRAY_BUFFER, lineVertexArrayID);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, 2 * sizeof(glm::vec3), lineVertices);
+
+    glUniformMatrix4fv(mvpMatrixID, 1, GL_FALSE, &mvpMatrix[0][0]);
+
+    glEnableVertexAttribArray(3);
+
+    glDrawArrays(GL_LINES, 0, 2);
+
+    glDisableVertexAttribArray(3);
+
+    glUseProgram(cubeShaderID);
 }
 
 void OpenGLRenderer::finishRendering() {
@@ -446,5 +470,5 @@ void OpenGLRenderer::tickUserInputs(float deltaTime) {
 void OpenGLRenderer::loadTextures() const {
     texManager->loadTexture(EBlockType::BlockType_Grass, "grass.dds");
     texManager->loadTexture(EBlockType::BlockType_Dirt, "dirt.dds");
-    texManager->bindTextures(programID);
+    texManager->bindTextures(cubeShaderID);
 }

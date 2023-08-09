@@ -4,6 +4,7 @@
 #include <vector>
 #include <array>
 #include <memory>
+#include <map>
 #include "chunk.h"
 
 class ChunkManager {
@@ -24,11 +25,16 @@ class ChunkManager {
     // list of chunks that should be rendered
     std::vector<ChunkPtr> renderChunks;
 
+    // mapping of (x,y,z) triples (chunk positions) to currently loaded chunks
+    std::map<std::pair<int, int>, ChunkPtr> loadedChunks;
+
+    std::shared_ptr<OpenGLRenderer> renderer;
+
     static constexpr size_t MAX_CHUNKS_SERVE_PER_PRAME = 4;
     static constexpr size_t RENDER_DISTANCE = 4;
 
 public:
-    ChunkManager() {
+    explicit ChunkManager(const std::shared_ptr<OpenGLRenderer>& rendererPtr) : renderer(rendererPtr) {
         int max = 5;
         int min = -max;
 
@@ -42,7 +48,7 @@ public:
             chunk->load();
     }
 
-    void render(OpenGLRenderer &renderer) const;
+    void render() const;
 
     void update();
 

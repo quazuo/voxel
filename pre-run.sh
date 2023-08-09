@@ -7,7 +7,7 @@ done
 
 for file in src/render/*; do
   fileName=$(basename "$file")
-  if [[ $fileName = "shader."* ]]; then
+  if [[ $fileName = *".frag" || $fileName = *".vert" ]]; then
     cp "$file" cmake-build-debug/"$fileName"
   fi
 done

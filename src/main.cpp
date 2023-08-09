@@ -9,7 +9,7 @@
 
 class VEngine {
     std::shared_ptr<OpenGLRenderer> renderer = std::make_shared<OpenGLRenderer>();
-    std::shared_ptr<ChunkManager> chunkManager = std::make_shared<ChunkManager>();
+    std::shared_ptr<ChunkManager> chunkManager = std::make_shared<ChunkManager>(renderer);
 
     float lastTime = 0.f;
 
@@ -33,7 +33,7 @@ public:
         lastTime = currentTime;
 
         renderer->tick(deltaTime);
-        chunkManager->render(*renderer);
+        chunkManager->render();
     }
 };
 

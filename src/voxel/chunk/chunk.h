@@ -24,7 +24,7 @@ public:
     [[nodiscard]]
     bool isLoaded() const { return _isLoaded; }
 
-    void render(class OpenGLRenderer &renderer);
+    void render(const std::shared_ptr<class OpenGLRenderer>& renderer);
 
     void updateBlock(int x, int y, int z, EBlockType type);
 

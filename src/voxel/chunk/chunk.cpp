@@ -51,14 +51,14 @@ void Chunk::updateBlock(int x, int y, int z, EBlockType type) {
     _isDirty = true;
 }
 
-void Chunk::render(OpenGLRenderer &renderer) {
+void Chunk::render(const std::shared_ptr<OpenGLRenderer>& renderer) {
     if (_isDirty) {
         createMesh();
         _isDirty = false;
     }
 
     if (isMesh) {
-        renderer.renderMesh(*meshContext);
+        renderer->renderChunk(*meshContext);
         meshContext->isFreshlyUpdated = false;
     }
 }

@@ -3,13 +3,13 @@
 #include "src/voxel/chunk/chunk.h"
 
 float WorldGen::getHeight(Vec3 chunkPos, int blockX, int blockZ) {
-    static noise::module::Perlin noiseModule;
+    static const noise::module::Perlin noiseModule;
     noiseutils::NoiseMap heightMap;
     noiseutils::NoiseMapBuilderPlane heightMapBuilder;
+
     heightMapBuilder.SetSourceModule(noiseModule);
     heightMapBuilder.SetDestNoiseMap(heightMap);
     heightMapBuilder.SetDestSize(Chunk::CHUNK_SIZE, Chunk::CHUNK_SIZE);
-
     constexpr double stretchFactor = 0.3;
     heightMapBuilder.SetBounds(
         stretchFactor * chunkPos.x,
@@ -17,7 +17,6 @@ float WorldGen::getHeight(Vec3 chunkPos, int blockX, int blockZ) {
         stretchFactor * chunkPos.z,
         stretchFactor * (chunkPos.z + 1.0)
     );
-
     heightMapBuilder.Build();
 
     return heightMap.GetValue(blockX, blockZ);
