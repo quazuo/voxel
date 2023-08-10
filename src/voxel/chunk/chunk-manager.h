@@ -35,12 +35,14 @@ class ChunkManager {
 
 public:
     explicit ChunkManager(const std::shared_ptr<OpenGLRenderer>& rendererPtr) : renderer(rendererPtr) {
-        int max = 5;
+        int max = 3;
         int min = -max;
 
         for (int x = min; x <= max; x++) {
-            for (int z = min; z <= max; z++) {
-                renderChunks.push_back(std::make_shared<Chunk>(Chunk({(double) x, 0.0, (double) z})));
+            for (int y = min; y <= max; y++) {
+                for (int z = min; z <= max; z++) {
+                    renderChunks.push_back(std::make_shared<Chunk>(Chunk({x, y, z})));
+                }
             }
         }
 

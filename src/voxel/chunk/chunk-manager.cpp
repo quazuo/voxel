@@ -81,9 +81,9 @@ void ChunkManager::updateRenderList() {
         //    continue;
 
         // Check if this chunk is inside the camera frustum
-        double chunkSize = Chunk::CHUNK_SIZE * Block::RENDER_SIZE;
-        double chunkOffset = chunkSize - Block::RENDER_SIZE;
-        Vec3 chunkCenter = chunk->getPos() + Vec3(chunkOffset, chunkOffset, chunkOffset);
+        float chunkSize = Chunk::CHUNK_SIZE * Block::RENDER_SIZE;
+        float chunkOffset = chunkSize - Block::RENDER_SIZE;
+        glm::vec3 chunkCenter = chunk->getPos() + glm::vec3(chunkOffset, chunkOffset, chunkOffset);
 
         (void) chunkCenter;
         //if (renderer->chunkInFrustum(chunkCenter, chunkSize, chunkSize, chunkSize)) {

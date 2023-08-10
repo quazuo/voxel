@@ -1,4 +1,6 @@
 #include "renderer.h"
+#include "src/utils/vec.h"
+#include "mesh-context.h"
 
 #include <stdexcept>
 #include <fstream>
@@ -9,103 +11,6 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-
-/**
- * MeshContext
- */
-
-void MeshContext::addTriangle(PackedVertex &vertex1, PackedVertex &vertex2, PackedVertex &vertex3) {
-    triangles.emplace_back(vertex1, vertex2, vertex3);
-}
-
-void MeshContext::indexVertex(const PackedVertex &vertex, IndexedMeshData &data,
-                              std::map<PackedVertex, unsigned short> &vertexToOutIndex) {
-    int index = -1;
-    auto it = vertexToOutIndex.find(vertex);
-    if (it != vertexToOutIndex.end())
-        index = it->second;
-
-    bool found = index != -1;
-
-    if (found) { // A similar vertex is already in the VBO, use it instead!
-        data.indices.push_back(index);
-
-    } else { // If not, it needs to be added in the output data.
-        data.vertices.push_back(vertex.position.toGlm());
-        data.uvs.push_back(vertex.uv.toGlm());
-        data.normals.push_back(vertex.normal.toGlm());
-        unsigned short newIndex = (unsigned short) data.vertices.size() - 1;
-        data.indices.push_back(newIndex);
-        vertexToOutIndex[vertex] = newIndex;
-    }
-}
-
-/**
- * IndexedMeshData
- */
-
-void MeshContext::makeIndexed() {
-    if (isIndexed)
-        return;
-
-    std::map<PackedVertex, unsigned short> vertexToOutIndex;
-
-    for (const auto &[v1, v2, v3]: triangles) {
-        indexVertex(v1, indexedData, vertexToOutIndex);
-        indexVertex(v2, indexedData, vertexToOutIndex);
-        indexVertex(v3, indexedData, vertexToOutIndex);
-    }
-
-    isIndexed = true;
-}
-
-void MeshContext::initBuffers() {
-    glGenBuffers(1, &vertexBufferID);
-    glGenBuffers(1, &uvBufferID);
-    glGenBuffers(1, &normalBufferID);
-    glGenBuffers(1, &elementBufferID);
-
-    size_t bufferSize = USHRT_MAX / 2;
-
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferID);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-    glBufferData(GL_ARRAY_BUFFER, bufferSize * sizeof(glm::vec3), nullptr, GL_DYNAMIC_DRAW);
-
-    glBindBuffer(GL_ARRAY_BUFFER, uvBufferID);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
-    glBufferData(GL_ARRAY_BUFFER, bufferSize * sizeof(glm::vec2), nullptr, GL_DYNAMIC_DRAW);
-
-    glBindBuffer(GL_ARRAY_BUFFER, normalBufferID);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-    glBufferData(GL_ARRAY_BUFFER, bufferSize * sizeof(glm::vec3), nullptr, GL_DYNAMIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBufferID);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, bufferSize * sizeof(unsigned short), nullptr, GL_DYNAMIC_DRAW);
-}
-
-GLuint MeshContext::getBufferID(MeshContext::EBufferType bufferType) const {
-    switch (bufferType) {
-        case EBufferType::Vertex:
-            return vertexBufferID;
-        case EBufferType::UV:
-            return uvBufferID;
-        case EBufferType::Normal:
-            return normalBufferID;
-        case EBufferType::Element:
-        default:
-            return elementBufferID;
-    }
-}
-
-void MeshContext::freeBuffers() {
-    const size_t nBuffers = 4;
-    const GLuint buffers[nBuffers] = {vertexBufferID, uvBufferID, normalBufferID, elementBufferID};
-    glDeleteBuffers(nBuffers, buffers);
-}
-
-/**
- * OpenGLRenderer
- */
 
 void OpenGLRenderer::init() {
     if (isInit) return;
@@ -189,7 +94,7 @@ void OpenGLRenderer::init() {
 }
 
 void OpenGLRenderer::tick(float deltaTime) {
-    tickUserInputs(deltaTime);
+    camera.tick(window, deltaTime);
 }
 
 GLuint OpenGLRenderer::loadShaders(const std::filesystem::path &vertexShaderPath,
@@ -282,7 +187,7 @@ GLuint OpenGLRenderer::loadShaders(const std::filesystem::path &vertexShaderPath
 void OpenGLRenderer::startRendering() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glm::vec3 lightPos = cameraPos.toGlm();
+    glm::vec3 lightPos = camera.pos;
     glUniform3f(lightID, lightPos.x, lightPos.y, lightPos.z);
 }
 
@@ -311,24 +216,15 @@ void OpenGLRenderer::renderChunk(const MeshContext &ctx) {
     }
 
     glm::vec3 direction(
-        cos(cameraRot.y) * sin(cameraRot.x),
-        sin(cameraRot.y),
-        cos(cameraRot.y) * cos(cameraRot.x)
+        std::cos(camera.rot.y) * std::sin(camera.rot.x),
+        std::sin(camera.rot.y),
+        std::cos(camera.rot.y) * std::cos(camera.rot.x)
     );
 
     // compute MVP matrix and its components
-    glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), ctx.modelTranslate.toGlm());
-    glm::mat4 viewMatrix = glm::lookAt(
-        cameraPos.toGlm(),              // camera's position
-        cameraPos.toGlm() + direction,  // the point at which the camera is looking
-        glm::vec3(0, 1, 0)              // head vector
-    );
-    glm::mat4 projectionMatrix = glm::perspective(
-        glm::radians(80.0f),    // field of view
-        4.0f / 3.0f,            // aspect ratio
-        0.1f,                   // near clipping plane
-        100.0f                  // far clipping plane
-    );
+    glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), ctx.modelTranslate);
+    glm::mat4 viewMatrix = glm::lookAt(camera.pos, camera.pos + direction, glm::vec3(0, 1, 0));
+    glm::mat4 projectionMatrix = glm::perspective(camera.fieldOfView, camera.aspectRatio, camera.zNear, camera.zFar);
     glm::mat4 mvpMatrix = projectionMatrix * viewMatrix * modelMatrix;
 
     glUniformMatrix4fv(mvpMatrixID, 1, GL_FALSE, &mvpMatrix[0][0]);
@@ -358,40 +254,43 @@ void OpenGLRenderer::renderChunk(const MeshContext &ctx) {
     glDisableVertexAttribArray(2);
 
     // draw cube outline around the chunk
-    const Vec3 offset = {-Block::RENDER_SIZE, -Block::RENDER_SIZE, -Block::RENDER_SIZE};
+    if (!doRenderChunkOutlines)
+        return;
+
+    const glm::vec3 offset = {-Block::RENDER_SIZE, -Block::RENDER_SIZE, -Block::RENDER_SIZE};
     const double len = Chunk::CHUNK_SIZE;
-    Vec3 v = {0, 0, 0};
-    renderLine(v + offset, v + Vec3(len, 0, 0) + offset, mvpMatrix);
-    v += {0, len, 0};
-    renderLine(v + offset, v + Vec3(len, 0, 0) + offset, mvpMatrix);
-    v += {0, 0, len};
-    renderLine(v + offset, v + Vec3(len, 0, 0) + offset, mvpMatrix);
-    v -= {0, len, 0};
-    renderLine(v + offset, v + Vec3(len, 0, 0) + offset, mvpMatrix);
+    glm::vec3 v = {0, 0, 0};
+    renderLine(v + offset, v + glm::vec3(len, 0, 0) + offset, mvpMatrix);
+    v += glm::vec3(0, len, 0);
+    renderLine(v + offset, v + glm::vec3(len, 0, 0) + offset, mvpMatrix);
+    v += glm::vec3(0, 0, len);
+    renderLine(v + offset, v + glm::vec3(len, 0, 0) + offset, mvpMatrix);
+    v -= glm::vec3(0, len, 0);
+    renderLine(v + offset, v + glm::vec3(len, 0, 0) + offset, mvpMatrix);
 
     v = {0, 0, 0};
-    renderLine(v + offset, v + Vec3(0, len, 0) + offset, mvpMatrix);
-    v += {len, 0, 0};
-    renderLine(v + offset, v + Vec3(0, len, 0) + offset, mvpMatrix);
-    v += {0, 0, len};
-    renderLine(v + offset, v + Vec3(0, len, 0) + offset, mvpMatrix);
-    v -= {len, 0, 0};
-    renderLine(v + offset, v + Vec3(0, len, 0) + offset, mvpMatrix);
+    renderLine(v + offset, v + glm::vec3(0, len, 0) + offset, mvpMatrix);
+    v += glm::vec3(len, 0, 0);
+    renderLine(v + offset, v + glm::vec3(0, len, 0) + offset, mvpMatrix);
+    v += glm::vec3(0, 0, len);
+    renderLine(v + offset, v + glm::vec3(0, len, 0) + offset, mvpMatrix);
+    v -= glm::vec3(len, 0, 0);
+    renderLine(v + offset, v + glm::vec3(0, len, 0) + offset, mvpMatrix);
 
     v = {0, 0, 0};
-    renderLine(v + offset, v + Vec3(0, 0, len) + offset, mvpMatrix);
-    v += {len, 0, 0};
-    renderLine(v + offset, v + Vec3(0, 0, len) + offset, mvpMatrix);
-    v += {0, len, 0};
-    renderLine(v + offset, v + Vec3(0, 0, len) + offset, mvpMatrix);
-    v -= {len, 0, 0};
-    renderLine(v + offset, v + Vec3(0, 0, len) + offset, mvpMatrix);
+    renderLine(v + offset, v + glm::vec3(0, 0, len) + offset, mvpMatrix);
+    v += glm::vec3(len, 0, 0);
+    renderLine(v + offset, v + glm::vec3(0, 0, len) + offset, mvpMatrix);
+    v += glm::vec3(0, len, 0);
+    renderLine(v + offset, v + glm::vec3(0, 0, len) + offset, mvpMatrix);
+    v -= glm::vec3(len, 0, 0);
+    renderLine(v + offset, v + glm::vec3(0, 0, len) + offset, mvpMatrix);
 }
 
-void OpenGLRenderer::renderLine(Vec3 start, Vec3 end, glm::mat4 mvpMatrix) const {
+void OpenGLRenderer::renderLine(glm::vec3 start, glm::vec3 end, glm::mat4 mvpMatrix) const {
     glUseProgram(lineShaderID);
 
-    const glm::vec3 lineVertices[2] = {start.toGlm(), end.toGlm()};
+    const glm::vec3 lineVertices[2] = {start, end};
 
     glBindBuffer(GL_ARRAY_BUFFER, lineVertexArrayID);
     glBufferData(GL_ARRAY_BUFFER, 2 * sizeof(glm::vec3), lineVertices, GL_STATIC_DRAW);
@@ -412,67 +311,38 @@ void OpenGLRenderer::finishRendering() {
     glfwPollEvents();
 }
 
-void OpenGLRenderer::tickUserInputs(float deltaTime) {
-    const float rotationSpeed = 2.5;
-    const float movementSpeed = 8.0;
-
-    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
-        cameraRot.y = std::clamp(
-            cameraRot.y + (double) (deltaTime * rotationSpeed),
-            -3.14 / 2,
-            3.14 / 2
-        );
-    }
-
-    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-        cameraRot.y = std::clamp(
-            cameraRot.y - (double) (deltaTime * rotationSpeed),
-            -3.14 / 2,
-            3.14 / 2
-        );
-    }
-
-    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
-        cameraRot.x -= (double) (deltaTime * rotationSpeed);
-    }
-
-    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
-        cameraRot.x += (double) (deltaTime * rotationSpeed);
-    }
-
-    glm::vec3 direction(
-        cos(cameraRot.y) * sin(cameraRot.x),
-        sin(cameraRot.y),
-        cos(cameraRot.y) * cos(cameraRot.x)
-    );
-
-    glm::vec3 right = glm::vec3(
-        sin(cameraRot.x - 3.14 / 2.0),
-        0,
-        cos(cameraRot.x - 3.14 / 2.0)
-    );
-
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-        cameraPos += Vec3::fromGlm(direction * deltaTime * movementSpeed); // Move forward
-    }
-
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-        cameraPos -= Vec3::fromGlm(direction * deltaTime * movementSpeed); // Move backward
-    }
-
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-        cameraPos += Vec3::fromGlm(right * deltaTime * movementSpeed); // Strafe right
-    }
-
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-        cameraPos -= Vec3::fromGlm(right * deltaTime * movementSpeed); // Strafe left
-    }
-}
-
 void OpenGLRenderer::loadTextures() const {
     texManager->loadTexture(EBlockType::BlockType_Grass, "grass.dds");
     texManager->loadTexture(EBlockType::BlockType_Dirt, "dirt.dds");
     texManager->bindTextures(cubeShaderID);
+}
+
+void OpenGLRenderer::updateCameraFrustum() {
+    Frustum frustum;
+
+    const float halfVSide = camera.zFar * tanf(camera.fieldOfView * 0.5f);
+    const float halfHSide = halfVSide * camera.aspectRatio;
+    const glm::vec3 frontMultFar = camera.zFar * camera.front;
+
+    frustum.near.normal = camera.front;
+    frustum.near.distance = camera.zNear;
+
+    frustum.far.normal = -camera.front;
+    frustum.far.distance = camera.zFar;
+
+    frustum.right.normal = glm::cross(camera.up, frontMultFar + camera.right * halfHSide);
+    frustum.right.distance = VecUtils::distOriginToPlane(frustum.right.normal, camera.pos);
+
+    frustum.left.normal = glm::cross(frontMultFar - camera.right * halfHSide, camera.up);
+    frustum.left.distance = VecUtils::distOriginToPlane(frustum.left.normal, camera.pos);
+
+    frustum.top.normal = glm::cross(frontMultFar + camera.up * halfVSide, camera.right);
+    frustum.top.distance = VecUtils::distOriginToPlane(frustum.top.normal, camera.pos);
+
+    frustum.bottom.normal = glm::cross(camera.right, frontMultFar - camera.up * halfVSide);
+    frustum.bottom.distance = VecUtils::distOriginToPlane(frustum.bottom.normal, camera.pos);
+
+    camera.frustum = frustum;
 }
 
 void OpenGLRenderer::debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,

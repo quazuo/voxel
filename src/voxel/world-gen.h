@@ -2,13 +2,18 @@
 #define VOXEL_WORLD_GEN_H
 
 #include <libnoise/noise.h>
-#include "src/utils/vec.h"
 #include "block.h"
+#include "deps/noiseutils/noiseutils.h"
+#include "glm/vec3.hpp"
 
 class WorldGen {
+    static noiseutils::NoiseMap heightMap;
+    static glm::vec3 chunkPos;
+
 public:
-    [[nodiscard]]
-    static float getHeight(Vec3 chunkPos, int blockX, int blockZ);
+    static EBlockType getBlockTypeAt(int x, int y, int z);
+
+    static void setChunkGenCtx(glm::vec3 chunkPos);
 };
 
 #endif //VOXEL_WORLD_GEN_H

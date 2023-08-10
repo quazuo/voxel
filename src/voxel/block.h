@@ -1,7 +1,7 @@
 #ifndef MYGE_BLOCK_H
 #define MYGE_BLOCK_H
 
-#include "src/utils/vec.h"
+#include <cstdint>
 
 enum EBlockType : std::uint8_t {
     BlockType_None,
@@ -18,7 +18,7 @@ public:
 
     EBlockType blockType = EBlockType::BlockType_Grass;
 
-    static constexpr double RENDER_SIZE = .5;
+    static constexpr float RENDER_SIZE = .5;
 
     [[nodiscard]]
     bool isNone() const {

@@ -9,8 +9,6 @@
 class TextureManager {
     std::map<EBlockType, GLuint> loadedTextures;
 
-    int nextTextureUnit = 0;
-
 public:
     void loadTexture(EBlockType tex, const std::filesystem::path& path);
 

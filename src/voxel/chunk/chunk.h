@@ -4,13 +4,14 @@
 #include <array>
 #include <memory>
 #include "src/voxel/block.h"
-#include "src/utils/vec.h"
+#include "glm/vec3.hpp"
+#include "glm/vec2.hpp"
 
 class Chunk {
 public:
     Chunk() = default;
 
-    explicit Chunk(Vec3 p) : pos(p) {}
+    explicit Chunk(glm::vec3 p) : pos(p) {}
 
     static constexpr int CHUNK_SIZE = 16;
 
@@ -19,7 +20,7 @@ public:
     void unload();
 
     [[nodiscard]]
-    Vec3 getPos() const { return pos; }
+    glm::vec3 getPos() const { return pos; }
 
     [[nodiscard]]
     bool isLoaded() const { return _isLoaded; }
@@ -31,7 +32,7 @@ public:
     void markDirty() { _isDirty = true; }
 
 private:
-    Vec3 pos;
+    glm::vec3 pos{};
 
     std::shared_ptr<class MeshContext> meshContext;
     bool isMesh = false;
@@ -40,12 +41,13 @@ private:
     bool _isDirty = true;
 
     std::array<std::array<std::array<Block, CHUNK_SIZE>, CHUNK_SIZE>, CHUNK_SIZE> blocks;
+    size_t activeBlockCount = 0;
 
     void createMesh();
 
     void createCube(int x, int y, int z);
 
-    void createFace(Vec3 v1, Vec3 v2, Vec3 v3, Vec3 v4, Vec2 uvOffset, Vec3 normal, EBlockType blockType);
+    void createFace(glm::vec3 v1, glm::vec3 v2, glm::vec3 v3, glm::vec3 v4, glm::vec2 uvOffset, glm::vec3 normal, EBlockType blockType);
 };
 
 #endif //MYGE_CHUNK_H
