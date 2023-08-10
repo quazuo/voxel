@@ -57,7 +57,7 @@ public:
     void makeIndexed();
 
     [[nodiscard]]
-    const IndexedMeshData& getIndexedData() const { return indexedData; }
+    const IndexedMeshData &getIndexedData() const { return indexedData; }
 
     void initBuffers();
 
@@ -117,6 +117,9 @@ private:
     void tickUserInputs(float deltaTime);
 
     void renderLine(Vec3 start, Vec3 end, glm::mat4 mvpMatrix) const;
+
+    static void debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
+                              const GLchar *message, const void *userParam);
 };
 
 #endif //MYGE_RENDERER_H

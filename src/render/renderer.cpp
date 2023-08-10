@@ -69,18 +69,18 @@ void MeshContext::initBuffers() {
 
     glBindBuffer(GL_ARRAY_BUFFER, vertexBufferID);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-    glBufferData(GL_ARRAY_BUFFER, bufferSize * sizeof(glm::vec3), nullptr, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, bufferSize * sizeof(glm::vec3), nullptr, GL_DYNAMIC_DRAW);
 
     glBindBuffer(GL_ARRAY_BUFFER, uvBufferID);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
-    glBufferData(GL_ARRAY_BUFFER, bufferSize * sizeof(glm::vec2), nullptr, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, bufferSize * sizeof(glm::vec2), nullptr, GL_DYNAMIC_DRAW);
 
     glBindBuffer(GL_ARRAY_BUFFER, normalBufferID);
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-    glBufferData(GL_ARRAY_BUFFER, bufferSize * sizeof(glm::vec3), nullptr, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, bufferSize * sizeof(glm::vec3), nullptr, GL_DYNAMIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBufferID);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, bufferSize * sizeof(unsigned short), nullptr, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, bufferSize * sizeof(unsigned short), nullptr, GL_DYNAMIC_DRAW);
 }
 
 GLuint MeshContext::getBufferID(MeshContext::EBufferType bufferType) const {
@@ -158,6 +158,9 @@ void OpenGLRenderer::init() {
     // Cull triangles which normal is not towards the camera
     glEnable(GL_CULL_FACE);
 
+    glEnable(GL_DEBUG_OUTPUT);
+    glDebugMessageCallback(debugCallback, nullptr);
+
     glGenVertexArrays(1, &vertexArrayID);
     glBindVertexArray(vertexArrayID);
 
@@ -181,7 +184,6 @@ void OpenGLRenderer::init() {
     glGenBuffers(1, &lineVertexArrayID);
     glBindBuffer(GL_ARRAY_BUFFER, lineVertexArrayID);
     glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-    glBufferData(GL_ARRAY_BUFFER, 2 * sizeof(glm::vec3), nullptr, GL_STATIC_DRAW);
 
     isInit = true;
 }
@@ -392,7 +394,7 @@ void OpenGLRenderer::renderLine(Vec3 start, Vec3 end, glm::mat4 mvpMatrix) const
     const glm::vec3 lineVertices[2] = {start.toGlm(), end.toGlm()};
 
     glBindBuffer(GL_ARRAY_BUFFER, lineVertexArrayID);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, 2 * sizeof(glm::vec3), lineVertices);
+    glBufferData(GL_ARRAY_BUFFER, 2 * sizeof(glm::vec3), lineVertices, GL_STATIC_DRAW);
 
     glUniformMatrix4fv(mvpMatrixID, 1, GL_FALSE, &mvpMatrix[0][0]);
 
@@ -471,4 +473,91 @@ void OpenGLRenderer::loadTextures() const {
     texManager->loadTexture(EBlockType::BlockType_Grass, "grass.dds");
     texManager->loadTexture(EBlockType::BlockType_Dirt, "dirt.dds");
     texManager->bindTextures(cubeShaderID);
+}
+
+void OpenGLRenderer::debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
+                                   const GLchar *message, const void *userParam) {
+    (void) userParam;
+    (void) length;
+
+    std::cout << "ERROR!\nsource: ";
+
+    switch (source) {
+        case GL_DEBUG_SOURCE_API:
+            std::cout << "GL_DEBUG_SOURCE_API";
+            break;
+        case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+            std::cout << "GL_DEBUG_SOURCE_WINDOW_SYSTEM";
+            break;
+        case GL_DEBUG_SOURCE_SHADER_COMPILER:
+            std::cout << "GL_DEBUG_SOURCE_SHADER_COMPILER";
+            break;
+        case GL_DEBUG_SOURCE_THIRD_PARTY:
+            std::cout << "GL_DEBUG_SOURCE_THIRD_PARTY";
+            break;
+        case GL_DEBUG_SOURCE_APPLICATION:
+            std::cout << "GL_DEBUG_SOURCE_APPLICATION";
+            break;
+        case GL_DEBUG_SOURCE_OTHER:
+            std::cout << "GL_DEBUG_SOURCE_OTHER";
+            break;
+        default:
+            break;
+    }
+
+    std::cout << "\ntype:";
+
+    switch (type) {
+        case GL_DEBUG_TYPE_ERROR:
+            std::cout << "GL_DEBUG_TYPE_ERROR";
+            break;
+        case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+            std::cout << "GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR";
+            break;
+        case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+            std::cout << "GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR";
+            break;
+        case GL_DEBUG_TYPE_PORTABILITY:
+            std::cout << "GL_DEBUG_TYPE_PORTABILITY";
+            break;
+        case GL_DEBUG_TYPE_PERFORMANCE:
+            std::cout << "GL_DEBUG_TYPE_PERFORMANCE";
+            break;
+        case GL_DEBUG_TYPE_MARKER:
+            std::cout << "GL_DEBUG_TYPE_MARKER";
+            break;
+        case GL_DEBUG_TYPE_PUSH_GROUP:
+            std::cout << "GL_DEBUG_TYPE_PUSH_GROUP";
+            break;
+        case GL_DEBUG_TYPE_POP_GROUP:
+            std::cout << "GL_DEBUG_TYPE_POP_GROUP";
+            break;
+        case GL_DEBUG_TYPE_OTHER:
+            std::cout << "GL_DEBUG_TYPE_OTHER";
+            break;
+        default:
+            break;
+    }
+
+    std::cout << "\nid: " << id;
+    std::cout << "\nseverity:";
+
+    switch (severity) {
+        case GL_DEBUG_SEVERITY_HIGH:
+            std::cout << "GL_DEBUG_SEVERITY_HIGH";
+            break;
+        case GL_DEBUG_SEVERITY_MEDIUM:
+            std::cout << "GL_DEBUG_SEVERITY_MEDIUM";
+            break;
+        case GL_DEBUG_SEVERITY_LOW:
+            std::cout << "GL_DEBUG_SEVERITY_LOW";
+            break;
+        case GL_DEBUG_SEVERITY_NOTIFICATION:
+            std::cout << "GL_DEBUG_SEVERITY_NOTIFICATION";
+            break;
+        default:
+            break;
+    }
+
+    std::cout << "\nmessage: " << message << "\n\n";
 }
