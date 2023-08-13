@@ -22,8 +22,6 @@ class OpenGLRenderer {
 
     bool isInit = false;
 
-    bool doRenderChunkOutlines = true;
-
     Camera camera{};
 
     // OpenGL handles for various objects
@@ -33,30 +31,39 @@ class OpenGLRenderer {
     GLint mvpMatrixID{}, modelMatrixID{}, viewMatrixID{}, projectionMatrixID{};
     GLint lightID{};
 
+    // cached view and projection matrices for the current render tick
+    // model matrix can't be cached because it's different for each chunk
+    glm::mat4 viewMatrix, projectionMatrix;
+
 public:
     void init();
 
     void tick(float deltaTime);
 
+    // should be called before any rendering
     void startRendering();
 
+    // should be called after all rendering in the current tick has been finished
     void finishRendering();
 
     [[nodiscard]]
     inline GLFWwindow *getWindow() const { return window; }
 
+    [[nodiscard]]
+    bool isChunkInFrustum(const Chunk& chunk) const;
+
     void renderChunk(const MeshContext &ctx);
 
+    void renderChunkOutline(glm::vec3 chunkPos, glm::vec3 color) const;
+
 private:
+    void renderOutline(const std::vector<glm::vec3> &vertices, const glm::mat4& mvpMatrix, glm::vec3 color) const;
+
+    void renderFrustumOutline() const;
+
     GLuint loadShaders(const std::filesystem::path &vertexShaderPath, const std::filesystem::path &fragmentShaderPath);
 
     void loadTextures() const;
-
-    void tickUserInputs(float deltaTime);
-
-    void renderLine(glm::vec3 start, glm::vec3 end, glm::mat4 mvpMatrix) const;
-
-    void updateCameraFrustum();
 
     static void debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
                               const GLchar *message, const void *userParam);

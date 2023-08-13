@@ -3,8 +3,10 @@
 
 #include <cstdint>
 
+// this is *purposefully* not an enum class, as we want to use the underlying numeric values
+// to also index into texture samplers inside the cube fragment shader
 enum EBlockType : std::uint8_t {
-    BlockType_None,
+    BlockType_None = 0,
     BlockType_Grass,
     BlockType_Dirt,
     BlockType_NumTypes
@@ -18,7 +20,7 @@ public:
 
     EBlockType blockType = EBlockType::BlockType_Grass;
 
-    static constexpr float RENDER_SIZE = .5;
+    static constexpr float RENDER_SIZE = 1.0f;
 
     [[nodiscard]]
     bool isNone() const {

@@ -2,6 +2,8 @@
 
 out vec3 color;
 
+in vec3 lineColor;
+
 void main() {
-    color = vec3(1.0, 0.0, 0.0);
+    color = lineColor;
 }

@@ -16,9 +16,6 @@ class ChunkManager {
     // list of chunks that are waiting to be unloaded
     std::vector<ChunkPtr> unloadChunks;
 
-    // list of chunks that are waiting to have their mesh rebuilt
-    std::vector<ChunkPtr> rebuildChunks;
-
     // list of chunks that are relevant, i.e. close enough to the camera to be considered for rendering
     std::vector<ChunkPtr> relevantChunks;
 
@@ -30,24 +27,22 @@ class ChunkManager {
 
     std::shared_ptr<OpenGLRenderer> renderer;
 
-    static constexpr size_t MAX_CHUNKS_SERVE_PER_PRAME = 4;
-    static constexpr size_t RENDER_DISTANCE = 4;
+    static constexpr size_t MAX_CHUNKS_SERVE_PER_PRAME = 2;
 
 public:
-    explicit ChunkManager(const std::shared_ptr<OpenGLRenderer>& rendererPtr) : renderer(rendererPtr) {
-        int max = 3;
+    explicit ChunkManager(const std::shared_ptr<OpenGLRenderer> &rendererPtr) : renderer(rendererPtr) {
+        int max = 2;
         int min = -max;
 
         for (int x = min; x <= max; x++) {
             for (int y = min; y <= max; y++) {
                 for (int z = min; z <= max; z++) {
-                    renderChunks.push_back(std::make_shared<Chunk>(Chunk({x, y, z})));
+                    const auto newChunk = std::make_shared<Chunk>(glm::vec3(x, y, z));
+                    loadChunks.push_back(newChunk);
+                    relevantChunks.push_back(newChunk);
                 }
             }
         }
-
-        for (auto &chunk: renderChunks)
-            chunk->load();
     }
 
     void render() const;
@@ -59,11 +54,11 @@ private:
 
     void updateUnloadList();
 
-    void updateRebuildList();
-
     void updateRelevantList();
 
     void updateRenderList();
+
+    void renderOutlines() const;
 };
 
 #endif //MYGE_CHUNK_MANAGER_H

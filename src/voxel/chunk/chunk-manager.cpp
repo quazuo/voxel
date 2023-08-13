@@ -5,18 +5,32 @@
 void ChunkManager::render() const {
     renderer->startRendering();
 
-    for (auto &chunk: renderChunks) {
+    for (const ChunkPtr &chunk: renderChunks) {
         chunk->render(renderer);
     }
 
+    renderOutlines();
+
     renderer->finishRendering();
+}
+
+void ChunkManager::renderOutlines() const {
+    const float chunkAbsSize = (float) Chunk::CHUNK_SIZE / Block::RENDER_SIZE;
+
+    for (const ChunkPtr &chunk: relevantChunks) {
+        glm::vec3 color = {1, 1, 0}; // yellow
+        if (std::find(renderChunks.begin(), renderChunks.end(), chunk) == renderChunks.end()) {
+            color = {1, 0, 0}; // red
+        }
+
+        renderer->renderChunkOutline(chunk->getPos() * chunkAbsSize, color);
+    }
 }
 
 void ChunkManager::update() {
     // todo - order?
     updateLoadList();
     updateUnloadList();
-    updateRebuildList();
     updateRelevantList();
     updateRenderList();
 }
@@ -27,41 +41,25 @@ void ChunkManager::updateLoadList() {
     for (const ChunkPtr &chunk: loadChunks) {
         if (!chunk->isLoaded()) {
             chunk->load();
-            rebuildChunks.push_back(chunk);
+            relevantChunks.push_back(chunk);
             nChunksLoaded++;
-            // forceVisibilityUpdate = true;
         }
 
         if (nChunksLoaded == MAX_CHUNKS_SERVE_PER_PRAME)
             break;
     }
 
-    loadChunks.clear();
+    // loadChunks.clear();
 }
 
 void ChunkManager::updateUnloadList() {
     for (const ChunkPtr &chunk: unloadChunks) {
         if (chunk->isLoaded()) {
             chunk->unload();
-            // forceVisibilityUpdate = true;
         }
     }
 
     unloadChunks.clear();
-}
-
-void ChunkManager::updateRebuildList() {
-    int nChunksRebuilt = 0;
-
-    for (auto &chunk: rebuildChunks) {
-        chunk->markDirty();
-        nChunksRebuilt++;
-
-        if (nChunksRebuilt == MAX_CHUNKS_SERVE_PER_PRAME)
-            break;
-    }
-
-    // rebuildChunks.clear()
 }
 
 void ChunkManager::updateRelevantList() {
@@ -69,25 +67,14 @@ void ChunkManager::updateRelevantList() {
 }
 
 void ChunkManager::updateRenderList() {
-    // todo
-
     // clear the render list each frame BEFORE we do our tests to see what chunks should be rendered
     renderChunks.clear();
 
-    for (ChunkPtr &chunk: relevantChunks) {
-        if (!chunk->isLoaded())
+    for (const ChunkPtr &chunk: relevantChunks) {
+        if (!chunk->shouldRender()) // early flags check, so we don't always have to do the frustum check...
             continue;
-        //if (!chunk->shouldRender()) // early flags check, so we don't always have to do the frustum check...
-        //    continue;
-
-        // Check if this chunk is inside the camera frustum
-        float chunkSize = Chunk::CHUNK_SIZE * Block::RENDER_SIZE;
-        float chunkOffset = chunkSize - Block::RENDER_SIZE;
-        glm::vec3 chunkCenter = chunk->getPos() + glm::vec3(chunkOffset, chunkOffset, chunkOffset);
-
-        (void) chunkCenter;
-        //if (renderer->chunkInFrustum(chunkCenter, chunkSize, chunkSize, chunkSize)) {
-        //    renderChunks.push_back(chunk);
-        //}
+        if (!renderer->isChunkInFrustum(*chunk))
+            continue;
+        renderChunks.push_back(chunk);
     }
 }

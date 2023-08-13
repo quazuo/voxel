@@ -33,11 +33,14 @@ public:
         lastTime = currentTime;
 
         renderer->tick(deltaTime);
+        chunkManager->update();
         chunkManager->render();
     }
 };
 
 int main() {
+    std::cout << "abc\n";
+
     VEngine engine;
     engine.init();
     engine.startTicking();

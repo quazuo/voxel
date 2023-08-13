@@ -32,7 +32,15 @@ void Chunk::updateBlock(int x, int y, int z, EBlockType type) {
     _isDirty = true;
 }
 
-void Chunk::render(const std::shared_ptr<OpenGLRenderer>& renderer) {
+bool Chunk::shouldRender() const {
+    if (activeBlockCount == 0)
+        return false;
+    if (!_isLoaded)
+        return false;
+    return true;
+}
+
+void Chunk::render(const std::shared_ptr<OpenGLRenderer> &renderer) {
     if (activeBlockCount == 0)
         return;
 
@@ -71,9 +79,6 @@ void Chunk::createMesh() {
 }
 
 void Chunk::createCube(const int x, const int y, const int z) {
-    glm::vec3 cubeIndexPos = {(double) x, (double) y, (double) z};
-    glm::vec3 cubePos = cubeIndexPos * (float) Block::RENDER_SIZE * 2.0f;
-
     /*
 
     the vertices are numbered as follows:
@@ -90,7 +95,10 @@ void Chunk::createCube(const int x, const int y, const int z) {
 
     */
 
-    const float offset = Block::RENDER_SIZE;
+    glm::vec3 cubeIndexPos = {(double) x, (double) y, (double) z};
+    glm::vec3 cubePos = cubeIndexPos * (float) Block::RENDER_SIZE;
+    const float offset = Block::RENDER_SIZE / 2;
+
     glm::vec3 p1(cubePos.x - offset, cubePos.y - offset, cubePos.z + offset);
     glm::vec3 p2(cubePos.x + offset, cubePos.y - offset, cubePos.z + offset);
     glm::vec3 p3(cubePos.x + offset, cubePos.y + offset, cubePos.z + offset);
@@ -100,50 +108,30 @@ void Chunk::createCube(const int x, const int y, const int z) {
     glm::vec3 p7(cubePos.x - offset, cubePos.y + offset, cubePos.z - offset);
     glm::vec3 p8(cubePos.x + offset, cubePos.y + offset, cubePos.z - offset);
 
-    glm::vec3 normal;
-    glm::vec2 uvOffset;
     EBlockType blockType = blocks[x][y][z].blockType;
 
-    // front
-    if (z == CHUNK_SIZE - 1 || blocks[x][y][z + 1].isNone()) {
-        normal = {0.0, 0.0, 1.0};
-        uvOffset = {0.0, 0.0};
-        createFace(p1, p2, p3, p4, uvOffset, normal, blockType);
+    if (z == CHUNK_SIZE - 1 || blocks[x][y][z + 1].isNone()) { // front
+        createFace(p1, p2, p3, p4, {0.0, 0.0}, {0.0, 0.0, 1.0}, blockType);
     }
 
-    // back
-    if (z == 0 || blocks[x][y][z - 1].isNone()) {
-        normal = {0.0, 0.0, -1.0};
-        uvOffset = {1.0 / 4, 0};
-        createFace(p5, p6, p7, p8, uvOffset, normal, blockType);
+    if (z == 0 || blocks[x][y][z - 1].isNone()) { // back
+        createFace(p5, p6, p7, p8, {1.0 / 4, 0}, {0.0, 0.0, -1.0}, blockType);
     }
 
-    // right
-    if (x == CHUNK_SIZE - 1 || blocks[x + 1][y][z].isNone()) {
-        normal = {1.0, 0.0, 0.0};
-        uvOffset = {2.0 / 4, 0};
-        createFace(p2, p5, p8, p3, uvOffset, normal, blockType);
+    if (x == CHUNK_SIZE - 1 || blocks[x + 1][y][z].isNone()) { // right
+        createFace(p2, p5, p8, p3, {2.0 / 4, 0}, {1.0, 0.0, 0.0}, blockType);
     }
 
-    // left
-    if (x == 0 || blocks[x - 1][y][z].isNone()) {
-        normal = {-1.0, 0.0, 0.0};
-        uvOffset = {3.0 / 4, 0};
-        createFace(p6, p1, p4, p7, uvOffset, normal, blockType);
+    if (x == 0 || blocks[x - 1][y][z].isNone()) { // left
+        createFace(p6, p1, p4, p7, {3.0 / 4, 0}, {-1.0, 0.0, 0.0}, blockType);
     }
 
-    // top
-    if (y == CHUNK_SIZE - 1 || blocks[x][y + 1][z].isNone()) {
-        normal = {0.0, 1.0, 0.0};
-        uvOffset = {0, 1.0 / 4};
-        createFace(p4, p3, p8, p7, uvOffset, normal, blockType);
+    if (y == CHUNK_SIZE - 1 || blocks[x][y + 1][z].isNone()) { // top
+        createFace(p4, p3, p8, p7, {0, 1.0 / 4}, {0.0, 1.0, 0.0}, blockType);
     }
 
-    // bottom
-    if (y == 0 || blocks[x][y - 1][z].isNone()) {
-        normal = {0.0, -1.0, 0.0};
-        uvOffset = {1.0 / 4, 1.0 / 4};
-        createFace(p6, p5, p2, p1, uvOffset, normal, blockType);
+    if (y == 0 || blocks[x][y - 1][z].isNone()) { // bottom
+        createFace(p6, p5, p2, p1, {1.0 / 4, 1.0 / 4}, {0.0, -1.0, 0.0}, blockType);
     }
 }
 
@@ -157,7 +145,11 @@ void Chunk::createFace(const glm::vec3 v1, const glm::vec3 v2, const glm::vec3 v
         {0,       0}
     };
 
-    const glm::vec2 uvTexOffset = {(double) blockType - 1, 0}; // -1 because actual blocks (apart from None) start at 1
+    // this offset is just a way to squeeze in info about which texture the vertex uses without the need
+    // to use more memory. refer to the fragment shader to see how this x coordinate is handled.
+    //
+    // the "-1" is here because actual blocks (non-`BlockType_None`) start at index 1
+    const glm::vec2 uvTexOffset = {(double) blockType - 1, 0};
 
     PackedVertex pv1 = {v1, uvs[0] + uvOffset + uvTexOffset, normal};
     PackedVertex pv2 = {v2, uvs[1] + uvOffset + uvTexOffset, normal};

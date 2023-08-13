@@ -6,10 +6,7 @@
 #include "glm/geometric.hpp"
 
 namespace VecUtils {
-    float distOriginToPlane(glm::vec3 planeNormal, glm::vec3 planePoint);
-
     std::string toString(glm::vec3 vec);
 }
-
 
 #endif //VOXEL_VEC_H

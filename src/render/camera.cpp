@@ -4,6 +4,7 @@
 #include <GLFW/glfw3.h>
 #include "glm/geometric.hpp"
 #include "src/utils/vec.h"
+#include "src/voxel/chunk/chunk.h"
 
 void Camera::tick(struct GLFWwindow *w, float dt) {
     window = w;
@@ -81,23 +82,38 @@ void Camera::updatePos() {
 void Camera::updateFrustum() {
     const float halfVSide = zFar * tanf(fieldOfView * 0.5f);
     const float halfHSide = halfVSide * aspectRatio;
+    const glm::vec3 frontMultNear = zNear * front;
     const glm::vec3 frontMultFar = zFar * front;
 
-    frustum.near.normal = front;
-    frustum.near.distance = zNear;
+    frustum.near = {front, pos + frontMultNear};
+    frustum.far = {-front, pos + frontMultFar};
+    frustum.right = {glm::cross(up, frontMultFar + right * halfHSide), pos};
+    frustum.left = {glm::cross(frontMultFar - right * halfHSide, up), pos};
+    frustum.top = {glm::cross(frontMultFar + up * halfVSide, right), pos};
+    frustum.bottom = {glm::cross(right, frontMultFar - up * halfVSide), pos};
+}
 
-    frustum.far.normal = -front;
-    frustum.far.distance = zFar;
+bool Camera::isChunkInFrustum(glm::vec3 chunkPos) const {
+    return isChunkInFrontOfPlane(chunkPos, frustum.near) &&
+           isChunkInFrontOfPlane(chunkPos, frustum.far) &&
+           isChunkInFrontOfPlane(chunkPos, frustum.top) &&
+           isChunkInFrontOfPlane(chunkPos, frustum.bottom) &&
+           isChunkInFrontOfPlane(chunkPos, frustum.left) &&
+           isChunkInFrontOfPlane(chunkPos, frustum.right);
+}
 
-    frustum.right.normal = glm::cross(up, frontMultFar + right * halfHSide);
-    frustum.right.distance = VecUtils::distOriginToPlane(frustum.right.normal, pos);
+bool Camera::isChunkInFrontOfPlane(glm::vec3 chunkPos, const Plane &plane) {
+    const glm::vec3 chunkAbsPos = chunkPos * (float) Chunk::CHUNK_SIZE / Block::RENDER_SIZE;
+    const glm::vec3 chunkMinPoint =
+        chunkAbsPos - glm::vec3(Block::RENDER_SIZE / 2, Block::RENDER_SIZE / 2, Block::RENDER_SIZE / 2);
+    const float chunkAbsSize = Chunk::CHUNK_SIZE * Block::RENDER_SIZE;
+    const glm::vec3 chunkCenter = chunkMinPoint + glm::vec3(chunkAbsSize / 2, chunkAbsSize / 2, chunkAbsSize / 2);
 
-    frustum.left.normal = glm::cross(frontMultFar - right * halfHSide, up);
-    frustum.left.distance = VecUtils::distOriginToPlane(frustum.left.normal, pos);
+    const float projectionRadius = (chunkAbsSize / 2) * std::abs(plane.getNormal().x) +
+                                   (chunkAbsSize / 2) * std::abs(plane.getNormal().y) +
+                                   (chunkAbsSize / 2) * std::abs(plane.getNormal().z);
 
-    frustum.top.normal = glm::cross(frontMultFar + up * halfVSide, right);
-    frustum.top.distance = VecUtils::distOriginToPlane(frustum.top.normal, pos);
+    const float signedDistance = glm::dot(plane.getNormal(), chunkCenter) - plane.getDistance();
 
-    frustum.bottom.normal = glm::cross(right, frontMultFar - up * halfVSide);
-    frustum.bottom.distance = VecUtils::distOriginToPlane(frustum.bottom.normal, pos);
+    return -projectionRadius <= signedDistance;
 }

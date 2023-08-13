@@ -25,7 +25,7 @@ void main() {
     // Light emission properties
     // You probably want to put them as uniforms
     vec3 LightColor = vec3(1);
-    float LightPower = 50.0f;
+    float LightPower = 0.0f;
 
     int texID = int(UV.x);
     vec2 localUV = UV;
@@ -33,7 +33,7 @@ void main() {
 
     // Material properties
     vec3 MaterialDiffuseColor = getTexSample(texID, localUV);
-    vec3 MaterialAmbientColor = vec3(0.1) * MaterialDiffuseColor;
+    vec3 MaterialAmbientColor = vec3(0.5) * MaterialDiffuseColor;
     vec3 MaterialSpecularColor = vec3(0.1);
 
     // Distance to the light

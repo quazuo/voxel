@@ -53,7 +53,7 @@ void OpenGLRenderer::init() {
     glfwSetCursorPos(window, 1024 / 2, 768 / 2);
 
     // Dark blue background
-    glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
     // Enable depth test
     glEnable(GL_DEPTH_TEST);
@@ -141,7 +141,7 @@ GLuint OpenGLRenderer::loadShaders(const std::filesystem::path &vertexShaderPath
     if (InfoLogLength > 0) {
         std::vector<char> vertexShaderErrorMessage(InfoLogLength + 1);
         glGetShaderInfoLog(vertexShaderID, InfoLogLength, nullptr, &vertexShaderErrorMessage[0]);
-        printf("%s\n", &vertexShaderErrorMessage[0]);
+        throw std::runtime_error("vertex shader compilation failed: " + std::string(&vertexShaderErrorMessage[0]));
     }
 
     // Compile fragment shader
@@ -156,7 +156,7 @@ GLuint OpenGLRenderer::loadShaders(const std::filesystem::path &vertexShaderPath
     if (InfoLogLength > 0) {
         std::vector<char> fragmentShaderErrorMessage(InfoLogLength + 1);
         glGetShaderInfoLog(fragmentShaderID, InfoLogLength, nullptr, &fragmentShaderErrorMessage[0]);
-        printf("%s\n", &fragmentShaderErrorMessage[0]);
+        throw std::runtime_error("fragment shader compilation failed: " + std::string(&fragmentShaderErrorMessage[0]));
     }
 
     // Link the program
@@ -173,6 +173,7 @@ GLuint OpenGLRenderer::loadShaders(const std::filesystem::path &vertexShaderPath
         std::vector<char> ProgramErrorMessage(InfoLogLength + 1);
         glGetProgramInfoLog(shaderID, InfoLogLength, nullptr, &ProgramErrorMessage[0]);
         printf("%s\n", &ProgramErrorMessage[0]);
+        throw std::runtime_error("shader linking failed: " + std::string(&ProgramErrorMessage[0]));
     }
 
     glDetachShader(shaderID, vertexShaderID);
@@ -186,6 +187,9 @@ GLuint OpenGLRenderer::loadShaders(const std::filesystem::path &vertexShaderPath
 
 void OpenGLRenderer::startRendering() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    viewMatrix = glm::lookAt(camera.pos, camera.pos + camera.front, glm::vec3(0, 1, 0));
+    projectionMatrix = glm::perspective(camera.fieldOfView, camera.aspectRatio, camera.zNear, camera.zFar);
 
     glm::vec3 lightPos = camera.pos;
     glUniform3f(lightID, lightPos.x, lightPos.y, lightPos.z);
@@ -215,16 +219,7 @@ void OpenGLRenderer::renderChunk(const MeshContext &ctx) {
                         &indexedData.indices[0]);
     }
 
-    glm::vec3 direction(
-        std::cos(camera.rot.y) * std::sin(camera.rot.x),
-        std::sin(camera.rot.y),
-        std::cos(camera.rot.y) * std::cos(camera.rot.x)
-    );
-
-    // compute MVP matrix and its components
     glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), ctx.modelTranslate);
-    glm::mat4 viewMatrix = glm::lookAt(camera.pos, camera.pos + direction, glm::vec3(0, 1, 0));
-    glm::mat4 projectionMatrix = glm::perspective(camera.fieldOfView, camera.aspectRatio, camera.zNear, camera.zFar);
     glm::mat4 mvpMatrix = projectionMatrix * viewMatrix * modelMatrix;
 
     glUniformMatrix4fv(mvpMatrixID, 1, GL_FALSE, &mvpMatrix[0][0]);
@@ -252,61 +247,130 @@ void OpenGLRenderer::renderChunk(const MeshContext &ctx) {
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
     glDisableVertexAttribArray(2);
-
-    // draw cube outline around the chunk
-    if (!doRenderChunkOutlines)
-        return;
-
-    const glm::vec3 offset = {-Block::RENDER_SIZE, -Block::RENDER_SIZE, -Block::RENDER_SIZE};
-    const double len = Chunk::CHUNK_SIZE;
-    glm::vec3 v = {0, 0, 0};
-    renderLine(v + offset, v + glm::vec3(len, 0, 0) + offset, mvpMatrix);
-    v += glm::vec3(0, len, 0);
-    renderLine(v + offset, v + glm::vec3(len, 0, 0) + offset, mvpMatrix);
-    v += glm::vec3(0, 0, len);
-    renderLine(v + offset, v + glm::vec3(len, 0, 0) + offset, mvpMatrix);
-    v -= glm::vec3(0, len, 0);
-    renderLine(v + offset, v + glm::vec3(len, 0, 0) + offset, mvpMatrix);
-
-    v = {0, 0, 0};
-    renderLine(v + offset, v + glm::vec3(0, len, 0) + offset, mvpMatrix);
-    v += glm::vec3(len, 0, 0);
-    renderLine(v + offset, v + glm::vec3(0, len, 0) + offset, mvpMatrix);
-    v += glm::vec3(0, 0, len);
-    renderLine(v + offset, v + glm::vec3(0, len, 0) + offset, mvpMatrix);
-    v -= glm::vec3(len, 0, 0);
-    renderLine(v + offset, v + glm::vec3(0, len, 0) + offset, mvpMatrix);
-
-    v = {0, 0, 0};
-    renderLine(v + offset, v + glm::vec3(0, 0, len) + offset, mvpMatrix);
-    v += glm::vec3(len, 0, 0);
-    renderLine(v + offset, v + glm::vec3(0, 0, len) + offset, mvpMatrix);
-    v += glm::vec3(0, len, 0);
-    renderLine(v + offset, v + glm::vec3(0, 0, len) + offset, mvpMatrix);
-    v -= glm::vec3(len, 0, 0);
-    renderLine(v + offset, v + glm::vec3(0, 0, len) + offset, mvpMatrix);
 }
 
-void OpenGLRenderer::renderLine(glm::vec3 start, glm::vec3 end, glm::mat4 mvpMatrix) const {
+void OpenGLRenderer::renderOutline(const std::vector<glm::vec3> &vertices, const glm::mat4 &mvpMatrix,
+                                   glm::vec3 color) const {
     glUseProgram(lineShaderID);
 
-    const glm::vec3 lineVertices[2] = {start, end};
-
     glBindBuffer(GL_ARRAY_BUFFER, lineVertexArrayID);
-    glBufferData(GL_ARRAY_BUFFER, 2 * sizeof(glm::vec3), lineVertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices[0], GL_STATIC_DRAW);
 
     glUniformMatrix4fv(mvpMatrixID, 1, GL_FALSE, &mvpMatrix[0][0]);
 
+    GLuint colorID = glGetUniformLocation(lineShaderID, "color");
+    glUniform3f(colorID, color.r, color.g, color.b);
+
     glEnableVertexAttribArray(3);
 
-    glDrawArrays(GL_LINES, 0, 2);
+    glDrawArrays(GL_LINES, 0, vertices.size());
 
     glDisableVertexAttribArray(3);
 
     glUseProgram(cubeShaderID);
 }
 
+void OpenGLRenderer::renderChunkOutline(const glm::vec3 chunkPos, glm::vec3 color) const {
+    glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), chunkPos);
+    glm::mat4 mvpMatrix = projectionMatrix * viewMatrix * modelMatrix;
+
+    const glm::vec3 offset = {-Block::RENDER_SIZE / 2, -Block::RENDER_SIZE / 2, -Block::RENDER_SIZE / 2};
+    const float len = Chunk::CHUNK_SIZE * Block::RENDER_SIZE;
+
+    std::vector<glm::vec3> vertices;
+
+    // add x-aligned lines
+    std::vector<glm::vec3> vs = {
+        {0, 0,   0},
+        {0, len, 0},
+        {0, 0,   len},
+        {0, len, len}
+    };
+    for (const auto &v: vs) {
+        vertices.push_back(v + offset);
+        vertices.push_back(v + glm::vec3(len, 0, 0) + offset);
+    }
+
+    // add y-aligned lines
+    vs = {
+        {0,   0, 0},
+        {len, 0, 0},
+        {0,   0, len},
+        {len, 0, len}
+    };
+    for (const auto &v: vs) {
+        vertices.push_back(v + offset);
+        vertices.push_back(v + glm::vec3(0, len, 0) + offset);
+    }
+
+    // add z-aligned lines
+    vs = {
+        {0,   0,   0},
+        {len, 0,   0},
+        {0,   len, 0},
+        {len, len, 0}
+    };
+    for (const auto &v: vs) {
+        vertices.push_back(v + offset);
+        vertices.push_back(v + glm::vec3(0, 0, len) + offset);
+    }
+
+    renderOutline(vertices, mvpMatrix, color);
+}
+
+void OpenGLRenderer::renderFrustumOutline() const {
+    static Camera cam;
+    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+        cam = camera;
+    }
+
+    const float halfVSideFar = camera.zFar * tanf(camera.fieldOfView * 0.5f);
+    const float halfHSideFar = halfVSideFar * camera.aspectRatio;
+
+    const float halfVSideNear = cam.zNear * tanf(cam.fieldOfView * 0.5f);
+    const float halfHSideNear = halfVSideNear * cam.aspectRatio;
+
+    const glm::vec3 frontMultNear = cam.zNear * cam.front;
+    const glm::vec3 frontMultFar = cam.zFar * cam.front;
+
+    const glm::vec3 nearPlaneVertices[4] = {
+        cam.pos + frontMultNear + cam.up * halfVSideNear + cam.right * halfHSideNear,
+        cam.pos + frontMultNear - cam.up * halfVSideNear + cam.right * halfHSideNear,
+        cam.pos + frontMultNear - cam.up * halfVSideNear - cam.right * halfHSideNear,
+        cam.pos + frontMultNear + cam.up * halfVSideNear - cam.right * halfHSideNear,
+    };
+
+    const glm::vec3 farPlaneVertices[4] = {
+        cam.pos + frontMultFar + cam.up * halfVSideFar + cam.right * halfHSideFar,
+        cam.pos + frontMultFar - cam.up * halfVSideFar + cam.right * halfHSideFar,
+        cam.pos + frontMultFar - cam.up * halfVSideFar - cam.right * halfHSideFar,
+        cam.pos + frontMultFar + cam.up * halfVSideFar - cam.right * halfHSideFar,
+    };
+
+    std::vector<glm::vec3> vertices;
+    for (int i = 0; i < 4; i++) {
+        // near plane
+        vertices.push_back(nearPlaneVertices[i]);
+        vertices.push_back(nearPlaneVertices[(i + 1) % 4]);
+
+        // far plane
+        vertices.push_back(farPlaneVertices[i]);
+        vertices.push_back(farPlaneVertices[(i + 1) % 4]);
+
+        // the rest
+        vertices.push_back(nearPlaneVertices[i]);
+        vertices.push_back(farPlaneVertices[i]);
+    }
+
+    glm::mat4 modelMatrix = glm::mat4(1.0f);
+    glm::mat4 mvpMatrix = projectionMatrix * viewMatrix * modelMatrix;
+    const glm::vec3 color = {1, 1, 1};
+    renderOutline(vertices, mvpMatrix, color);
+}
+
 void OpenGLRenderer::finishRendering() {
+    // renderFrustumOutline();
+
     glfwSwapBuffers(window);
     glfwPollEvents();
 }
@@ -317,32 +381,8 @@ void OpenGLRenderer::loadTextures() const {
     texManager->bindTextures(cubeShaderID);
 }
 
-void OpenGLRenderer::updateCameraFrustum() {
-    Frustum frustum;
-
-    const float halfVSide = camera.zFar * tanf(camera.fieldOfView * 0.5f);
-    const float halfHSide = halfVSide * camera.aspectRatio;
-    const glm::vec3 frontMultFar = camera.zFar * camera.front;
-
-    frustum.near.normal = camera.front;
-    frustum.near.distance = camera.zNear;
-
-    frustum.far.normal = -camera.front;
-    frustum.far.distance = camera.zFar;
-
-    frustum.right.normal = glm::cross(camera.up, frontMultFar + camera.right * halfHSide);
-    frustum.right.distance = VecUtils::distOriginToPlane(frustum.right.normal, camera.pos);
-
-    frustum.left.normal = glm::cross(frontMultFar - camera.right * halfHSide, camera.up);
-    frustum.left.distance = VecUtils::distOriginToPlane(frustum.left.normal, camera.pos);
-
-    frustum.top.normal = glm::cross(frontMultFar + camera.up * halfVSide, camera.right);
-    frustum.top.distance = VecUtils::distOriginToPlane(frustum.top.normal, camera.pos);
-
-    frustum.bottom.normal = glm::cross(camera.right, frontMultFar - camera.up * halfVSide);
-    frustum.bottom.distance = VecUtils::distOriginToPlane(frustum.bottom.normal, camera.pos);
-
-    camera.frustum = frustum;
+bool OpenGLRenderer::isChunkInFrustum(const Chunk &chunk) const {
+    return camera.isChunkInFrustum(chunk.getPos());
 }
 
 void OpenGLRenderer::debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,

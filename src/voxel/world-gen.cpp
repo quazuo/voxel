@@ -1,3 +1,4 @@
+#include <iostream>
 #include "world-gen.h"
 #include "src/voxel/chunk/chunk.h"
 
@@ -5,12 +6,6 @@ noiseutils::NoiseMap WorldGen::heightMap;
 glm::vec3 WorldGen::chunkPos;
 
 EBlockType WorldGen::getBlockTypeAt(const int x, const int y, const int z) {
-//    const float height = (float) Chunk::CHUNK_SIZE / 2 + std::clamp(
-//        heightMap.GetValue(x, z) * Chunk::CHUNK_SIZE / 2,
-//        (float) -Chunk::CHUNK_SIZE / 2 + 1,
-//        (float) Chunk::CHUNK_SIZE / 2
-//    );
-
     const float height = heightMap.GetValue(x, z) * Chunk::CHUNK_SIZE;
 
     const int threshold = (int) height;
@@ -33,12 +28,12 @@ void WorldGen::setChunkGenCtx(glm::vec3 cPos) {
     heightMapBuilder.SetSourceModule(noiseModule);
     heightMapBuilder.SetDestNoiseMap(heightMap);
     heightMapBuilder.SetDestSize(Chunk::CHUNK_SIZE, Chunk::CHUNK_SIZE);
-    constexpr double stretchFactor = 0.3;
+    constexpr double stretchFactor = 0.1;
     heightMapBuilder.SetBounds(
-        stretchFactor * (double) chunkPos.x,
-        stretchFactor * (double) (chunkPos.x + 1),
-        stretchFactor * (double) chunkPos.z,
-        stretchFactor * (double) (chunkPos.z + 1)
+        stretchFactor * (double) cPos.x,
+        stretchFactor * (double) (cPos.x + 1),
+        stretchFactor * (double) cPos.z,
+        stretchFactor * (double) (cPos.z + 1)
     );
     heightMapBuilder.Build();
 }

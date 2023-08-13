@@ -3,8 +3,13 @@
 layout(location = 3) in vec3 vertexPosition_modelspace;
 
 uniform mat4 MVP;
+uniform vec3 color;
+
+out vec3 lineColor;
 
 void main() {
     gl_Position = MVP * vec4(vertexPosition_modelspace, 1);
+
+    lineColor = color;
 }
 

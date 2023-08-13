@@ -11,7 +11,7 @@ class Chunk {
 public:
     Chunk() = default;
 
-    explicit Chunk(glm::vec3 p) : pos(p) {}
+    explicit Chunk(glm::vec3 p) : pos(p * Block::RENDER_SIZE) {}
 
     static constexpr int CHUNK_SIZE = 16;
 
@@ -24,6 +24,9 @@ public:
 
     [[nodiscard]]
     bool isLoaded() const { return _isLoaded; }
+
+    [[nodiscard]]
+    bool shouldRender() const;
 
     void render(const std::shared_ptr<class OpenGLRenderer>& renderer);
 

@@ -50,7 +50,9 @@ void MeshContext::initBuffers() {
     glGenBuffers(1, &normalBufferID);
     glGenBuffers(1, &elementBufferID);
 
-    size_t bufferSize = USHRT_MAX / 2;
+    // current upper limit, reached for chunks in a checkerboard pattern.
+    // this NEEDS to be optimized asap, as it drains way too much RAM.
+    size_t bufferSize = 73728;
 
     glBindBuffer(GL_ARRAY_BUFFER, vertexBufferID);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
@@ -83,7 +85,7 @@ GLuint MeshContext::getBufferID(MeshContext::EBufferType bufferType) const {
 }
 
 void MeshContext::freeBuffers() {
-    const size_t nBuffers = 4;
+    constexpr size_t nBuffers = 4;
     const GLuint buffers[nBuffers] = {vertexBufferID, uvBufferID, normalBufferID, elementBufferID};
     glDeleteBuffers(nBuffers, buffers);
 }
