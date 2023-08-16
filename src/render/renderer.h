@@ -50,9 +50,12 @@ public:
     inline GLFWwindow *getWindow() const { return window; }
 
     [[nodiscard]]
+    glm::vec3 getCameraPos() const { return camera.pos; }
+
+    [[nodiscard]]
     bool isChunkInFrustum(const Chunk& chunk) const;
 
-    void renderChunk(const MeshContext &ctx);
+    void renderChunk(const std::shared_ptr<MeshContext>& ctx);
 
     void renderChunkOutline(glm::vec3 chunkPos, glm::vec3 color) const;
 

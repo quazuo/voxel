@@ -47,6 +47,8 @@ public:
 
     bool isFreshlyUpdated = false;
 
+    void clear();
+
     void addTriangle(PackedVertex &vertex1, PackedVertex &vertex2, PackedVertex &vertex3);
 
     void makeIndexed();

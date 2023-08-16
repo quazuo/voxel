@@ -20,6 +20,9 @@ public:
 
     EBlockType blockType = EBlockType::BlockType_Grass;
 
+    // a block's width.
+    // this *should not* be changed, as we'd like to preserve the 1-1 mapping
+    // between (floored) world coordinates and blocks
     static constexpr float RENDER_SIZE = 1.0f;
 
     [[nodiscard]]

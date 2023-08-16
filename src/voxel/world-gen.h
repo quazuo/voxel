@@ -5,15 +5,16 @@
 #include "block.h"
 #include "deps/noiseutils/noiseutils.h"
 #include "glm/vec3.hpp"
+#include "src/utils/vec.h"
 
 class WorldGen {
     static noiseutils::NoiseMap heightMap;
-    static glm::vec3 chunkPos;
+    static VecUtils::Vec3Discrete chunkPos;
 
 public:
     static EBlockType getBlockTypeAt(int x, int y, int z);
 
-    static void setChunkGenCtx(glm::vec3 chunkPos);
+    static void setChunkGenCtx(VecUtils::Vec3Discrete chunkPos);
 };
 
 #endif //VOXEL_WORLD_GEN_H

@@ -16,6 +16,7 @@ class VEngine {
 public:
     void init() {
         renderer->init();
+        chunkManager->init();
     }
 
     [[noreturn]]
@@ -29,18 +30,16 @@ public:
         // Measure speed
         auto currentTime = (float) glfwGetTime();
         const float deltaTime = currentTime - lastTime;
-        std::cout << "frametime: " << deltaTime << "s, fps: " << 1 / deltaTime << "\n";
+        // std::cout << "frametime: " << deltaTime << "s, fps: " << 1 / deltaTime << "\n";
         lastTime = currentTime;
 
         renderer->tick(deltaTime);
-        chunkManager->update();
+        chunkManager->tick();
         chunkManager->render();
     }
 };
 
 int main() {
-    std::cout << "abc\n";
-
     VEngine engine;
     engine.init();
     engine.startTicking();

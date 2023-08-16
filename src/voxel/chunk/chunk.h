@@ -6,12 +6,14 @@
 #include "src/voxel/block.h"
 #include "glm/vec3.hpp"
 #include "glm/vec2.hpp"
+#include "src/utils/size.h"
+#include "src/utils/vec.h"
 
 class Chunk {
 public:
     Chunk() = default;
 
-    explicit Chunk(glm::vec3 p) : pos(p * Block::RENDER_SIZE) {}
+    explicit Chunk(glm::vec3 p) : pos(p) {}
 
     static constexpr int CHUNK_SIZE = 16;
 
@@ -19,8 +21,10 @@ public:
 
     void unload();
 
+    void bindMeshContext(std::shared_ptr<class MeshContext> ctx) { meshContext = ctx; }
+
     [[nodiscard]]
-    glm::vec3 getPos() const { return pos; }
+    VecUtils::Vec3Discrete getPos() const { return pos; }
 
     [[nodiscard]]
     bool isLoaded() const { return _isLoaded; }
@@ -35,7 +39,7 @@ public:
     void markDirty() { _isDirty = true; }
 
 private:
-    glm::vec3 pos{};
+    VecUtils::Vec3Discrete pos{};
 
     std::shared_ptr<class MeshContext> meshContext;
     bool isMesh = false;
@@ -43,7 +47,7 @@ private:
     bool _isLoaded = false;
     bool _isDirty = true;
 
-    std::array<std::array<std::array<Block, CHUNK_SIZE>, CHUNK_SIZE>, CHUNK_SIZE> blocks;
+    SizeUtils::CubeArray<Block, CHUNK_SIZE> blocks;
     size_t activeBlockCount = 0;
 
     void createMesh();

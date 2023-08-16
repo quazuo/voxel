@@ -3,13 +3,12 @@
 #include "src/voxel/chunk/chunk.h"
 
 noiseutils::NoiseMap WorldGen::heightMap;
-glm::vec3 WorldGen::chunkPos;
+VecUtils::Vec3Discrete WorldGen::chunkPos;
 
 EBlockType WorldGen::getBlockTypeAt(const int x, const int y, const int z) {
     const float height = heightMap.GetValue(x, z) * Chunk::CHUNK_SIZE;
-
     const int threshold = (int) height;
-    const int absY = (int) chunkPos.y * Chunk::CHUNK_SIZE + y;
+    const int absY = chunkPos.y * Chunk::CHUNK_SIZE + y;
 
     if (absY > threshold)
         return EBlockType::BlockType_None;
@@ -18,7 +17,7 @@ EBlockType WorldGen::getBlockTypeAt(const int x, const int y, const int z) {
     return EBlockType::BlockType_Dirt;
 }
 
-void WorldGen::setChunkGenCtx(glm::vec3 cPos) {
+void WorldGen::setChunkGenCtx(VecUtils::Vec3Discrete cPos) {
     chunkPos = cPos;
     heightMap = {};
 

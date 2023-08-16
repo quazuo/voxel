@@ -63,19 +63,23 @@ void Camera::updatePos() {
     const float movementSpeed = 8.0;
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-        pos += glm::vec3(front * deltaTime * movementSpeed); // Move forward
+        pos += front * deltaTime * movementSpeed; // Move forward
     }
 
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-        pos -= glm::vec3(front * deltaTime * movementSpeed); // Move backward
+        pos -= front * deltaTime * movementSpeed; // Move backward
     }
 
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-        pos += glm::vec3(right * deltaTime * movementSpeed); // Strafe right
+        pos += right * deltaTime * movementSpeed; // Strafe right
     }
 
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-        pos -= glm::vec3(right * deltaTime * movementSpeed); // Strafe left
+        pos -= right * deltaTime * movementSpeed; // Strafe left
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+        pos += glm::vec3(0, 1, 0) * deltaTime * movementSpeed; // Fly upwards
     }
 }
 

@@ -36,6 +36,8 @@ void OpenGLRenderer::init() {
     }
     glfwMakeContextCurrent(window);
 
+    glfwSwapInterval(0);
+
     // Initialize GLEW
     glewExperimental = true; // Needed for core profile
     if (glewInit() != GLEW_OK) {
@@ -185,6 +187,12 @@ GLuint OpenGLRenderer::loadShaders(const std::filesystem::path &vertexShaderPath
     return shaderID;
 }
 
+void OpenGLRenderer::loadTextures() const {
+    texManager->loadTexture(EBlockType::BlockType_Grass, "grass.dds");
+    texManager->loadTexture(EBlockType::BlockType_Dirt, "dirt.dds");
+    texManager->bindTextures(cubeShaderID);
+}
+
 void OpenGLRenderer::startRendering() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -195,31 +203,33 @@ void OpenGLRenderer::startRendering() {
     glUniform3f(lightID, lightPos.x, lightPos.y, lightPos.z);
 }
 
-void OpenGLRenderer::renderChunk(const MeshContext &ctx) {
-    const IndexedMeshData &indexedData = ctx.getIndexedData();
+void OpenGLRenderer::renderChunk(const std::shared_ptr<MeshContext>& ctx) {
+    const IndexedMeshData &indexedData = ctx->getIndexedData();
 
     glUseProgram(cubeShaderID);
 
-    // make buffers
-    if (ctx.isFreshlyUpdated) {
-        glBindBuffer(GL_ARRAY_BUFFER, ctx.getBufferID(MeshContext::EBufferType::Vertex));
+    // update buffers if needed
+    if (ctx->isFreshlyUpdated) {
+        glBindBuffer(GL_ARRAY_BUFFER, ctx->getBufferID(MeshContext::EBufferType::Vertex));
         glBufferSubData(GL_ARRAY_BUFFER, 0, indexedData.vertices.size() * sizeof(glm::vec3),
                         &indexedData.vertices[0]);
 
-        glBindBuffer(GL_ARRAY_BUFFER, ctx.getBufferID(MeshContext::EBufferType::UV));
+        glBindBuffer(GL_ARRAY_BUFFER, ctx->getBufferID(MeshContext::EBufferType::UV));
         glBufferSubData(GL_ARRAY_BUFFER, 0, indexedData.uvs.size() * sizeof(glm::vec2),
                         &indexedData.uvs[0]);
 
-        glBindBuffer(GL_ARRAY_BUFFER, ctx.getBufferID(MeshContext::EBufferType::Normal));
+        glBindBuffer(GL_ARRAY_BUFFER, ctx->getBufferID(MeshContext::EBufferType::Normal));
         glBufferSubData(GL_ARRAY_BUFFER, 0, indexedData.normals.size() * sizeof(glm::vec3),
                         &indexedData.normals[0]);
 
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ctx.getBufferID(MeshContext::EBufferType::Element));
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ctx->getBufferID(MeshContext::EBufferType::Element));
         glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, indexedData.indices.size() * sizeof(unsigned short),
                         &indexedData.indices[0]);
+
+        ctx->isFreshlyUpdated = false;
     }
 
-    glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), ctx.modelTranslate);
+    glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), ctx->modelTranslate);
     glm::mat4 mvpMatrix = projectionMatrix * viewMatrix * modelMatrix;
 
     glUniformMatrix4fv(mvpMatrixID, 1, GL_FALSE, &mvpMatrix[0][0]);
@@ -227,13 +237,13 @@ void OpenGLRenderer::renderChunk(const MeshContext &ctx) {
     glUniformMatrix4fv(viewMatrixID, 1, GL_FALSE, &viewMatrix[0][0]);
     glUniformMatrix4fv(projectionMatrixID, 1, GL_FALSE, &projectionMatrix[0][0]);
 
-    glBindBuffer(GL_ARRAY_BUFFER, ctx.getBufferID(MeshContext::EBufferType::Vertex));
+    glBindBuffer(GL_ARRAY_BUFFER, ctx->getBufferID(MeshContext::EBufferType::Vertex));
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
-    glBindBuffer(GL_ARRAY_BUFFER, ctx.getBufferID(MeshContext::EBufferType::UV));
+    glBindBuffer(GL_ARRAY_BUFFER, ctx->getBufferID(MeshContext::EBufferType::UV));
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
 
-    glBindBuffer(GL_ARRAY_BUFFER, ctx.getBufferID(MeshContext::EBufferType::Normal));
+    glBindBuffer(GL_ARRAY_BUFFER, ctx->getBufferID(MeshContext::EBufferType::Normal));
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
     glEnableVertexAttribArray(0);
@@ -241,7 +251,7 @@ void OpenGLRenderer::renderChunk(const MeshContext &ctx) {
     glEnableVertexAttribArray(2);
 
     // index buffer
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ctx.getBufferID(MeshContext::EBufferType::Element));
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ctx->getBufferID(MeshContext::EBufferType::Element));
     glDrawElements(GL_TRIANGLES, indexedData.indices.size(), GL_UNSIGNED_SHORT, nullptr);
 
     glDisableVertexAttribArray(0);
@@ -371,14 +381,9 @@ void OpenGLRenderer::renderFrustumOutline() const {
 void OpenGLRenderer::finishRendering() {
     // renderFrustumOutline();
 
+    glFlush();
     glfwSwapBuffers(window);
     glfwPollEvents();
-}
-
-void OpenGLRenderer::loadTextures() const {
-    texManager->loadTexture(EBlockType::BlockType_Grass, "grass.dds");
-    texManager->loadTexture(EBlockType::BlockType_Dirt, "dirt.dds");
-    texManager->bindTextures(cubeShaderID);
 }
 
 bool OpenGLRenderer::isChunkInFrustum(const Chunk &chunk) const {

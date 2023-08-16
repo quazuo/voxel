@@ -42,7 +42,7 @@ struct Camera {
 
     glm::vec2 rot;
     glm::vec3 front, right, up;
-    glm::vec3 pos;
+    glm::vec3 pos = {0, 10, 0};
 
 public:
     void tick(struct GLFWwindow *w, float dt);

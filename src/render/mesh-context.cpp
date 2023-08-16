@@ -3,6 +3,12 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 
+void MeshContext::clear() {
+    triangles = {};
+    indexedData = {};
+    isIndexed = false;
+}
+
 void MeshContext::addTriangle(PackedVertex &vertex1, PackedVertex &vertex2, PackedVertex &vertex3) {
     triangles.emplace_back(vertex1, vertex2, vertex3);
 }

@@ -1,3 +1,4 @@
+#include <iostream>
 #include "chunk.h"
 
 #include "src/render/renderer.h"
@@ -5,8 +6,6 @@
 #include "src/voxel/world-gen.h"
 
 void Chunk::load() {
-    _isLoaded = true;
-
     // todo - check if is stored on the disk and if it is, load it, otherwise generate terrain for it
     // todo - ^ this should probably be done in the chunk manager
 
@@ -21,10 +20,12 @@ void Chunk::load() {
             }
         }
     }
+
+    _isLoaded = true;
 }
 
 void Chunk::unload() {
-    meshContext->freeBuffers();
+    _isLoaded = false;
 }
 
 void Chunk::updateBlock(int x, int y, int z, EBlockType type) {
@@ -50,17 +51,17 @@ void Chunk::render(const std::shared_ptr<OpenGLRenderer> &renderer) {
     }
 
     if (isMesh) {
-        renderer->renderChunk(*meshContext);
-        meshContext->isFreshlyUpdated = false;
+        renderer->renderChunk(meshContext);
     }
 }
 
 void Chunk::createMesh() {
     if (!meshContext) {
-        meshContext = std::make_shared<MeshContext>(MeshContext());
-        meshContext->modelTranslate = pos * (float) CHUNK_SIZE;
-        meshContext->initBuffers();
+        throw std::runtime_error("tried to call createMesh() with no bound meshContext");
     }
+
+    meshContext->clear();
+    meshContext->modelTranslate = pos * CHUNK_SIZE;
 
     for (int x = 0; x < CHUNK_SIZE; x++) {
         for (int y = 0; y < CHUNK_SIZE; y++) {
