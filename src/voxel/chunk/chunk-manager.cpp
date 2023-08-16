@@ -53,7 +53,6 @@ void ChunkManager::renderOutlines() const {
 void ChunkManager::tick() {
     updateChunkSlots();
     updateLoadList();
-    updateUnloadList();
     updateRenderList();
 }
 
@@ -153,16 +152,6 @@ void ChunkManager::updateLoadList() {
     }
 
     erase_if(loadChunks, [](ChunkPtr &chunk) { return chunk->isLoaded(); });
-}
-
-void ChunkManager::updateUnloadList() {
-    for (const ChunkPtr &chunk: unloadChunks) {
-        if (chunk->isLoaded()) {
-            chunk->unload();
-        }
-    }
-
-    unloadChunks.clear();
 }
 
 void ChunkManager::updateRenderList() {

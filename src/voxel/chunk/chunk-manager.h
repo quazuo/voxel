@@ -51,9 +51,6 @@ class ChunkManager {
     // list of chunks that are waiting to be loaded
     std::vector<ChunkPtr> loadChunks;
 
-    // list of chunks that are waiting to be unloaded
-    std::vector<ChunkPtr> unloadChunks;
-
     // list of chunks that should be rendered
     std::vector<ChunkPtr> renderChunks;
 
@@ -85,8 +82,6 @@ private:
     void loadNearChunks(VecUtils::Vec3Discrete currChunkPos);
 
     void updateLoadList();
-
-    void updateUnloadList();
 
     void updateRenderList();
 
