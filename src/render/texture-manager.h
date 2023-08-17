@@ -7,15 +7,27 @@
 #include <filesystem>
 
 class TextureManager {
-    std::map<EBlockType, GLuint> loadedTextures;
+    std::map<EBlockType, GLuint> blockTextures;
+
+    GLuint fontTexture;
 
 public:
-    void loadTexture(EBlockType tex, const std::filesystem::path& path);
+    void loadBlockTexture(EBlockType tex, const std::filesystem::path& path);
 
-    void bindTextures(GLuint programID);
+    void loadFontTexture(const std::filesystem::path& path);
+
+    void bindBlockTextures(GLuint blockShaderID) const;
+
+    void bindFontTexture(GLuint textShaderID) const;
 
     [[nodiscard]]
-    GLuint getTextureID(EBlockType tex) const;
+    GLuint getBlockTextureID(EBlockType tex) const;
+
+    [[nodiscard]]
+    GLuint getFontTextureID() const { return fontTexture; }
+
+private:
+    static GLuint loadDDS(const std::filesystem::path& path);
 };
 
 #endif //VOXEL_TEXTURE_MANAGER_H

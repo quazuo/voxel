@@ -32,7 +32,7 @@ public:
     [[nodiscard]]
     bool shouldRender() const;
 
-    void render(const std::shared_ptr<class OpenGLRenderer>& renderer);
+    void render(const std::shared_ptr<class OpenGLRenderer> &renderer);
 
     void updateBlock(int x, int y, int z, EBlockType type);
 
@@ -54,7 +54,8 @@ private:
 
     void createCube(int x, int y, int z);
 
-    void createFace(glm::vec3 v1, glm::vec3 v2, glm::vec3 v3, glm::vec3 v4, glm::vec2 uvOffset, glm::vec3 normal, EBlockType blockType);
+    void createFace(glm::vec3 v1, glm::vec3 v2, glm::vec3 v3, glm::vec3 v4,
+                    glm::vec2 uvOffset, glm::vec3 normal, EBlockType blockType);
 };
 
 #endif //MYGE_CHUNK_H

@@ -14,6 +14,11 @@ EBlockType WorldGen::getBlockTypeAt(const int x, const int y, const int z) {
         return EBlockType::BlockType_None;
     if (absY == threshold)
         return EBlockType::BlockType_Grass;
+
+    // absY < threshold, threshold - absY > 0
+    constexpr int dirtHeight = 5;
+    if (absY + dirtHeight < threshold)
+        return EBlockType::BlockType_Stone;
     return EBlockType::BlockType_Dirt;
 }
 

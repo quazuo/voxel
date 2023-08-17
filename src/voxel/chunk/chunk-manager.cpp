@@ -15,7 +15,7 @@ void ChunkManager::init() {
             for (int z = -RENDER_DISTANCE; z <= RENDER_DISTANCE; z++) {
                 const auto newChunk = std::make_shared<Chunk>(glm::vec3(x, y, z));
 
-                loadChunks.push_back(newChunk);
+                loadableChunks.push_back(newChunk);
 
                 slotIter->bind(newChunk);
                 slotIter++;
@@ -24,25 +24,19 @@ void ChunkManager::init() {
     }
 }
 
-void ChunkManager::render() const {
-    renderer->startRendering();
-
-    for (const ChunkPtr &chunk: renderChunks) {
+void ChunkManager::renderChunks() const {
+    for (const ChunkPtr &chunk: visibleChunks) {
         chunk->render(renderer);
     }
-
-    renderOutlines();
-
-    renderer->finishRendering();
 }
 
-void ChunkManager::renderOutlines() const {
+void ChunkManager::renderChunkOutlines() const {
     for (auto &slot : chunkSlots) {
         if (!slot.isBound())
             continue;
 
         glm::vec3 color = {1, 1, 0}; // yellow
-        if (std::find(renderChunks.begin(), renderChunks.end(), slot.chunk) == renderChunks.end()) {
+        if (std::find(visibleChunks.begin(), visibleChunks.end(), slot.chunk) == visibleChunks.end()) {
             color = {1, 0, 0}; // red
         }
 
@@ -126,7 +120,7 @@ void ChunkManager::loadNearChunks(VecUtils::Vec3Discrete currChunkPos) {
                 // chunk at `newChunkPos` is unloaded but should be -- load it
                 const glm::vec3 newChunkPos = currChunkPos + VecUtils::Vec3Discrete(x, y, z) - RENDER_DISTANCE;
                 const auto newChunk = std::make_shared<Chunk>(newChunkPos);
-                loadChunks.push_back(newChunk);
+                loadableChunks.push_back(newChunk);
 
                 // find a free slot and bind it with the new chunk
                 while (slotIt->isBound())
@@ -141,7 +135,7 @@ void ChunkManager::loadNearChunks(VecUtils::Vec3Discrete currChunkPos) {
 void ChunkManager::updateLoadList() {
     int nChunksLoaded = 0;
 
-    for (const ChunkPtr &chunk: loadChunks) {
+    for (const ChunkPtr &chunk: loadableChunks) {
         if (!chunk->isLoaded()) {
             chunk->load();
             nChunksLoaded++;
@@ -151,12 +145,12 @@ void ChunkManager::updateLoadList() {
             break;
     }
 
-    erase_if(loadChunks, [](ChunkPtr &chunk) { return chunk->isLoaded(); });
+    erase_if(loadableChunks, [](ChunkPtr &chunk) { return chunk->isLoaded(); });
 }
 
 void ChunkManager::updateRenderList() {
     // clear the render list each frame BEFORE we do our tests to see what chunks should be rendered
-    renderChunks.clear();
+    visibleChunks.clear();
 
     for (auto &slot : chunkSlots) {
         if (!slot.isBound())
@@ -165,6 +159,6 @@ void ChunkManager::updateRenderList() {
             continue;
         if (!renderer->isChunkInFrustum(*slot.chunk))
             continue;
-        renderChunks.push_back(slot.chunk);
+        visibleChunks.push_back(slot.chunk);
     }
 }

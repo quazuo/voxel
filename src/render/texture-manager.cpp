@@ -5,10 +5,44 @@
 #include <vector>
 #include <iostream>
 
-void TextureManager::loadTexture(const EBlockType blockType, const std::filesystem::path &path) {
-    if (loadedTextures.contains(blockType))
+void TextureManager::loadBlockTexture(EBlockType tex, const std::filesystem::path &path) {
+    if (blockTextures.contains(tex))
         return;
 
+    blockTextures[tex] = loadDDS(path);
+}
+
+void TextureManager::loadFontTexture(const std::filesystem::path &path) {
+    fontTexture = loadDDS(path);
+}
+
+void TextureManager::bindBlockTextures(const GLuint blockShaderID) const {
+    std::vector<GLint> handles(blockTextures.size());
+
+    for (auto &[blockType, id] : blockTextures) {
+        glActiveTexture(GL_TEXTURE0 + blockType - 1);
+        glBindTexture(GL_TEXTURE_2D, id);
+        handles[blockType - 1] = blockType - 1;
+    }
+
+    glUniform1iv(glGetUniformLocation(blockShaderID, "texSampler"), (GLint) blockTextures.size(), &handles[0]);
+}
+
+void TextureManager::bindFontTexture(GLuint textShaderID) const {
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, fontTexture);
+    glUniform1i(glGetUniformLocation(textShaderID, "texSampler"), 0);
+}
+
+GLuint TextureManager::getBlockTextureID(EBlockType tex) const {
+    if (!blockTextures.contains(tex)) {
+        throw std::runtime_error("tried to call getTextureIDs() on uninitialized texture data");
+    }
+
+    return blockTextures.at(tex);
+}
+
+GLuint TextureManager::loadDDS(const std::filesystem::path &path) {
     std::ifstream fileStream(path, std::ios::in);
     if (!fileStream.is_open()) {
         throw std::runtime_error(path.string() + " could not be opened.\n");
@@ -43,7 +77,6 @@ void TextureManager::loadTexture(const EBlockType blockType, const std::filesyst
     static constexpr uint32_t FOURCC_DXT3 = 0x33545844;
     static constexpr uint32_t FOURCC_DXT5 = 0x35545844;
 
-    // unsigned int components = (fourCC == FOURCC_DXT1) ? 3 : 4;
     uint32_t format;
     switch (fourCC) {
         case FOURCC_DXT1:
@@ -56,7 +89,7 @@ void TextureManager::loadTexture(const EBlockType blockType, const std::filesyst
             format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
             break;
         default:
-            return;
+            throw std::runtime_error("unrecognized DXT format in DDS file " + path.string());
     }
 
     GLuint textureID;
@@ -93,25 +126,5 @@ void TextureManager::loadTexture(const EBlockType blockType, const std::filesyst
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    loadedTextures[blockType] = textureID;
-}
-
-void TextureManager::bindTextures(const GLuint programID) {
-    std::vector<GLint> handles(loadedTextures.size());
-
-    for (auto &[blockType, id] : loadedTextures) {
-        glActiveTexture(GL_TEXTURE0 + blockType - 1);
-        glBindTexture(GL_TEXTURE_2D, id);
-        handles[blockType - 1] = blockType - 1;
-    }
-
-    glUniform1iv(glGetUniformLocation(programID, "texSampler"), (GLint) loadedTextures.size(), &handles[0]);
-}
-
-GLuint TextureManager::getTextureID(EBlockType tex) const {
-    if (!loadedTextures.contains(tex)) {
-        throw std::runtime_error("tried to call getTextureIDs() on uninitialized texture data");
-    }
-
-    return loadedTextures.at(tex);
+    return textureID;
 }

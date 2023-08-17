@@ -12,8 +12,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-void OpenGLRenderer::init() {
-    if (isInit) return;
+struct GLFWwindow *OpenGLRenderer::init() {
+    if (isInit) return nullptr;
 
     // Initialise GLFW
     if (!glfwInit()) {
@@ -71,9 +71,10 @@ void OpenGLRenderer::init() {
     glGenVertexArrays(1, &vertexArrayID);
     glBindVertexArray(vertexArrayID);
 
-    // Create and compile our GLSL program from the shaders
+    // load & compile shaders
     cubeShaderID = loadShaders("cube-shader.vert", "cube-shader.frag");
     lineShaderID = loadShaders("line-shader.vert", "line-shader.frag");
+    textShaderID = loadShaders("text-shader.vert", "text-shader.frag");
     glUseProgram(cubeShaderID);
 
     // Get a handle for our "MVP" uniform
@@ -92,11 +93,20 @@ void OpenGLRenderer::init() {
     glBindBuffer(GL_ARRAY_BUFFER, lineVertexArrayID);
     glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
+    // generate buffers for hud text
+    glGenBuffers(1, &textVertexBufferID);
+    glGenBuffers(1, &textUVBufferID);
+
     isInit = true;
+
+    // init peripheral structures
+    camera.init(window);
+
+    return window;
 }
 
 void OpenGLRenderer::tick(float deltaTime) {
-    camera.tick(window, deltaTime);
+    camera.tick(deltaTime);
 }
 
 GLuint OpenGLRenderer::loadShaders(const std::filesystem::path &vertexShaderPath,
@@ -188,9 +198,10 @@ GLuint OpenGLRenderer::loadShaders(const std::filesystem::path &vertexShaderPath
 }
 
 void OpenGLRenderer::loadTextures() const {
-    texManager->loadTexture(EBlockType::BlockType_Grass, "grass.dds");
-    texManager->loadTexture(EBlockType::BlockType_Dirt, "dirt.dds");
-    texManager->bindTextures(cubeShaderID);
+    texManager->loadFontTexture("font.dds");
+    texManager->loadBlockTexture(EBlockType::BlockType_Grass, "grass.dds");
+    texManager->loadBlockTexture(EBlockType::BlockType_Dirt, "dirt.dds");
+    texManager->loadBlockTexture(EBlockType::BlockType_Stone, "stone.dds");
 }
 
 void OpenGLRenderer::startRendering() {
@@ -203,10 +214,11 @@ void OpenGLRenderer::startRendering() {
     glUniform3f(lightID, lightPos.x, lightPos.y, lightPos.z);
 }
 
-void OpenGLRenderer::renderChunk(const std::shared_ptr<MeshContext>& ctx) {
+void OpenGLRenderer::renderChunk(const std::shared_ptr<MeshContext> &ctx) {
     const IndexedMeshData &indexedData = ctx->getIndexedData();
 
     glUseProgram(cubeShaderID);
+    texManager->bindBlockTextures(cubeShaderID);
 
     // update buffers if needed
     if (ctx->isFreshlyUpdated) {
@@ -266,7 +278,8 @@ void OpenGLRenderer::renderOutline(const std::vector<glm::vec3> &vertices, const
     glBindBuffer(GL_ARRAY_BUFFER, lineVertexArrayID);
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices[0], GL_STATIC_DRAW);
 
-    glUniformMatrix4fv(mvpMatrixID, 1, GL_FALSE, &mvpMatrix[0][0]);
+    GLuint mvpID = glGetUniformLocation(lineShaderID, "MVP");
+    glUniformMatrix4fv(mvpID, 1, GL_FALSE, &mvpMatrix[0][0]);
 
     GLuint colorID = glGetUniformLocation(lineShaderID, "color");
     glUniform3f(colorID, color.r, color.g, color.b);
@@ -328,66 +341,80 @@ void OpenGLRenderer::renderChunkOutline(const glm::vec3 chunkPos, glm::vec3 colo
     renderOutline(vertices, mvpMatrix, color);
 }
 
-void OpenGLRenderer::renderFrustumOutline() const {
-    static Camera cam;
-    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
-        cam = camera;
+void OpenGLRenderer::renderText(const std::string &text, int x, int y, size_t fontSize) const {
+    std::vector<glm::vec2> vertices;
+    std::vector<glm::vec2> uvs;
+    constexpr float widthMult = 0.7f;
+    constexpr float uvOffset = 1.0f / 16 * (1.0f - widthMult) / 2;
+
+    for (size_t i = 0; i < text.size(); i++) {
+        glm::vec2 vertexUpLeft = glm::vec2(x + i * fontSize * widthMult, y + fontSize);
+        glm::vec2 vertexUpRight = glm::vec2(x + (i * fontSize + fontSize) * widthMult, y + fontSize);
+        glm::vec2 vertexDownRight = glm::vec2(x + (i * fontSize + fontSize) * widthMult, y);
+        glm::vec2 vertexDownLeft = glm::vec2(x + i * fontSize * widthMult, y);
+
+        vertices.push_back(vertexUpLeft);
+        vertices.push_back(vertexDownLeft);
+        vertices.push_back(vertexUpRight);
+
+        vertices.push_back(vertexDownRight);
+        vertices.push_back(vertexUpRight);
+        vertices.push_back(vertexDownLeft);
+
+        char character = text[i];
+        glm::vec2 uv = {
+            (float) (character % 16) / 16.0f,
+            (float) (character / 16) / 16.0f
+        };
+
+        glm::vec2 uvUpLeft = glm::vec2(uv.x + uvOffset, uv.y);
+        glm::vec2 uvUpRight = glm::vec2(uv.x + 1.0f / 16.0f - uvOffset, uv.y);
+        glm::vec2 uvDownRight = glm::vec2(uv.x + 1.0f / 16.0f - uvOffset, uv.y + 1.0f / 16.0f);
+        glm::vec2 uvDownLeft = glm::vec2(uv.x + uvOffset, uv.y + 1.0f / 16.0f);
+
+        uvs.push_back(uvUpLeft);
+        uvs.push_back(uvDownLeft);
+        uvs.push_back(uvUpRight);
+
+        uvs.push_back(uvDownRight);
+        uvs.push_back(uvUpRight);
+        uvs.push_back(uvDownLeft);
     }
+    glBindBuffer(GL_ARRAY_BUFFER, textVertexBufferID);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec2), &vertices[0], GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, textUVBufferID);
+    glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(glm::vec2), &uvs[0], GL_STATIC_DRAW);
 
-    const float halfVSideFar = camera.zFar * tanf(camera.fieldOfView * 0.5f);
-    const float halfHSideFar = halfVSideFar * camera.aspectRatio;
+    glUseProgram(textShaderID);
+    texManager->bindFontTexture(textShaderID);
 
-    const float halfVSideNear = cam.zNear * tanf(cam.fieldOfView * 0.5f);
-    const float halfHSideNear = halfVSideNear * cam.aspectRatio;
+    // 1rst attribute buffer : vertices
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, textVertexBufferID);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
 
-    const glm::vec3 frontMultNear = cam.zNear * cam.front;
-    const glm::vec3 frontMultFar = cam.zFar * cam.front;
+    // 2nd attribute buffer : UVs
+    glEnableVertexAttribArray(1);
+    glBindBuffer(GL_ARRAY_BUFFER, textUVBufferID);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
 
-    const glm::vec3 nearPlaneVertices[4] = {
-        cam.pos + frontMultNear + cam.up * halfVSideNear + cam.right * halfHSideNear,
-        cam.pos + frontMultNear - cam.up * halfVSideNear + cam.right * halfHSideNear,
-        cam.pos + frontMultNear - cam.up * halfVSideNear - cam.right * halfHSideNear,
-        cam.pos + frontMultNear + cam.up * halfVSideNear - cam.right * halfHSideNear,
-    };
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    const glm::vec3 farPlaneVertices[4] = {
-        cam.pos + frontMultFar + cam.up * halfVSideFar + cam.right * halfHSideFar,
-        cam.pos + frontMultFar - cam.up * halfVSideFar + cam.right * halfHSideFar,
-        cam.pos + frontMultFar - cam.up * halfVSideFar - cam.right * halfHSideFar,
-        cam.pos + frontMultFar + cam.up * halfVSideFar - cam.right * halfHSideFar,
-    };
+    glDrawArrays(GL_TRIANGLES, 0, vertices.size());
 
-    std::vector<glm::vec3> vertices;
-    for (int i = 0; i < 4; i++) {
-        // near plane
-        vertices.push_back(nearPlaneVertices[i]);
-        vertices.push_back(nearPlaneVertices[(i + 1) % 4]);
+    glDisable(GL_BLEND);
 
-        // far plane
-        vertices.push_back(farPlaneVertices[i]);
-        vertices.push_back(farPlaneVertices[(i + 1) % 4]);
+    glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
 
-        // the rest
-        vertices.push_back(nearPlaneVertices[i]);
-        vertices.push_back(farPlaneVertices[i]);
-    }
-
-    glm::mat4 modelMatrix = glm::mat4(1.0f);
-    glm::mat4 mvpMatrix = projectionMatrix * viewMatrix * modelMatrix;
-    const glm::vec3 color = {1, 1, 1};
-    renderOutline(vertices, mvpMatrix, color);
+    glUseProgram(cubeShaderID);
 }
 
 void OpenGLRenderer::finishRendering() {
-    // renderFrustumOutline();
-
     glFlush();
     glfwSwapBuffers(window);
     glfwPollEvents();
-}
-
-bool OpenGLRenderer::isChunkInFrustum(const Chunk &chunk) const {
-    return camera.isChunkInFrustum(chunk.getPos());
 }
 
 void OpenGLRenderer::debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
@@ -395,84 +422,87 @@ void OpenGLRenderer::debugCallback(GLenum source, GLenum type, GLuint id, GLenum
     (void) userParam;
     (void) length;
 
-    std::cout << "ERROR!\nsource: ";
+    std::stringstream ss;
+    ss << "ERROR!\nsource: ";
 
     switch (source) {
         case GL_DEBUG_SOURCE_API:
-            std::cout << "GL_DEBUG_SOURCE_API";
+            ss << "GL_DEBUG_SOURCE_API";
             break;
         case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
-            std::cout << "GL_DEBUG_SOURCE_WINDOW_SYSTEM";
+            ss << "GL_DEBUG_SOURCE_WINDOW_SYSTEM";
             break;
         case GL_DEBUG_SOURCE_SHADER_COMPILER:
-            std::cout << "GL_DEBUG_SOURCE_SHADER_COMPILER";
+            ss << "GL_DEBUG_SOURCE_SHADER_COMPILER";
             break;
         case GL_DEBUG_SOURCE_THIRD_PARTY:
-            std::cout << "GL_DEBUG_SOURCE_THIRD_PARTY";
+            ss << "GL_DEBUG_SOURCE_THIRD_PARTY";
             break;
         case GL_DEBUG_SOURCE_APPLICATION:
-            std::cout << "GL_DEBUG_SOURCE_APPLICATION";
+            ss << "GL_DEBUG_SOURCE_APPLICATION";
             break;
         case GL_DEBUG_SOURCE_OTHER:
-            std::cout << "GL_DEBUG_SOURCE_OTHER";
+            ss << "GL_DEBUG_SOURCE_OTHER";
             break;
         default:
             break;
     }
 
-    std::cout << "\ntype:";
+    ss << "\ntype:";
 
     switch (type) {
         case GL_DEBUG_TYPE_ERROR:
-            std::cout << "GL_DEBUG_TYPE_ERROR";
+            ss << "GL_DEBUG_TYPE_ERROR";
             break;
         case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
-            std::cout << "GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR";
+            ss << "GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR";
             break;
         case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
-            std::cout << "GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR";
+            ss << "GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR";
             break;
         case GL_DEBUG_TYPE_PORTABILITY:
-            std::cout << "GL_DEBUG_TYPE_PORTABILITY";
+            ss << "GL_DEBUG_TYPE_PORTABILITY";
             break;
         case GL_DEBUG_TYPE_PERFORMANCE:
-            std::cout << "GL_DEBUG_TYPE_PERFORMANCE";
+            ss << "GL_DEBUG_TYPE_PERFORMANCE";
             break;
         case GL_DEBUG_TYPE_MARKER:
-            std::cout << "GL_DEBUG_TYPE_MARKER";
+            ss << "GL_DEBUG_TYPE_MARKER";
             break;
         case GL_DEBUG_TYPE_PUSH_GROUP:
-            std::cout << "GL_DEBUG_TYPE_PUSH_GROUP";
+            ss << "GL_DEBUG_TYPE_PUSH_GROUP";
             break;
         case GL_DEBUG_TYPE_POP_GROUP:
-            std::cout << "GL_DEBUG_TYPE_POP_GROUP";
+            ss << "GL_DEBUG_TYPE_POP_GROUP";
             break;
         case GL_DEBUG_TYPE_OTHER:
-            std::cout << "GL_DEBUG_TYPE_OTHER";
+            ss << "GL_DEBUG_TYPE_OTHER";
             break;
         default:
             break;
     }
 
-    std::cout << "\nid: " << id;
-    std::cout << "\nseverity:";
+    ss << "\nid: " << id;
+    ss << "\nseverity:";
 
     switch (severity) {
         case GL_DEBUG_SEVERITY_HIGH:
-            std::cout << "GL_DEBUG_SEVERITY_HIGH";
+            ss << "GL_DEBUG_SEVERITY_HIGH";
             break;
         case GL_DEBUG_SEVERITY_MEDIUM:
-            std::cout << "GL_DEBUG_SEVERITY_MEDIUM";
+            ss << "GL_DEBUG_SEVERITY_MEDIUM";
             break;
         case GL_DEBUG_SEVERITY_LOW:
-            std::cout << "GL_DEBUG_SEVERITY_LOW";
+            ss << "GL_DEBUG_SEVERITY_LOW";
             break;
         case GL_DEBUG_SEVERITY_NOTIFICATION:
-            std::cout << "GL_DEBUG_SEVERITY_NOTIFICATION";
+            ss << "GL_DEBUG_SEVERITY_NOTIFICATION";
             break;
         default:
             break;
     }
 
-    std::cout << "\nmessage: " << message << "\n\n";
+    ss << "\nmessage: " << message << "\n";
+
+    throw std::runtime_error(ss.str());
 }

@@ -11,14 +11,16 @@ in vec3 LightDirection_cameraspace;
 out vec4 color;
 
 // Values that stay constant for the whole mesh.
-uniform sampler2D texSampler[2];
+uniform sampler2D texSampler[3];
 uniform mat4 MV;
 uniform vec3 LightPosition_worldspace;
 
 vec3 getTexSample(int texID, vec2 localUV) {
     if (texID == 0)
         return texture(texSampler[0], localUV).rgb;
-    return texture(texSampler[1], localUV).rgb;
+    if (texID == 1)
+        return texture(texSampler[1], localUV).rgb;
+    return texture(texSampler[2], localUV).rgb;
 }
 
 void main() {

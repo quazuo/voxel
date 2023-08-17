@@ -20,13 +20,16 @@ class OpenGLRenderer {
 
     std::shared_ptr<class TextureManager> texManager = std::make_shared<TextureManager>();
 
+    KeyManager keyManager;
+
     bool isInit = false;
 
     Camera camera{};
 
     // OpenGL handles for various objects
     GLuint vertexArrayID{};
-    GLuint cubeShaderID{}, lineShaderID{};
+    GLuint textVertexBufferID{}, textUVBufferID;
+    GLuint cubeShaderID{}, lineShaderID{}, textShaderID{};
     GLuint lineVertexArrayID{};
     GLint mvpMatrixID{}, modelMatrixID{}, viewMatrixID{}, projectionMatrixID{};
     GLint lightID{};
@@ -36,7 +39,7 @@ class OpenGLRenderer {
     glm::mat4 viewMatrix, projectionMatrix;
 
 public:
-    void init();
+    struct GLFWwindow *init();
 
     void tick(float deltaTime);
 
@@ -53,16 +56,16 @@ public:
     glm::vec3 getCameraPos() const { return camera.pos; }
 
     [[nodiscard]]
-    bool isChunkInFrustum(const Chunk& chunk) const;
+    bool isChunkInFrustum(const Chunk& chunk) const { return camera.isChunkInFrustum(chunk.getPos()); };
 
     void renderChunk(const std::shared_ptr<MeshContext>& ctx);
 
     void renderChunkOutline(glm::vec3 chunkPos, glm::vec3 color) const;
 
+    void renderText(const std::string& text, int x, int y, size_t fontSize) const;
+
 private:
     void renderOutline(const std::vector<glm::vec3> &vertices, const glm::mat4& mvpMatrix, glm::vec3 color) const;
-
-    void renderFrustumOutline() const;
 
     GLuint loadShaders(const std::filesystem::path &vertexShaderPath, const std::filesystem::path &fragmentShaderPath);
 

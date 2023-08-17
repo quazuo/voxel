@@ -49,12 +49,12 @@ class ChunkManager {
     using ChunkPtr = std::shared_ptr<Chunk>;
 
     // list of chunks that are waiting to be loaded
-    std::vector<ChunkPtr> loadChunks;
+    std::vector<ChunkPtr> loadableChunks; // todo - this can crash! remove this and just get a list of slots or something
 
     // list of chunks that should be rendered
-    std::vector<ChunkPtr> renderChunks;
+    std::vector<ChunkPtr> visibleChunks;
 
-    static constexpr int RENDER_DISTANCE = 2;
+    static constexpr int RENDER_DISTANCE = 3;
     static constexpr int GRACE_PERIOD_WIDTH = 1;
     static constexpr int VISIBLE_AREA_WIDTH = 2 * RENDER_DISTANCE + 1 + GRACE_PERIOD_WIDTH;
     std::array<ChunkSlot, SizeUtils::powSize(VISIBLE_AREA_WIDTH, 3)> chunkSlots; // todo - make it into 2 lists: bound/free
@@ -70,7 +70,9 @@ public:
 
     void init();
 
-    void render() const;
+    void renderChunks() const;
+
+    void renderChunkOutlines() const;
 
     void tick();
 
@@ -84,8 +86,6 @@ private:
     void updateLoadList();
 
     void updateRenderList();
-
-    void renderOutlines() const;
 };
 
 #endif //MYGE_CHUNK_MANAGER_H

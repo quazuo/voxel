@@ -9,14 +9,22 @@
 
 class VEngine {
     std::shared_ptr<OpenGLRenderer> renderer = std::make_shared<OpenGLRenderer>();
+    struct GLFWwindow *window = nullptr;
+
     std::shared_ptr<ChunkManager> chunkManager = std::make_shared<ChunkManager>(renderer);
+
+    KeyManager keyManager;
 
     float lastTime = 0.f;
 
+    bool doRenderChunkOutlines = true;
+    bool doRenderDebugText = true;
+
 public:
     void init() {
-        renderer->init();
+        window = renderer->init();
         chunkManager->init();
+        bindKeyActions();
     }
 
     [[noreturn]]
@@ -27,15 +35,43 @@ public:
     }
 
     void tick() {
-        // Measure speed
+        // calculate this tick's delta time
         auto currentTime = (float) glfwGetTime();
         const float deltaTime = currentTime - lastTime;
-        // std::cout << "frametime: " << deltaTime << "s, fps: " << 1 / deltaTime << "\n";
         lastTime = currentTime;
 
+        keyManager.tick(deltaTime);
         renderer->tick(deltaTime);
         chunkManager->tick();
-        chunkManager->render();
+
+        renderer->startRendering();
+        chunkManager->renderChunks();
+        if (doRenderChunkOutlines)
+            chunkManager->renderChunkOutlines();
+        if (doRenderDebugText)
+            renderDebugText(1 / deltaTime);
+        renderer->finishRendering();
+    }
+
+    void renderDebugText(float fps) {
+        constexpr float fontSize = 16;
+        constexpr float yOffset = fontSize;
+        renderer->renderText("pos: " + VecUtils::toString(renderer->getCameraPos()), 0, 0, fontSize);
+        renderer->renderText("fps: " + std::to_string(fps), 0, yOffset, fontSize);
+    }
+
+    void bindKeyActions() {
+        keyManager.bindWindow(window);
+
+        keyManager.bindCallback(GLFW_KEY_F1, EActivationType::PRESS_ONCE, [this](float deltaTime) {
+            (void) deltaTime;
+            doRenderChunkOutlines = !doRenderChunkOutlines;
+        });
+
+        keyManager.bindCallback(GLFW_KEY_F2, EActivationType::PRESS_ONCE, [this](float deltaTime) {
+            (void) deltaTime;
+            doRenderDebugText = !doRenderDebugText;
+        });
     }
 };
 

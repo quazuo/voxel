@@ -6,6 +6,7 @@
 #include "glm/trigonometric.hpp"
 #include "glm/geometric.hpp"
 #include "src/utils/vec.h"
+#include "src/utils/key-manager.h"
 
 class Plane {
     glm::vec3 normal = {0, 0, 0};
@@ -40,30 +41,33 @@ struct Camera {
     float zNear = 1.f;
     float zFar = 500.0f;
 
-    glm::vec2 rot;
+    glm::vec2 rot = {0, 0};
     glm::vec3 front, right, up;
     glm::vec3 pos = {0, 10, 0};
 
-public:
-    void tick(struct GLFWwindow *w, float dt);
+    float rotationSpeed = 2.5f;
+    float movementSpeed = 8.0f;
+
+    void init(struct GLFWwindow *window);
+
+    void tick(float dt);
 
     [[nodiscard]]
-    bool isChunkInFrustum(glm::vec3 chunkPos) const;
+    bool isChunkInFrustum(VecUtils::Vec3Discrete chunkPos) const;
 
 private:
-    struct GLFWwindow *window;
-    float deltaTime;
+    KeyManager keyManager;
 
-    void updateRot();
+    void bindRotationKeys();
+
+    void bindMovementKeys();
 
     void updateVecs();
-
-    void updatePos();
 
     void updateFrustum();
 
     [[nodiscard]]
-    static bool isChunkInFrontOfPlane(glm::vec3 p, const Plane &plane);
+    static bool isChunkInFrontOfPlane(VecUtils::Vec3Discrete chunkPos, const Plane &plane);
 };
 
 #endif //VOXEL_CAMERA_H

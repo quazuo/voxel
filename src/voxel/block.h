@@ -9,6 +9,7 @@ enum EBlockType : std::uint8_t {
     BlockType_None = 0,
     BlockType_Grass,
     BlockType_Dirt,
+    BlockType_Stone,
     BlockType_NumTypes
 };
 
