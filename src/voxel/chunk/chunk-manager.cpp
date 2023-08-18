@@ -101,12 +101,17 @@ void ChunkManager::unloadFarChunks(VecUtils::Vec3Discrete currChunkPos) {
 
         if (isOutsideRenderDistance) {
             slot.unbind();
+
+            auto it = std::find(loadableChunks.begin(), loadableChunks.end(), slot.chunk);
+            if (it != loadableChunks.end())
+                loadableChunks.erase(it);
         }
     }
 }
 
 void ChunkManager::loadNearChunks(VecUtils::Vec3Discrete currChunkPos) {
     // check which positions, relative to ours, are occupied by loaded chunks
+
     constexpr size_t newChunkLoadCubeWidth = 2 * RENDER_DISTANCE + 1;
     SizeUtils::CubeArray<bool, newChunkLoadCubeWidth> loadedChunksMap;
 
