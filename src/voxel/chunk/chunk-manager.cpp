@@ -3,6 +3,30 @@
 
 #include "src/render/renderer.h"
 
+void ChunkSlot::init() {
+    mesh = std::make_shared<MeshContext>();
+    mesh->initBuffers();
+}
+
+void ChunkSlot::bind(std::shared_ptr<Chunk> c) {
+    if (_isBound)
+        throw std::runtime_error("tried to call bind() while already bound");
+
+    chunk = c;
+    chunk->bindMeshContext(mesh);
+    _isBound = true;
+}
+
+void ChunkSlot::unbind() {
+    if (!_isBound)
+        throw std::runtime_error("tried to call unbind() while not bound");
+
+    if (chunk->isLoaded())
+        chunk->unload();
+    chunk.reset();
+    _isBound = false;
+}
+
 void ChunkManager::init() {
     for (auto& slot : chunkSlots) {
         slot.init();
@@ -75,8 +99,9 @@ void ChunkManager::unloadFarChunks(VecUtils::Vec3Discrete currChunkPos) {
             [](float x) { return x > RENDER_DISTANCE + GRACE_PERIOD_WIDTH; }
         );
 
-        if (isOutsideRenderDistance)
+        if (isOutsideRenderDistance) {
             slot.unbind();
+        }
     }
 }
 

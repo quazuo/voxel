@@ -17,32 +17,14 @@ struct ChunkSlot {
 
     bool _isBound = false;
 
-    void init() {
-        mesh = std::make_shared<MeshContext>();
-        mesh->initBuffers();
-    }
+    void init();
 
     [[nodiscard]]
     bool isBound() const { return _isBound; }
 
-    void bind(std::shared_ptr<Chunk> c) {
-        if (_isBound)
-            throw std::runtime_error("tried to call bind() while already bound");
+    void bind(std::shared_ptr<Chunk> c);
 
-        chunk = c;
-        chunk->bindMeshContext(mesh);
-        _isBound = true;
-    }
-
-    void unbind() {
-        if (!_isBound)
-            throw std::runtime_error("tried to call unbind() while not bound");
-
-        if (chunk->isLoaded())
-            chunk->unload();
-        chunk.reset();
-        _isBound = false;
-    }
+    void unbind();
 };
 
 class ChunkManager {
