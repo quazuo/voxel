@@ -3,12 +3,12 @@
 
 #include "src/render/renderer.h"
 
-void ChunkSlot::init() {
+void ChunkManager::ChunkSlot::init() {
     mesh = std::make_shared<MeshContext>();
     mesh->initBuffers();
 }
 
-void ChunkSlot::bind(std::shared_ptr<Chunk> c) {
+void ChunkManager::ChunkSlot::bind(std::shared_ptr<Chunk> c) {
     if (_isBound)
         throw std::runtime_error("tried to call bind() while already bound");
 
@@ -17,7 +17,7 @@ void ChunkSlot::bind(std::shared_ptr<Chunk> c) {
     _isBound = true;
 }
 
-void ChunkSlot::unbind() {
+void ChunkManager::ChunkSlot::unbind() {
     if (!_isBound)
         throw std::runtime_error("tried to call unbind() while not bound");
 
@@ -28,7 +28,7 @@ void ChunkSlot::unbind() {
 }
 
 void ChunkManager::init() {
-    for (auto& slot : chunkSlots) {
+    for (auto &slot: chunkSlots) {
         slot.init();
     }
 
@@ -55,7 +55,7 @@ void ChunkManager::renderChunks() const {
 }
 
 void ChunkManager::renderChunkOutlines() const {
-    for (auto &slot : chunkSlots) {
+    for (auto &slot: chunkSlots) {
         if (!slot.isBound())
             continue;
 
@@ -89,7 +89,7 @@ void ChunkManager::updateChunkSlots() {
 }
 
 void ChunkManager::unloadFarChunks(VecUtils::Vec3Discrete currChunkPos) {
-    for (auto &slot : chunkSlots) {
+    for (auto &slot: chunkSlots) {
         if (!slot.isBound())
             continue;
 
@@ -123,7 +123,7 @@ void ChunkManager::loadNearChunks(VecUtils::Vec3Discrete currChunkPos) {
         }
     }
 
-    for (auto &slot : chunkSlots) {
+    for (auto &slot: chunkSlots) {
         if (!slot.isBound())
             continue;
 
@@ -182,7 +182,7 @@ void ChunkManager::updateRenderList() {
     // clear the render list each frame BEFORE we do our tests to see what chunks should be rendered
     visibleChunks.clear();
 
-    for (auto &slot : chunkSlots) {
+    for (auto &slot: chunkSlots) {
         if (!slot.isBound())
             continue;
         if (!slot.chunk->shouldRender()) // early flags check, so we don't always have to do the frustum check...
@@ -190,5 +190,35 @@ void ChunkManager::updateRenderList() {
         if (!renderer->isChunkInFrustum(*slot.chunk))
             continue;
         visibleChunks.push_back(slot.chunk);
+    }
+}
+
+bool
+ChunkManager::getTargetedBlock(const std::vector<VecUtils::Vec3Discrete> &lookedAtBlocks, glm::vec3 &outBlock) const {
+    for (auto &block: lookedAtBlocks) {
+        const VecUtils::Vec3Discrete owningChunkPos =
+            VecUtils::floor((glm::vec3) block * (1.0f / (float) Chunk::CHUNK_SIZE));
+
+        auto it = std::find_if(chunkSlots.begin(), chunkSlots.end(), [&](const ChunkSlot &slot) {
+            return slot.isBound() && slot.chunk->isLoaded() && slot.chunk->getPos() == owningChunkPos;
+        });
+
+        if (it == chunkSlots.end())
+            continue;
+
+        const VecUtils::Vec3Discrete relativeBlockPos = block - owningChunkPos * Chunk::CHUNK_SIZE;
+        const EBlockType blockType = it->chunk->getBlock(relativeBlockPos);
+        if (blockType != BlockType_None) {
+            outBlock = block;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void ChunkManager::terminate() {
+    for (const auto &slot : chunkSlots) {
+        slot.mesh->freeBuffers();
     }
 }

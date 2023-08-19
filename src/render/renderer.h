@@ -17,6 +17,7 @@
 
 class OpenGLRenderer {
     struct GLFWwindow *window = nullptr;
+    glm::vec2 windowSize;
 
     std::shared_ptr<class TextureManager> texManager = std::make_shared<TextureManager>();
 
@@ -39,9 +40,11 @@ class OpenGLRenderer {
     glm::mat4 viewMatrix, projectionMatrix;
 
 public:
-    struct GLFWwindow *init();
+    struct GLFWwindow *init(int windowWidth, int windowHeight);
 
     void tick(float deltaTime);
+
+    void terminate();
 
     // should be called before any rendering
     void startRendering();
@@ -56,15 +59,24 @@ public:
     glm::vec3 getCameraPos() const { return camera.pos; }
 
     [[nodiscard]]
+    std::vector<VecUtils::Vec3Discrete> getLookedAtBlocks() const { return camera.getLookedAtBlocks(); }
+
+    [[nodiscard]]
     bool isChunkInFrustum(const Chunk& chunk) const { return camera.isChunkInFrustum(chunk.getPos()); };
 
     void renderChunk(const std::shared_ptr<MeshContext>& ctx);
 
     void renderChunkOutline(glm::vec3 chunkPos, glm::vec3 color) const;
 
+    void renderTargetedBlockOutline(glm::vec3 blockPos) const;
+
     void renderText(const std::string& text, int x, int y, size_t fontSize) const;
 
 private:
+    void tickMouseMovement(float deltaTime);
+
+    void renderCubeOutline(glm::vec3 minVec, float sideLength, glm::vec3 color) const;
+
     void renderOutline(const std::vector<glm::vec3> &vertices, const glm::mat4& mvpMatrix, glm::vec3 color) const;
 
     GLuint loadShaders(const std::filesystem::path &vertexShaderPath, const std::filesystem::path &fragmentShaderPath);

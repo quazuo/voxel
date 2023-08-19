@@ -2,11 +2,13 @@
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <iostream>
 #include "glm/geometric.hpp"
 #include "src/utils/vec.h"
 #include "src/voxel/chunk/chunk.h"
 
-void Camera::init(struct GLFWwindow *window) {
+void Camera::init(struct GLFWwindow *w) {
+    window = w;
     keyManager.bindWindow(window);
     bindRotationKeys();
     bindMovementKeys();
@@ -20,19 +22,11 @@ void Camera::tick(float dt) {
 
 void Camera::bindRotationKeys() {
     keyManager.bindCallback(GLFW_KEY_UP, EActivationType::PRESS_ANY, [this](float deltaTime) {
-        rot.y = std::clamp(
-            rot.y + deltaTime * rotationSpeed,
-            -3.14f / 2,
-            3.14f / 2
-        );
+        updateRotation(0.0f, deltaTime * rotationSpeed);
     });
 
     keyManager.bindCallback(GLFW_KEY_DOWN, EActivationType::PRESS_ANY, [this](float deltaTime) {
-        rot.y = std::clamp(
-            rot.y - deltaTime * rotationSpeed,
-            -3.14f / 2,
-            3.14f / 2
-        );
+        updateRotation(0.0f, -deltaTime * rotationSpeed);
     });
 
     keyManager.bindCallback(GLFW_KEY_RIGHT, EActivationType::PRESS_ANY, [this](float deltaTime) {
@@ -42,6 +36,14 @@ void Camera::bindRotationKeys() {
     keyManager.bindCallback(GLFW_KEY_LEFT, EActivationType::PRESS_ANY, [this](float deltaTime) {
         rot.x += deltaTime * rotationSpeed;
     });
+}
+void Camera::updateRotation(float dx, float dy) {
+    rot.x += dx;
+    rot.y = std::clamp(
+        rot.y + dy,
+        -3.14f / 2,
+        3.14f / 2
+    );
 }
 
 void Camera::updateVecs() {
@@ -96,7 +98,7 @@ void Camera::updateFrustum() {
     frustum.bottom = {glm::cross(right, frontMultFar - up * halfVSide), pos};
 }
 
-bool Camera::isChunkInFrustum(VecUtils::Vec3Discrete chunkPos) const {
+bool Camera::isChunkInFrustum(const VecUtils::Vec3Discrete chunkPos) const {
     return isChunkInFrontOfPlane(chunkPos, frustum.near) &&
            isChunkInFrontOfPlane(chunkPos, frustum.far) &&
            isChunkInFrontOfPlane(chunkPos, frustum.top) &&
@@ -105,7 +107,7 @@ bool Camera::isChunkInFrustum(VecUtils::Vec3Discrete chunkPos) const {
            isChunkInFrontOfPlane(chunkPos, frustum.right);
 }
 
-bool Camera::isChunkInFrontOfPlane(VecUtils::Vec3Discrete chunkPos, const Plane &plane) {
+bool Camera::isChunkInFrontOfPlane(const VecUtils::Vec3Discrete chunkPos, const Plane &plane) {
     const glm::vec3 chunkAbsPos = (glm::vec3) chunkPos * (float) Chunk::CHUNK_SIZE / Block::RENDER_SIZE;
     const glm::vec3 chunkMinPoint =
         chunkAbsPos - glm::vec3(Block::RENDER_SIZE / 2, Block::RENDER_SIZE / 2, Block::RENDER_SIZE / 2);
@@ -119,4 +121,73 @@ bool Camera::isChunkInFrontOfPlane(VecUtils::Vec3Discrete chunkPos, const Plane 
     const float signedDistance = glm::dot(plane.getNormal(), chunkCenter) - plane.getDistance();
 
     return -projectionRadius <= signedDistance;
+}
+
+std::vector<VecUtils::Vec3Discrete> Camera::getLookedAtBlocks() const {
+    std::vector<VecUtils::Vec3Discrete> result;
+    constexpr size_t size = 2 * TARGET_DISTANCE + 1;
+
+    for (size_t x = 0; x < size; x++) {
+        for (size_t y = 0; y < size; y++) {
+            for (size_t z = 0; z < size; z++) {
+                VecUtils::Vec3Discrete blockPos = VecUtils::floor(pos + glm::vec3(x, y, z) - (float) TARGET_DISTANCE);
+
+                if (isBlockLookedAt(blockPos))
+                    result.push_back(blockPos);
+            }
+        }
+    }
+
+    std::sort(result.begin(), result.end(), [&](glm::vec3 a, glm::vec3 b) {
+        return glm::length(a - pos) <= glm::length(b - pos);
+    });
+
+    return result;
+}
+
+bool Camera::isBlockLookedAt(const glm::vec3 blockPos) const {
+    float tmin = -INFINITY, tmax = INFINITY;
+    const glm::vec3 blockMin = blockPos - Block::RENDER_SIZE / 2;
+    const glm::vec3 blockMax = blockMin + Block::RENDER_SIZE;
+
+    if (front.x == 0 && front.y == 0) {
+        return blockMin.x <= pos.x && pos.x <= blockMax.x &&
+               blockMin.y <= pos.y && pos.y <= blockMax.y;
+    }
+
+    if (front.x == 0 && front.z == 0) {
+        return blockMin.x <= pos.x && pos.x <= blockMax.x &&
+               blockMin.z <= pos.z && pos.z <= blockMax.z;
+    }
+
+    if (front.y == 0 && front.z == 0) {
+        return blockMin.y <= pos.y && pos.y <= blockMax.y &&
+               blockMin.z <= pos.z && pos.z <= blockMax.z;
+    }
+
+    if (front.x != 0) {
+        float tx1 = (blockMin.x - pos.x) / front.x;
+        float tx2 = (blockMax.x - pos.x) / front.x;
+
+        tmin = std::max(tmin, std::min(tx1, tx2));
+        tmax = std::min(tmax, std::max(tx1, tx2));
+    }
+
+    if (front.y != 0) {
+        float ty1 = (blockMin.y - pos.y) / front.y;
+        float ty2 = (blockMax.y - pos.y) / front.y;
+
+        tmin = std::max(tmin, std::min(ty1, ty2));
+        tmax = std::min(tmax, std::max(ty1, ty2));
+    }
+
+    if (front.z != 0) {
+        float tz1 = (blockMin.z - pos.z) / front.z;
+        float tz2 = (blockMax.z - pos.z) / front.z;
+
+        tmin = std::max(tmin, std::min(tz1, tz2));
+        tmax = std::min(tmax, std::max(tz1, tz2));
+    }
+
+    return tmin <= tmax;
 }

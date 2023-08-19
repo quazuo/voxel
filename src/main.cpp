@@ -5,7 +5,8 @@
 #include <GLFW/glfw3.h>
 
 #include "render/renderer.h"
-#include "src/voxel/chunk/chunk-manager.h"
+#include "voxel/chunk/chunk-manager.h"
+#include "utils/key-manager.h"
 
 class VEngine {
     std::shared_ptr<OpenGLRenderer> renderer = std::make_shared<OpenGLRenderer>();
@@ -17,21 +18,30 @@ class VEngine {
 
     float lastTime = 0.f;
 
-    bool doRenderChunkOutlines = true;
+    bool doRenderChunkOutlines = false;
     bool doRenderDebugText = true;
+    bool doTick = true;
 
 public:
     void init() {
-        window = renderer->init();
+        if (!glfwInit()) {
+            throw std::runtime_error("Failed to initialize GLFW");
+        }
+
+        window = renderer->init(1024, 768);
         chunkManager->init();
         bindKeyActions();
     }
 
-    [[noreturn]]
     void startTicking() {
-        while (true) {
+        while (doTick && !glfwWindowShouldClose(window)) {
             tick();
         }
+    }
+
+    void terminate() {
+        renderer->terminate();
+        chunkManager->terminate();
     }
 
     void tick() {
@@ -44,12 +54,23 @@ public:
         renderer->tick(deltaTime);
         chunkManager->tick();
 
+        // rendering
         renderer->startRendering();
+
         chunkManager->renderChunks();
+
         if (doRenderChunkOutlines)
             chunkManager->renderChunkOutlines();
+
+        glm::vec3 targetedBlockPos;
+        if (chunkManager->getTargetedBlock(renderer->getLookedAtBlocks(), targetedBlockPos))
+            renderer->renderTargetedBlockOutline(targetedBlockPos);
+
+        // this HAS TO be done as the last thing, because while rendering overlay text we clear the z-buffer
+        // so that the text is on top of everything. this is, of course, not desired for other rendered things.
         if (doRenderDebugText)
             renderDebugText(1 / deltaTime);
+
         renderer->finishRendering();
     }
 
@@ -72,6 +93,11 @@ public:
             (void) deltaTime;
             doRenderDebugText = !doRenderDebugText;
         });
+
+        keyManager.bindCallback(GLFW_KEY_ESCAPE, EActivationType::PRESS_ONCE, [this](float deltaTime) {
+            (void) deltaTime;
+            doTick = false;
+        });
     }
 };
 
@@ -79,6 +105,7 @@ int main() {
     VEngine engine;
     engine.init();
     engine.startTicking();
+    engine.terminate();
 
     return 0;
 }

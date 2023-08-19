@@ -10,23 +10,6 @@
 #include "src/render/mesh-context.h"
 #include "src/utils/size.h"
 
-struct ChunkSlot {
-    std::shared_ptr<Chunk> chunk;
-
-    std::shared_ptr<MeshContext> mesh;
-
-    bool _isBound = false;
-
-    void init();
-
-    [[nodiscard]]
-    bool isBound() const { return _isBound; }
-
-    void bind(std::shared_ptr<Chunk> c);
-
-    void unbind();
-};
-
 class ChunkManager {
     using ChunkPtr = std::shared_ptr<Chunk>;
 
@@ -39,6 +22,25 @@ class ChunkManager {
     static constexpr int RENDER_DISTANCE = 3;
     static constexpr int GRACE_PERIOD_WIDTH = 1;
     static constexpr int VISIBLE_AREA_WIDTH = 2 * RENDER_DISTANCE + 1 + GRACE_PERIOD_WIDTH;
+
+    struct ChunkSlot {
+        std::shared_ptr<Chunk> chunk;
+        std::shared_ptr<MeshContext> mesh;
+
+    private:
+        bool _isBound = false;
+
+    public:
+        void init();
+
+        [[nodiscard]]
+        bool isBound() const { return _isBound; }
+
+        void bind(std::shared_ptr<Chunk> c);
+
+        void unbind();
+    };
+
     std::array<ChunkSlot, SizeUtils::powSize(VISIBLE_AREA_WIDTH, 3)> chunkSlots; // todo - make it into 2 lists: bound/free
 
     VecUtils::Vec3Discrete lastOccupiedChunkPos = {0, 0, 0};
@@ -52,11 +54,16 @@ public:
 
     void init();
 
+    void tick();
+
+    void terminate();
+
     void renderChunks() const;
 
     void renderChunkOutlines() const;
 
-    void tick();
+    [[nodiscard]]
+    bool getTargetedBlock(const std::vector<VecUtils::Vec3Discrete>& lookedAtBlocks, glm::vec3& outBlock) const;
 
 private:
     void updateChunkSlots();

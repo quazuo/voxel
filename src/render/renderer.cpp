@@ -12,13 +12,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-struct GLFWwindow *OpenGLRenderer::init() {
+struct GLFWwindow *OpenGLRenderer::init(int windowWidth, int windowHeight) {
     if (isInit) return nullptr;
-
-    // Initialise GLFW
-    if (!glfwInit()) {
-        throw std::runtime_error("Failed to initialize GLFW");
-    }
 
     glfwWindowHint(GLFW_SAMPLES, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -27,12 +22,13 @@ struct GLFWwindow *OpenGLRenderer::init() {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     // Open a window and create its OpenGL context
-    window = glfwCreateWindow(1024, 768, "0x22's Voxel Engine", nullptr, nullptr);
+    windowSize = {windowWidth, windowHeight};
+    window = glfwCreateWindow(windowWidth, windowHeight, "0x22's Voxel Engine", nullptr, nullptr);
     if (!window) {
+        const char *desc;
+        int code = glfwGetError(&desc);
         glfwTerminate();
-        throw std::runtime_error("Failed to open GLFW window. "
-                                 "If you have an Intel GPU, they are not 3.3 compatible. "
-                                 "Try the 2.1 version of the tutorials.");
+        throw std::runtime_error("Failed to open GLFW window. Error: " + std::to_string(code) + " " + desc);
     }
     glfwMakeContextCurrent(window);
 
@@ -49,10 +45,9 @@ struct GLFWwindow *OpenGLRenderer::init() {
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
     // Hide the mouse and enable unlimited movement
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
-    // Set the mouse at the center of the screen
-    glfwPollEvents();
     glfwSetCursorPos(window, 1024 / 2, 768 / 2);
+
+    glfwPollEvents();
 
     // Dark blue background
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -107,6 +102,20 @@ struct GLFWwindow *OpenGLRenderer::init() {
 
 void OpenGLRenderer::tick(float deltaTime) {
     camera.tick(deltaTime);
+    tickMouseMovement(deltaTime);
+}
+
+void OpenGLRenderer::tickMouseMovement(const float deltaTime) {
+    double xpos, ypos;
+    glfwGetCursorPos(window, &xpos, &ypos);
+
+    const float mouseSpeed = 0.05f;
+    camera.updateRotation(
+        mouseSpeed * deltaTime * (windowSize.x / 2 - (float) xpos),
+        mouseSpeed * deltaTime * (windowSize.y / 2 - (float) ypos)
+    );
+
+    glfwSetCursorPos(window, (double) windowSize.x / 2, (double) windowSize.y / 2);
 }
 
 GLuint OpenGLRenderer::loadShaders(const std::filesystem::path &vertexShaderPath,
@@ -293,52 +302,60 @@ void OpenGLRenderer::renderOutline(const std::vector<glm::vec3> &vertices, const
     glUseProgram(cubeShaderID);
 }
 
-void OpenGLRenderer::renderChunkOutline(const glm::vec3 chunkPos, glm::vec3 color) const {
-    glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), chunkPos);
+void OpenGLRenderer::renderCubeOutline(const glm::vec3 minVec, const float sideLength, const glm::vec3 color) const {
+    glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), minVec);
     glm::mat4 mvpMatrix = projectionMatrix * viewMatrix * modelMatrix;
-
-    const glm::vec3 offset = {-Block::RENDER_SIZE / 2, -Block::RENDER_SIZE / 2, -Block::RENDER_SIZE / 2};
-    const float len = Chunk::CHUNK_SIZE * Block::RENDER_SIZE;
 
     std::vector<glm::vec3> vertices;
 
     // add x-aligned lines
     std::vector<glm::vec3> vs = {
-        {0, 0,   0},
-        {0, len, 0},
-        {0, 0,   len},
-        {0, len, len}
+        {0, 0,          0},
+        {0, sideLength, 0},
+        {0, 0,          sideLength},
+        {0, sideLength, sideLength}
     };
     for (const auto &v: vs) {
-        vertices.push_back(v + offset);
-        vertices.push_back(v + glm::vec3(len, 0, 0) + offset);
+        vertices.push_back(v);
+        vertices.push_back(v + glm::vec3(sideLength, 0, 0));
     }
 
     // add y-aligned lines
     vs = {
-        {0,   0, 0},
-        {len, 0, 0},
-        {0,   0, len},
-        {len, 0, len}
+        {0,          0, 0},
+        {sideLength, 0, 0},
+        {0,          0, sideLength},
+        {sideLength, 0, sideLength}
     };
     for (const auto &v: vs) {
-        vertices.push_back(v + offset);
-        vertices.push_back(v + glm::vec3(0, len, 0) + offset);
+        vertices.push_back(v);
+        vertices.push_back(v + glm::vec3(0, sideLength, 0));
     }
 
     // add z-aligned lines
     vs = {
-        {0,   0,   0},
-        {len, 0,   0},
-        {0,   len, 0},
-        {len, len, 0}
+        {0,          0,          0},
+        {sideLength, 0,          0},
+        {0,          sideLength, 0},
+        {sideLength, sideLength, 0}
     };
     for (const auto &v: vs) {
-        vertices.push_back(v + offset);
-        vertices.push_back(v + glm::vec3(0, 0, len) + offset);
+        vertices.push_back(v);
+        vertices.push_back(v + glm::vec3(0, 0, sideLength));
     }
 
     renderOutline(vertices, mvpMatrix, color);
+}
+
+void OpenGLRenderer::renderChunkOutline(const glm::vec3 chunkPos, const glm::vec3 color) const {
+    const glm::vec3 chunkMinVec =
+        chunkPos - glm::vec3(Block::RENDER_SIZE, Block::RENDER_SIZE, Block::RENDER_SIZE) * 0.5f;
+    renderCubeOutline(chunkMinVec, Chunk::CHUNK_SIZE * Block::RENDER_SIZE, color);
+}
+
+void OpenGLRenderer::renderTargetedBlockOutline(const glm::vec3 blockPos) const {
+    const glm::vec3 minVec = blockPos - glm::vec3(Block::RENDER_SIZE, Block::RENDER_SIZE, Block::RENDER_SIZE) * 0.5f;
+    renderCubeOutline(minVec, Block::RENDER_SIZE, {0, 1, 1});
 }
 
 void OpenGLRenderer::renderText(const std::string &text, int x, int y, size_t fontSize) const {
@@ -400,6 +417,7 @@ void OpenGLRenderer::renderText(const std::string &text, int x, int y, size_t fo
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glClear(GL_DEPTH_BUFFER_BIT);
 
     glDrawArrays(GL_TRIANGLES, 0, vertices.size());
 
@@ -505,4 +523,8 @@ void OpenGLRenderer::debugCallback(GLenum source, GLenum type, GLuint id, GLenum
     ss << "\nmessage: " << message << "\n";
 
     throw std::runtime_error(ss.str());
+}
+
+void OpenGLRenderer::terminate() {
+    glfwTerminate();
 }

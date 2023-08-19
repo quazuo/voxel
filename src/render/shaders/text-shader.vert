@@ -6,6 +6,7 @@ layout(location = 1) in vec2 vertexUV;
 out vec2 UV;
 
 void main() {
+    // todo - update so it supports all window sizes
     // map [0..1024][0..768] to [-1..1][-1..1]
     float halfWidth = 1024 / 2;
     float halfHeight = 768 / 2;

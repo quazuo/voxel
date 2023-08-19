@@ -34,6 +34,12 @@ public:
 
     void render(const std::shared_ptr<class OpenGLRenderer> &renderer);
 
+    [[nodiscard]]
+    EBlockType getBlock(int x, int y, int z) const { return blocks[x][y][z].blockType; }
+
+    [[nodiscard]]
+    EBlockType getBlock(VecUtils::Vec3Discrete v) const { return blocks[v.x][v.y][v.z].blockType; }
+
     void updateBlock(int x, int y, int z, EBlockType type);
 
     void markDirty() { _isDirty = true; }
