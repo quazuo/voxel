@@ -72,12 +72,14 @@ public:
 
     void renderText(const std::string& text, int x, int y, size_t fontSize) const;
 
-private:
-    void tickMouseMovement(float deltaTime);
+    void renderHud() const;
 
+private:
     void renderCubeOutline(glm::vec3 minVec, float sideLength, glm::vec3 color) const;
 
     void renderOutline(const std::vector<glm::vec3> &vertices, const glm::mat4& mvpMatrix, glm::vec3 color) const;
+
+    void tickMouseMovement(float deltaTime);
 
     GLuint loadShaders(const std::filesystem::path &vertexShaderPath, const std::filesystem::path &fragmentShaderPath);
 

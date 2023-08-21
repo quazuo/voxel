@@ -429,6 +429,25 @@ void OpenGLRenderer::renderText(const std::string &text, int x, int y, size_t fo
     glUseProgram(cubeShaderID);
 }
 
+void OpenGLRenderer::renderHud() const {
+    constexpr float crosshairLength = 0.02;
+    std::vector<glm::vec3> vertices;
+
+    constexpr glm::vec3 left = { -crosshairLength, 0, 0 };
+    constexpr glm::vec3 right = { crosshairLength, 0, 0 };
+    constexpr glm::vec3 top = { 0, -crosshairLength, 0 };
+    constexpr glm::vec3 bottom = { 0, crosshairLength, 0 };
+
+    vertices.push_back(left);
+    vertices.push_back(right);
+
+    vertices.push_back(top * windowSize.x / windowSize.y);
+    vertices.push_back(bottom * windowSize.x / windowSize.y);
+
+    glClear(GL_DEPTH_BUFFER_BIT);
+    renderOutline(vertices, glm::mat4(1), {1, 1, 1});
+}
+
 void OpenGLRenderer::finishRendering() {
     glFlush();
     glfwSwapBuffers(window);

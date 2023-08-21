@@ -66,10 +66,12 @@ public:
         if (chunkManager->getTargetedBlock(renderer->getLookedAtBlocks(), targetedBlockPos))
             renderer->renderTargetedBlockOutline(targetedBlockPos);
 
-        // this HAS TO be done as the last thing, because while rendering overlay text we clear the z-buffer
-        // so that the text is on top of everything. this is, of course, not desired for other rendered things.
+        // following functions HAVE TO be called as the last thing, because while rendering overlays we clear
+        // the z-buffer so that the text is on top of everything.
+        // this is, of course, not desired for other rendered things.
         if (doRenderDebugText)
             renderDebugText(1 / deltaTime);
+        renderer->renderHud();
 
         renderer->finishRendering();
     }
