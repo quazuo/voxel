@@ -65,7 +65,11 @@ public:
     [[nodiscard]]
     bool getTargetedBlock(const std::vector<VecUtils::Vec3Discrete>& lookedAtBlocks, glm::vec3& outBlock) const;
 
+    void updateBlock(VecUtils::Vec3Discrete block, EBlockType type) const;
+
 private:
+    ChunkPtr getOwningChunk(VecUtils::Vec3Discrete block) const;
+
     void updateChunkSlots();
 
     void unloadFarChunks(VecUtils::Vec3Discrete currChunkPos);

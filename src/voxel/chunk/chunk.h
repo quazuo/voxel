@@ -40,6 +40,7 @@ public:
     [[nodiscard]]
     EBlockType getBlock(VecUtils::Vec3Discrete v) const { return blocks[v.x][v.y][v.z].blockType; }
 
+    void updateBlock(VecUtils::Vec3Discrete block, EBlockType type);
     void updateBlock(int x, int y, int z, EBlockType type);
 
     void markDirty() { _isDirty = true; }

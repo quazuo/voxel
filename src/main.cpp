@@ -16,6 +16,9 @@ class VEngine {
 
     KeyManager keyManager;
 
+    glm::vec3 targetedBlockPos;
+    bool isTargetedBlockValid = false;
+
     float lastTime = 0.f;
 
     bool doRenderChunkOutlines = false;
@@ -62,9 +65,10 @@ public:
         if (doRenderChunkOutlines)
             chunkManager->renderChunkOutlines();
 
-        glm::vec3 targetedBlockPos;
-        if (chunkManager->getTargetedBlock(renderer->getLookedAtBlocks(), targetedBlockPos))
+        isTargetedBlockValid = chunkManager->getTargetedBlock(renderer->getLookedAtBlocks(), targetedBlockPos);
+        if (isTargetedBlockValid) {
             renderer->renderTargetedBlockOutline(targetedBlockPos);
+        }
 
         // following functions HAVE TO be called as the last thing, because while rendering overlays we clear
         // the z-buffer so that the text is on top of everything.
@@ -85,6 +89,13 @@ public:
 
     void bindKeyActions() {
         keyManager.bindWindow(window);
+
+        keyManager.bindCallback(GLFW_KEY_Q, EActivationType::PRESS_ONCE, [this](float deltaTime) {
+            (void) deltaTime;
+            if (isTargetedBlockValid) {
+                chunkManager->updateBlock(targetedBlockPos, EBlockType::BlockType_None);
+            }
+        });
 
         keyManager.bindCallback(GLFW_KEY_F1, EActivationType::PRESS_ONCE, [this](float deltaTime) {
             (void) deltaTime;

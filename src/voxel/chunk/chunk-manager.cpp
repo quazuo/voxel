@@ -196,18 +196,13 @@ void ChunkManager::updateRenderList() {
 bool
 ChunkManager::getTargetedBlock(const std::vector<VecUtils::Vec3Discrete> &lookedAtBlocks, glm::vec3 &outBlock) const {
     for (auto &block: lookedAtBlocks) {
-        const VecUtils::Vec3Discrete owningChunkPos =
-            VecUtils::floor((glm::vec3) block * (1.0f / (float) Chunk::CHUNK_SIZE));
-
-        auto it = std::find_if(chunkSlots.begin(), chunkSlots.end(), [&](const ChunkSlot &slot) {
-            return slot.isBound() && slot.chunk->isLoaded() && slot.chunk->getPos() == owningChunkPos;
-        });
-
-        if (it == chunkSlots.end())
+        const ChunkPtr chunk = getOwningChunk(block);
+        if (!chunk)
             continue;
 
-        const VecUtils::Vec3Discrete relativeBlockPos = block - owningChunkPos * Chunk::CHUNK_SIZE;
-        const EBlockType blockType = it->chunk->getBlock(relativeBlockPos);
+        const VecUtils::Vec3Discrete relativeBlockPos = block - chunk->getPos() * Chunk::CHUNK_SIZE;
+        const EBlockType blockType = chunk->getBlock(relativeBlockPos);
+
         if (blockType != BlockType_None) {
             outBlock = block;
             return true;
@@ -221,4 +216,26 @@ void ChunkManager::terminate() {
     for (const auto &slot : chunkSlots) {
         slot.mesh->freeBuffers();
     }
+}
+
+void ChunkManager::updateBlock(VecUtils::Vec3Discrete block, EBlockType type) const {
+    const ChunkPtr chunk = getOwningChunk(block);
+    if (!chunk)
+        return;
+
+    const VecUtils::Vec3Discrete relativeBlockPos = block - chunk->getPos() * Chunk::CHUNK_SIZE;
+    chunk->updateBlock(relativeBlockPos, type);
+}
+
+ChunkManager::ChunkPtr ChunkManager::getOwningChunk(VecUtils::Vec3Discrete block) const {
+    const VecUtils::Vec3Discrete owningChunkPos =
+        VecUtils::floor((glm::vec3) block * (1.0f / (float) Chunk::CHUNK_SIZE));
+
+    auto it = std::find_if(chunkSlots.begin(), chunkSlots.end(), [&](const ChunkSlot &slot) {
+        return slot.isBound() && slot.chunk->isLoaded() && slot.chunk->getPos() == owningChunkPos;
+    });
+
+    if (it == chunkSlots.end())
+        return nullptr;
+    return it->chunk;
 }

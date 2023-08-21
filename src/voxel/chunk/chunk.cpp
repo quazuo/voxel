@@ -28,6 +28,10 @@ void Chunk::unload() {
     _isLoaded = false;
 }
 
+void Chunk::updateBlock(VecUtils::Vec3Discrete block, EBlockType type) {
+    updateBlock(block.x, block.y, block.z, type);
+}
+
 void Chunk::updateBlock(int x, int y, int z, EBlockType type) {
     blocks[x][y][z].blockType = type;
     _isDirty = true;
