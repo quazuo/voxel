@@ -224,29 +224,12 @@ void OpenGLRenderer::startRendering() {
 }
 
 void OpenGLRenderer::renderChunk(const std::shared_ptr<MeshContext> &ctx) {
-    const IndexedMeshData &indexedData = ctx->getIndexedData();
-
     glUseProgram(cubeShaderID);
     texManager->bindBlockTextures(cubeShaderID);
 
     // update buffers if needed
     if (ctx->isFreshlyUpdated) {
-        glBindBuffer(GL_ARRAY_BUFFER, ctx->getBufferID(MeshContext::EBufferType::Vertex));
-        glBufferSubData(GL_ARRAY_BUFFER, 0, indexedData.vertices.size() * sizeof(glm::vec3),
-                        &indexedData.vertices[0]);
-
-        glBindBuffer(GL_ARRAY_BUFFER, ctx->getBufferID(MeshContext::EBufferType::UV));
-        glBufferSubData(GL_ARRAY_BUFFER, 0, indexedData.uvs.size() * sizeof(glm::vec2),
-                        &indexedData.uvs[0]);
-
-        glBindBuffer(GL_ARRAY_BUFFER, ctx->getBufferID(MeshContext::EBufferType::Normal));
-        glBufferSubData(GL_ARRAY_BUFFER, 0, indexedData.normals.size() * sizeof(glm::vec3),
-                        &indexedData.normals[0]);
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ctx->getBufferID(MeshContext::EBufferType::Element));
-        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, indexedData.indices.size() * sizeof(unsigned short),
-                        &indexedData.indices[0]);
-
+        ctx->writeToBuffers();
         ctx->isFreshlyUpdated = false;
     }
 
@@ -258,26 +241,9 @@ void OpenGLRenderer::renderChunk(const std::shared_ptr<MeshContext> &ctx) {
     glUniformMatrix4fv(viewMatrixID, 1, GL_FALSE, &viewMatrix[0][0]);
     glUniformMatrix4fv(projectionMatrixID, 1, GL_FALSE, &projectionMatrix[0][0]);
 
-    glBindBuffer(GL_ARRAY_BUFFER, ctx->getBufferID(MeshContext::EBufferType::Vertex));
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-
-    glBindBuffer(GL_ARRAY_BUFFER, ctx->getBufferID(MeshContext::EBufferType::UV));
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
-
-    glBindBuffer(GL_ARRAY_BUFFER, ctx->getBufferID(MeshContext::EBufferType::Normal));
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-    glEnableVertexAttribArray(2);
-
-    // index buffer
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ctx->getBufferID(MeshContext::EBufferType::Element));
-    glDrawElements(GL_TRIANGLES, indexedData.indices.size(), GL_UNSIGNED_SHORT, nullptr);
-
-    glDisableVertexAttribArray(0);
-    glDisableVertexAttribArray(1);
-    glDisableVertexAttribArray(2);
+    ctx->enableArrayBuffers();
+    ctx->drawElements();
+    ctx->disableArrayBuffers();
 }
 
 void OpenGLRenderer::renderOutline(const std::vector<glm::vec3> &vertices, const glm::mat4 &mvpMatrix,

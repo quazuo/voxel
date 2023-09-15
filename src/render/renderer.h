@@ -29,7 +29,7 @@ class OpenGLRenderer {
 
     // OpenGL handles for various objects
     GLuint vertexArrayID{};
-    GLuint textVertexBufferID{}, textUVBufferID;
+    GLuint textVertexBufferID{}, textUVBufferID{};
     GLuint cubeShaderID{}, lineShaderID{}, textShaderID{};
     GLuint lineVertexArrayID{};
     GLint mvpMatrixID{}, modelMatrixID{}, viewMatrixID{}, projectionMatrixID{};

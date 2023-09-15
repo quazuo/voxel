@@ -7,6 +7,7 @@
 
 #include "GL/glew.h"
 #include "src/voxel/chunk/chunk.h"
+#include "gl-buffer.h"
 
 struct PackedVertex {
     glm::vec3 position;
@@ -40,7 +41,9 @@ class MeshContext {
 
     bool isIndexed = false;
 
-    GLuint vertexBufferID{}, uvBufferID{}, normalBufferID{}, elementBufferID{};
+    GLArrayBuffer<glm::vec3> vertices, normals;
+    GLArrayBuffer<glm::vec2> uvs;
+    GLElementBuffer indices;
 
 public:
     glm::vec3 modelTranslate;
@@ -53,22 +56,17 @@ public:
 
     void makeIndexed();
 
-    [[nodiscard]]
-    const IndexedMeshData &getIndexedData() const { return indexedData; }
-
     void initBuffers();
+
+    void writeToBuffers();
+
+    void enableArrayBuffers();
+
+    void disableArrayBuffers();
 
     void freeBuffers();
 
-    enum class EBufferType : std::uint8_t {
-        Vertex,
-        UV,
-        Normal,
-        Element
-    };
-
-    [[nodiscard]]
-    GLuint getBufferID(EBufferType bufferType) const;
+    void drawElements();
 
 private:
     static void indexVertex(const PackedVertex &vertex, IndexedMeshData &data,

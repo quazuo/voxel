@@ -51,47 +51,43 @@ void MeshContext::makeIndexed() {
 }
 
 void MeshContext::initBuffers() {
-    glGenBuffers(1, &vertexBufferID);
-    glGenBuffers(1, &uvBufferID);
-    glGenBuffers(1, &normalBufferID);
-    glGenBuffers(1, &elementBufferID);
-
-    // current upper limit, reached for chunks in a checkerboard pattern.
-    // this NEEDS to be optimized asap, as it drains way too much RAM.
-    size_t bufferSize = 73728;
-
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferID);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-    glBufferData(GL_ARRAY_BUFFER, bufferSize * sizeof(glm::vec3), nullptr, GL_DYNAMIC_DRAW);
-
-    glBindBuffer(GL_ARRAY_BUFFER, uvBufferID);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
-    glBufferData(GL_ARRAY_BUFFER, bufferSize * sizeof(glm::vec2), nullptr, GL_DYNAMIC_DRAW);
-
-    glBindBuffer(GL_ARRAY_BUFFER, normalBufferID);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-    glBufferData(GL_ARRAY_BUFFER, bufferSize * sizeof(glm::vec3), nullptr, GL_DYNAMIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBufferID);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, bufferSize * sizeof(unsigned short), nullptr, GL_DYNAMIC_DRAW);
+    vertices.init(0, 3);
+    uvs.init(1, 2);
+    normals.init(2, 3);
+    indices.init();
 }
 
-GLuint MeshContext::getBufferID(MeshContext::EBufferType bufferType) const {
-    switch (bufferType) {
-        case EBufferType::Vertex:
-            return vertexBufferID;
-        case EBufferType::UV:
-            return uvBufferID;
-        case EBufferType::Normal:
-            return normalBufferID;
-        case EBufferType::Element:
-        default:
-            return elementBufferID;
+void MeshContext::writeToBuffers() {
+    if (!isIndexed) {
+        throw std::runtime_error("tried to call writeToBuffers() without prior indexing");
     }
+
+    vertices.write(indexedData.vertices);
+    uvs.write(indexedData.uvs);
+    normals.write(indexedData.normals);
+    indices.write(indexedData.indices);
+}
+
+void MeshContext::enableArrayBuffers() {
+    vertices.enable();
+    uvs.enable();
+    normals.enable();
+}
+
+void MeshContext::disableArrayBuffers() {
+    vertices.disable();
+    uvs.disable();
+    normals.disable();
 }
 
 void MeshContext::freeBuffers() {
-    constexpr size_t nBuffers = 4;
-    const GLuint buffers[nBuffers] = {vertexBufferID, uvBufferID, normalBufferID, elementBufferID};
-    glDeleteBuffers(nBuffers, buffers);
+    vertices.free();
+    uvs.free();
+    normals.free();
+    indices.free();
+}
+
+void MeshContext::drawElements() {
+    indices.enable();
+    glDrawElements(GL_TRIANGLES, indexedData.indices.size(), GL_UNSIGNED_SHORT, nullptr);
 }
