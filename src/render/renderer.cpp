@@ -45,7 +45,7 @@ struct GLFWwindow *OpenGLRenderer::init(int windowWidth, int windowHeight) {
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
     // Hide the mouse and enable unlimited movement
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    glfwSetCursorPos(window, 1024 / 2, 768 / 2);
+    glfwSetCursorPos(window, 1024.0 / 2, 768.0 / 2);
 
     glfwPollEvents();
 
@@ -84,18 +84,16 @@ struct GLFWwindow *OpenGLRenderer::init(int windowWidth, int windowHeight) {
     lightID = glGetUniformLocation(cubeShaderID, "LightPosition_worldspace");
 
     // generate buffer for line vertices and allocate it beforehand
-    glGenBuffers(1, &lineVertexArrayID);
-    glBindBuffer(GL_ARRAY_BUFFER, lineVertexArrayID);
-    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+    lineVertices.init(3, 3);
 
     // generate buffers for hud text
-    glGenBuffers(1, &textVertexBufferID);
-    glGenBuffers(1, &textUVBufferID);
-
-    isInit = true;
+    textVertices.init(0, 2);
+    textUVs.init(1, 2);
 
     // init peripheral structures
     camera.init(window);
+
+    isInit = true;
 
     return window;
 }
@@ -241,34 +239,29 @@ void OpenGLRenderer::renderChunk(const std::shared_ptr<MeshContext> &ctx) {
     glUniformMatrix4fv(viewMatrixID, 1, GL_FALSE, &viewMatrix[0][0]);
     glUniformMatrix4fv(projectionMatrixID, 1, GL_FALSE, &projectionMatrix[0][0]);
 
-    ctx->enableArrayBuffers();
     ctx->drawElements();
-    ctx->disableArrayBuffers();
 }
 
 void OpenGLRenderer::renderOutline(const std::vector<glm::vec3> &vertices, const glm::mat4 &mvpMatrix,
-                                   glm::vec3 color) const {
+                                   glm::vec3 color) {
     glUseProgram(lineShaderID);
 
-    glBindBuffer(GL_ARRAY_BUFFER, lineVertexArrayID);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices[0], GL_STATIC_DRAW);
+    lineVertices.write(vertices);
 
-    GLuint mvpID = glGetUniformLocation(lineShaderID, "MVP");
+    GLint mvpID = glGetUniformLocation(lineShaderID, "MVP");
     glUniformMatrix4fv(mvpID, 1, GL_FALSE, &mvpMatrix[0][0]);
 
-    GLuint colorID = glGetUniformLocation(lineShaderID, "color");
+    GLint colorID = glGetUniformLocation(lineShaderID, "color");
     glUniform3f(colorID, color.r, color.g, color.b);
 
-    glEnableVertexAttribArray(3);
-
-    glDrawArrays(GL_LINES, 0, vertices.size());
-
-    glDisableVertexAttribArray(3);
+    lineVertices.enable();
+    glDrawArrays(GL_LINES, 0, (GLsizei) vertices.size());
+    lineVertices.disable();
 
     glUseProgram(cubeShaderID);
 }
 
-void OpenGLRenderer::renderCubeOutline(const glm::vec3 minVec, const float sideLength, const glm::vec3 color) const {
+void OpenGLRenderer::renderCubeOutline(const glm::vec3 minVec, const float sideLength, const glm::vec3 color) {
     glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), minVec);
     glm::mat4 mvpMatrix = projectionMatrix * viewMatrix * modelMatrix;
 
@@ -313,27 +306,27 @@ void OpenGLRenderer::renderCubeOutline(const glm::vec3 minVec, const float sideL
     renderOutline(vertices, mvpMatrix, color);
 }
 
-void OpenGLRenderer::renderChunkOutline(const glm::vec3 chunkPos, const glm::vec3 color) const {
+void OpenGLRenderer::renderChunkOutline(const glm::vec3 chunkPos, const glm::vec3 color) {
     const glm::vec3 chunkMinVec =
         chunkPos - glm::vec3(Block::RENDER_SIZE, Block::RENDER_SIZE, Block::RENDER_SIZE) * 0.5f;
     renderCubeOutline(chunkMinVec, Chunk::CHUNK_SIZE * Block::RENDER_SIZE, color);
 }
 
-void OpenGLRenderer::renderTargetedBlockOutline(const glm::vec3 blockPos) const {
+void OpenGLRenderer::renderTargetedBlockOutline(const glm::vec3 blockPos) {
     const glm::vec3 minVec = blockPos - glm::vec3(Block::RENDER_SIZE, Block::RENDER_SIZE, Block::RENDER_SIZE) * 0.5f;
     renderCubeOutline(minVec, Block::RENDER_SIZE, {0, 1, 1});
 }
 
-void OpenGLRenderer::renderText(const std::string &text, int x, int y, size_t fontSize) const {
+void OpenGLRenderer::renderText(const std::string &text, float x, float y, size_t fontSize) {
     std::vector<glm::vec2> vertices;
     std::vector<glm::vec2> uvs;
     constexpr float widthMult = 0.7f;
     constexpr float uvOffset = 1.0f / 16 * (1.0f - widthMult) / 2;
 
     for (size_t i = 0; i < text.size(); i++) {
-        glm::vec2 vertexUpLeft = glm::vec2(x + i * fontSize * widthMult, y + fontSize);
-        glm::vec2 vertexUpRight = glm::vec2(x + (i * fontSize + fontSize) * widthMult, y + fontSize);
-        glm::vec2 vertexDownRight = glm::vec2(x + (i * fontSize + fontSize) * widthMult, y);
+        glm::vec2 vertexUpLeft = glm::vec2(x + i * fontSize * widthMult, y + (float) fontSize);
+        glm::vec2 vertexUpRight = glm::vec2(x + (i + 1) * fontSize * widthMult, y + (float) fontSize);
+        glm::vec2 vertexDownRight = glm::vec2(x + (i + 1) * fontSize * widthMult, y);
         glm::vec2 vertexDownLeft = glm::vec2(x + i * fontSize * widthMult, y);
 
         vertices.push_back(vertexUpLeft);
@@ -363,29 +356,21 @@ void OpenGLRenderer::renderText(const std::string &text, int x, int y, size_t fo
         uvs.push_back(uvUpRight);
         uvs.push_back(uvDownLeft);
     }
-    glBindBuffer(GL_ARRAY_BUFFER, textVertexBufferID);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec2), &vertices[0], GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, textUVBufferID);
-    glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(glm::vec2), &uvs[0], GL_STATIC_DRAW);
 
     glUseProgram(textShaderID);
     texManager->bindFontTexture(textShaderID);
 
-    // 1rst attribute buffer : vertices
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, textVertexBufferID);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+    textVertices.write(vertices);
+    textUVs.write(uvs);
 
-    // 2nd attribute buffer : UVs
-    glEnableVertexAttribArray(1);
-    glBindBuffer(GL_ARRAY_BUFFER, textUVBufferID);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+    textVertices.enable();
+    textUVs.enable();
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glClear(GL_DEPTH_BUFFER_BIT);
 
-    glDrawArrays(GL_TRIANGLES, 0, vertices.size());
+    glDrawArrays(GL_TRIANGLES, 0, (GLsizei) vertices.size());
 
     glDisable(GL_BLEND);
 
@@ -395,7 +380,7 @@ void OpenGLRenderer::renderText(const std::string &text, int x, int y, size_t fo
     glUseProgram(cubeShaderID);
 }
 
-void OpenGLRenderer::renderHud() const {
+void OpenGLRenderer::renderHud() {
     constexpr float crosshairLength = 0.02;
     std::vector<glm::vec3> vertices;
 

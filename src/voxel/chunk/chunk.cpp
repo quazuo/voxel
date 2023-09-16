@@ -7,7 +7,7 @@
 
 void Chunk::load() {
     // todo - check if is stored on the disk and if it is, load it, otherwise generate terrain for it
-    // todo - ^ this should probably be done in the chunk manager
+    // todo - all of this should probably be done in the chunk manager. or at least the disk thing
 
     WorldGen::setChunkGenCtx(pos);
     for (int x = 0; x < CHUNK_SIZE; x++) {
@@ -153,7 +153,7 @@ void Chunk::createFace(const glm::vec3 v1, const glm::vec3 v2, const glm::vec3 v
     // this offset is just a way to squeeze in info about which texture the vertex uses without the need
     // to use more memory. refer to the fragment shader to see how this x coordinate is handled.
     //
-    // the "-1" is here because actual blocks (non-`BlockType_None`) start at index 1
+    // the "-1" is here because actual blocks (i.e. other than `BlockType_None`) start at index 1
     const glm::vec2 uvTexOffset = {(double) blockType - 1, 0};
 
     PackedVertex pv1 = {v1, uvs[0] + uvOffset + uvTexOffset, normal};

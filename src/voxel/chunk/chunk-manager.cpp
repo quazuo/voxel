@@ -110,8 +110,6 @@ void ChunkManager::unloadFarChunks(VecUtils::Vec3Discrete currChunkPos) {
 }
 
 void ChunkManager::loadNearChunks(VecUtils::Vec3Discrete currChunkPos) {
-    // check which positions, relative to ours, are occupied by loaded chunks
-
     constexpr size_t newChunkLoadCubeWidth = 2 * RENDER_DISTANCE + 1;
     SizeUtils::CubeArray<bool, newChunkLoadCubeWidth> loadedChunksMap;
 
@@ -123,11 +121,14 @@ void ChunkManager::loadNearChunks(VecUtils::Vec3Discrete currChunkPos) {
         }
     }
 
+    // check which positions, relative to ours, are occupied by loaded chunks
     for (auto &slot: chunkSlots) {
         if (!slot.isBound())
             continue;
 
         VecUtils::Vec3Discrete relPos = slot.chunk->getPos() - currChunkPos;
+
+        // relPos components shifted so that they are non-negative
         size_t x = relPos.x + RENDER_DISTANCE;
         size_t y = relPos.y + RENDER_DISTANCE;
         size_t z = relPos.z + RENDER_DISTANCE;

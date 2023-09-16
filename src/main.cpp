@@ -90,24 +90,24 @@ public:
     void bindKeyActions() {
         keyManager.bindWindow(window);
 
-        keyManager.bindCallback(GLFW_KEY_Q, EActivationType::PRESS_ONCE, [this](float deltaTime) {
+        keyManager.bindCallback(GLFW_KEY_Q, EActivationType::PRESS_ONCE, [&](float deltaTime) {
             (void) deltaTime;
             if (isTargetedBlockValid) {
                 chunkManager->updateBlock(targetedBlockPos, EBlockType::BlockType_None);
             }
         });
 
-        keyManager.bindCallback(GLFW_KEY_F1, EActivationType::PRESS_ONCE, [this](float deltaTime) {
+        keyManager.bindCallback(GLFW_KEY_F1, EActivationType::PRESS_ONCE, [&](float deltaTime) {
             (void) deltaTime;
             doRenderChunkOutlines = !doRenderChunkOutlines;
         });
 
-        keyManager.bindCallback(GLFW_KEY_F2, EActivationType::PRESS_ONCE, [this](float deltaTime) {
+        keyManager.bindCallback(GLFW_KEY_F2, EActivationType::PRESS_ONCE, [&](float deltaTime) {
             (void) deltaTime;
             doRenderDebugText = !doRenderDebugText;
         });
 
-        keyManager.bindCallback(GLFW_KEY_ESCAPE, EActivationType::PRESS_ONCE, [this](float deltaTime) {
+        keyManager.bindCallback(GLFW_KEY_ESCAPE, EActivationType::PRESS_ONCE, [&](float deltaTime) {
             (void) deltaTime;
             doTick = false;
         });

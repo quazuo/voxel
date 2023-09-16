@@ -23,7 +23,7 @@ void GLBuffer<T>::updateBufferCapacity(GLsizeiptr dataSize) {
         capacity = newCapacity;
         glBufferData(GL_ARRAY_BUFFER, newCapacity * sizeof(T), nullptr, GL_DYNAMIC_DRAW);
 
-    } else if (dataSize <= capacity / 4) {
+    } else if (dataSize <= capacity / 4 && capacity != BASE_CAPACITY) {
         // buffer too large, will shrink it for optimization
         GLsizeiptr newCapacity = capacity;
 

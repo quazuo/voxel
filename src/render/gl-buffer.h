@@ -37,9 +37,9 @@ class GLArrayBuffer : public GLBuffer<T> {
 public:
     void init(GLuint index, GLint count);
 
-    virtual void write(const std::vector<T> &data) override;
+    void write(const std::vector<T> &data) override;
 
-    virtual void enable() override;
+    void enable() override;
 
     void disable();
 };
@@ -50,9 +50,9 @@ class GLElementBuffer : public GLBuffer<unsigned short> {
 public:
     void init();
 
-    virtual void write(const std::vector<elemType> &data) override;
+    void write(const std::vector<elemType> &data) override;
 
-    virtual void enable() override;
+    void enable() override;
 };
 
 #endif //VOXEL_GL_BUFFER_H

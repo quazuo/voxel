@@ -14,6 +14,7 @@
 #include "glm/ext/matrix_float4x4.hpp"
 #include "glm/trigonometric.hpp"
 #include "camera.h"
+#include "gl-buffer.h"
 
 class OpenGLRenderer {
     struct GLFWwindow *window = nullptr;
@@ -29,11 +30,15 @@ class OpenGLRenderer {
 
     // OpenGL handles for various objects
     GLuint vertexArrayID{};
-    GLuint textVertexBufferID{}, textUVBufferID{};
     GLuint cubeShaderID{}, lineShaderID{}, textShaderID{};
-    GLuint lineVertexArrayID{};
     GLint mvpMatrixID{}, modelMatrixID{}, viewMatrixID{}, projectionMatrixID{};
     GLint lightID{};
+
+    // OpenGL buffers used for text rendering
+    GLArrayBuffer<glm::vec2> textVertices, textUVs;
+
+    // OpenGL buffers used for outline rendering
+    GLArrayBuffer<glm::vec3> lineVertices;
 
     // cached view and projection matrices for the current render tick
     // model matrix can't be cached because it's different for each chunk
@@ -66,22 +71,22 @@ public:
 
     void renderChunk(const std::shared_ptr<MeshContext>& ctx);
 
-    void renderChunkOutline(glm::vec3 chunkPos, glm::vec3 color) const;
+    void renderChunkOutline(glm::vec3 chunkPos, glm::vec3 color);
 
-    void renderTargetedBlockOutline(glm::vec3 blockPos) const;
+    void renderTargetedBlockOutline(glm::vec3 blockPos);
 
-    void renderText(const std::string& text, int x, int y, size_t fontSize) const;
+    void renderText(const std::string& text, float x, float y, size_t fontSize);
 
-    void renderHud() const;
+    void renderHud();
 
 private:
-    void renderCubeOutline(glm::vec3 minVec, float sideLength, glm::vec3 color) const;
+    void renderCubeOutline(glm::vec3 minVec, float sideLength, glm::vec3 color);
 
-    void renderOutline(const std::vector<glm::vec3> &vertices, const glm::mat4& mvpMatrix, glm::vec3 color) const;
+    void renderOutline(const std::vector<glm::vec3> &vertices, const glm::mat4& mvpMatrix, glm::vec3 color);
 
     void tickMouseMovement(float deltaTime);
 
-    GLuint loadShaders(const std::filesystem::path &vertexShaderPath, const std::filesystem::path &fragmentShaderPath);
+    static GLuint loadShaders(const std::filesystem::path &vertexShaderPath, const std::filesystem::path &fragmentShaderPath);
 
     void loadTextures() const;
 

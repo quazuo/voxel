@@ -41,7 +41,7 @@ class ChunkManager {
         void unbind();
     };
 
-    std::array<ChunkSlot, SizeUtils::powSize(VISIBLE_AREA_WIDTH, 3)> chunkSlots; // todo - make it into 2 lists: bound/free
+    std::array<ChunkSlot, SizeUtils::pow(VISIBLE_AREA_WIDTH, 3)> chunkSlots; // todo - make it into 2 lists: bound/free
 
     VecUtils::Vec3Discrete lastOccupiedChunkPos = {0, 0, 0};
 

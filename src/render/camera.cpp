@@ -21,22 +21,23 @@ void Camera::tick(float dt) {
 }
 
 void Camera::bindRotationKeys() {
-    keyManager.bindCallback(GLFW_KEY_UP, EActivationType::PRESS_ANY, [this](float deltaTime) {
+    keyManager.bindCallback(GLFW_KEY_UP, EActivationType::PRESS_ANY, [&](float deltaTime) {
         updateRotation(0.0f, deltaTime * rotationSpeed);
     });
 
-    keyManager.bindCallback(GLFW_KEY_DOWN, EActivationType::PRESS_ANY, [this](float deltaTime) {
+    keyManager.bindCallback(GLFW_KEY_DOWN, EActivationType::PRESS_ANY, [&](float deltaTime) {
         updateRotation(0.0f, -deltaTime * rotationSpeed);
     });
 
-    keyManager.bindCallback(GLFW_KEY_RIGHT, EActivationType::PRESS_ANY, [this](float deltaTime) {
+    keyManager.bindCallback(GLFW_KEY_RIGHT, EActivationType::PRESS_ANY, [&](float deltaTime) {
         rot.x -= deltaTime * rotationSpeed;
     });
 
-    keyManager.bindCallback(GLFW_KEY_LEFT, EActivationType::PRESS_ANY, [this](float deltaTime) {
+    keyManager.bindCallback(GLFW_KEY_LEFT, EActivationType::PRESS_ANY, [&](float deltaTime) {
         rot.x += deltaTime * rotationSpeed;
     });
 }
+
 void Camera::updateRotation(float dx, float dy) {
     rot.x += dx;
     rot.y = std::clamp(
@@ -63,23 +64,23 @@ void Camera::updateVecs() {
 }
 
 void Camera::bindMovementKeys() {
-    keyManager.bindCallback(GLFW_KEY_W, EActivationType::PRESS_ANY, [this](float deltaTime) {
+    keyManager.bindCallback(GLFW_KEY_W, EActivationType::PRESS_ANY, [&](float deltaTime) {
         pos += front * deltaTime * movementSpeed; // Move forward
     });
 
-    keyManager.bindCallback(GLFW_KEY_S, EActivationType::PRESS_ANY, [this](float deltaTime) {
+    keyManager.bindCallback(GLFW_KEY_S, EActivationType::PRESS_ANY, [&](float deltaTime) {
         pos -= front * deltaTime * movementSpeed; // Move backward
     });
 
-    keyManager.bindCallback(GLFW_KEY_D, EActivationType::PRESS_ANY, [this](float deltaTime) {
+    keyManager.bindCallback(GLFW_KEY_D, EActivationType::PRESS_ANY, [&](float deltaTime) {
         pos += right * deltaTime * movementSpeed; // Strafe right
     });
 
-    keyManager.bindCallback(GLFW_KEY_A, EActivationType::PRESS_ANY, [this](float deltaTime) {
+    keyManager.bindCallback(GLFW_KEY_A, EActivationType::PRESS_ANY, [&](float deltaTime) {
         pos -= right * deltaTime * movementSpeed; // Strafe left
     });
 
-    keyManager.bindCallback(GLFW_KEY_SPACE, EActivationType::PRESS_ANY, [this](float deltaTime) {
+    keyManager.bindCallback(GLFW_KEY_SPACE, EActivationType::PRESS_ANY, [&](float deltaTime) {
         pos += glm::vec3(0, 1, 0) * deltaTime * movementSpeed; // Fly upwards
     });
 }
@@ -109,10 +110,9 @@ bool Camera::isChunkInFrustum(const VecUtils::Vec3Discrete chunkPos) const {
 
 bool Camera::isChunkInFrontOfPlane(const VecUtils::Vec3Discrete chunkPos, const Plane &plane) {
     const glm::vec3 chunkAbsPos = (glm::vec3) chunkPos * (float) Chunk::CHUNK_SIZE / Block::RENDER_SIZE;
-    const glm::vec3 chunkMinPoint =
-        chunkAbsPos - glm::vec3(Block::RENDER_SIZE / 2, Block::RENDER_SIZE / 2, Block::RENDER_SIZE / 2);
+    const glm::vec3 chunkMinPoint = chunkAbsPos - glm::vec3(Block::RENDER_SIZE / 2);
     const float chunkAbsSize = Chunk::CHUNK_SIZE * Block::RENDER_SIZE;
-    const glm::vec3 chunkCenter = chunkMinPoint + glm::vec3(chunkAbsSize / 2, chunkAbsSize / 2, chunkAbsSize / 2);
+    const glm::vec3 chunkCenter = chunkMinPoint + glm::vec3(chunkAbsSize / 2);
 
     const float projectionRadius = (chunkAbsSize / 2) * std::abs(plane.getNormal().x) +
                                    (chunkAbsSize / 2) * std::abs(plane.getNormal().y) +

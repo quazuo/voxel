@@ -1,8 +1,5 @@
 #include "mesh-context.h"
 
-#include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
-
 void MeshContext::clear() {
     triangles = {};
     indexedData = {};
@@ -68,18 +65,6 @@ void MeshContext::writeToBuffers() {
     indices.write(indexedData.indices);
 }
 
-void MeshContext::enableArrayBuffers() {
-    vertices.enable();
-    uvs.enable();
-    normals.enable();
-}
-
-void MeshContext::disableArrayBuffers() {
-    vertices.disable();
-    uvs.disable();
-    normals.disable();
-}
-
 void MeshContext::freeBuffers() {
     vertices.free();
     uvs.free();
@@ -88,6 +73,14 @@ void MeshContext::freeBuffers() {
 }
 
 void MeshContext::drawElements() {
+    vertices.enable();
+    uvs.enable();
+    normals.enable();
+
     indices.enable();
-    glDrawElements(GL_TRIANGLES, indexedData.indices.size(), GL_UNSIGNED_SHORT, nullptr);
+    glDrawElements(GL_TRIANGLES, (GLsizei) indexedData.indices.size(), GL_UNSIGNED_SHORT, nullptr);
+
+    vertices.disable();
+    uvs.disable();
+    normals.disable();
 }

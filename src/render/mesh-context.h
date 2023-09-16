@@ -60,10 +60,6 @@ public:
 
     void writeToBuffers();
 
-    void enableArrayBuffers();
-
-    void disableArrayBuffers();
-
     void freeBuffers();
 
     void drawElements();
