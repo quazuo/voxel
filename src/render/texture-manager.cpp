@@ -5,24 +5,57 @@
 #include <vector>
 #include <iostream>
 
-void TextureManager::loadBlockTexture(EBlockType tex, const std::filesystem::path &path) {
-    if (blockTextures.contains(tex))
-        return;
+void TextureManager::loadBlockTexture(EBlockType blockType, std::uint8_t faces, const std::filesystem::path &path) {
+    static constexpr std::array<EBlockFace, EBlockFace::N_FACES> blockFaces = {
+        EBlockFace::Front,
+        EBlockFace::Back,
+        EBlockFace::Right,
+        EBlockFace::Left,
+        EBlockFace::Top,
+        EBlockFace::Bottom,
+    };
 
-    blockTextures[tex] = loadDDS(path);
+    for (auto face: blockFaces) {
+        if (faces & face && blockTextures.contains({blockType, face}))
+            return;
+    }
+
+    auto texID = loadDDS(path);
+
+    for (auto face: blockFaces) {
+        if (faces & face) {
+            blockTextures[{blockType, face}] = texID;
+        }
+    }
 }
 
 void TextureManager::loadFontTexture(const std::filesystem::path &path) {
     fontTexture = loadDDS(path);
 }
 
+int TextureManager::getBlockSamplerID(EBlockType blockType, EBlockFace face) {
+    static const std::map<EBlockFace, int> faceIdOffsets = {
+        {Front, 0},
+        {Back, 1},
+        {Right, 2},
+        {Left, 3},
+        {Top, 4},
+        {Bottom, 5}
+    };
+
+    return (int) EBlockFace::N_FACES * (blockType - 1) + faceIdOffsets.at(face);
+}
+
 void TextureManager::bindBlockTextures(const GLuint blockShaderID) const {
     std::vector<GLint> handles(blockTextures.size());
 
-    for (auto &[blockType, id] : blockTextures) {
-        glActiveTexture(GL_TEXTURE0 + blockType - 1);
+    for (auto &[key, id]: blockTextures) {
+        auto &[type, face] = key;
+        const int samplerID = getBlockSamplerID(type, face);
+
+        glActiveTexture(GL_TEXTURE0 + samplerID);
         glBindTexture(GL_TEXTURE_2D, id);
-        handles[blockType - 1] = blockType - 1;
+        handles[samplerID] = samplerID;
     }
 
     glUniform1iv(glGetUniformLocation(blockShaderID, "texSampler"), (GLint) blockTextures.size(), &handles[0]);
@@ -34,12 +67,12 @@ void TextureManager::bindFontTexture(GLuint textShaderID) const {
     glUniform1i(glGetUniformLocation(textShaderID, "texSampler"), 0);
 }
 
-GLuint TextureManager::getBlockTextureID(EBlockType tex) const {
-    if (!blockTextures.contains(tex)) {
+GLuint TextureManager::getBlockTextureID(EBlockType blockType, EBlockFace face) const {
+    if (!blockTextures.contains({blockType, face})) {
         throw std::runtime_error("tried to call getTextureIDs() on uninitialized texture data");
     }
 
-    return blockTextures.at(tex);
+    return blockTextures.at({blockType, face});
 }
 
 GLuint TextureManager::loadDDS(const std::filesystem::path &path) {

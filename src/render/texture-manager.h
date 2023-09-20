@@ -7,12 +7,13 @@
 #include <filesystem>
 
 class TextureManager {
-    std::map<EBlockType, GLuint> blockTextures;
+    using TextureMap = std::map<std::pair<EBlockType, EBlockFace>, GLuint>;
+    TextureMap blockTextures;
 
     GLuint fontTexture;
 
 public:
-    void loadBlockTexture(EBlockType tex, const std::filesystem::path& path);
+    void loadBlockTexture(EBlockType blockType, std::uint8_t faces, const std::filesystem::path& path);
 
     void loadFontTexture(const std::filesystem::path& path);
 
@@ -21,7 +22,10 @@ public:
     void bindFontTexture(GLuint textShaderID) const;
 
     [[nodiscard]]
-    GLuint getBlockTextureID(EBlockType tex) const;
+    GLuint getBlockTextureID(EBlockType blockType, EBlockFace face) const;
+
+    [[nodiscard]]
+    static int getBlockSamplerID(EBlockType blockType, EBlockFace face);
 
     [[nodiscard]]
     GLuint getFontTextureID() const { return fontTexture; }

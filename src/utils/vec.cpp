@@ -1,6 +1,10 @@
 #include <sstream>
 #include "vec.h"
 
+int VecUtils::sum(Vec3Discrete v) {
+    return v.x + v.y + v.z;
+}
+
 std::string VecUtils::toString(glm::vec3 vec) {
     std::stringstream ss;
     ss << "(" << vec.x << ", " << vec.y << ", " << vec.z << ")";

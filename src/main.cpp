@@ -16,7 +16,7 @@ class VEngine {
 
     KeyManager keyManager;
 
-    glm::vec3 targetedBlockPos;
+    glm::vec3 targetedBlockPos{};
     bool isTargetedBlockValid = false;
 
     float lastTime = 0.f;

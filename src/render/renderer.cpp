@@ -205,10 +205,12 @@ GLuint OpenGLRenderer::loadShaders(const std::filesystem::path &vertexShaderPath
 }
 
 void OpenGLRenderer::loadTextures() const {
-    texManager->loadFontTexture("font.dds");
-    texManager->loadBlockTexture(EBlockType::BlockType_Grass, "grass.dds");
-    texManager->loadBlockTexture(EBlockType::BlockType_Dirt, "dirt.dds");
-    texManager->loadBlockTexture(EBlockType::BlockType_Stone, "stone.dds");
+    textureManager->loadFontTexture("font.dds");
+    textureManager->loadBlockTexture(EBlockType::BlockType_Grass, ALL_SIDE_FACES, "grass-side.dds");
+    textureManager->loadBlockTexture(EBlockType::BlockType_Grass, EBlockFace::Top, "grass-top.dds");
+    textureManager->loadBlockTexture(EBlockType::BlockType_Grass, EBlockFace::Bottom, "dirt.dds");
+    textureManager->loadBlockTexture(EBlockType::BlockType_Dirt, ALL_FACES, "dirt.dds");
+    textureManager->loadBlockTexture(EBlockType::BlockType_Stone, ALL_FACES, "stone.dds");
 }
 
 void OpenGLRenderer::startRendering() {
@@ -223,7 +225,7 @@ void OpenGLRenderer::startRendering() {
 
 void OpenGLRenderer::renderChunk(const std::shared_ptr<MeshContext> &ctx) {
     glUseProgram(cubeShaderID);
-    texManager->bindBlockTextures(cubeShaderID);
+    textureManager->bindBlockTextures(cubeShaderID);
 
     // update buffers if needed
     if (ctx->isFreshlyUpdated) {
@@ -358,7 +360,7 @@ void OpenGLRenderer::renderText(const std::string &text, float x, float y, size_
     }
 
     glUseProgram(textShaderID);
-    texManager->bindFontTexture(textShaderID);
+    textureManager->bindFontTexture(textShaderID);
 
     textVertices.write(vertices);
     textUVs.write(uvs);
@@ -384,10 +386,10 @@ void OpenGLRenderer::renderHud() {
     constexpr float crosshairLength = 0.02;
     std::vector<glm::vec3> vertices;
 
-    constexpr glm::vec3 left = { -crosshairLength, 0, 0 };
-    constexpr glm::vec3 right = { crosshairLength, 0, 0 };
-    constexpr glm::vec3 top = { 0, -crosshairLength, 0 };
-    constexpr glm::vec3 bottom = { 0, crosshairLength, 0 };
+    constexpr glm::vec3 left = {-crosshairLength, 0, 0};
+    constexpr glm::vec3 right = {crosshairLength, 0, 0};
+    constexpr glm::vec3 top = {0, -crosshairLength, 0};
+    constexpr glm::vec3 bottom = {0, crosshairLength, 0};
 
     vertices.push_back(left);
     vertices.push_back(right);

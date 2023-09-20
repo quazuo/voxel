@@ -2,6 +2,7 @@
 
 // Interpolated values from the vertex shaders
 in vec2 UV;
+flat in int texID;
 in vec3 Position_worldspace;
 in vec3 Normal_cameraspace;
 in vec3 EyeDirection_cameraspace;
@@ -11,30 +12,32 @@ in vec3 LightDirection_cameraspace;
 out vec4 color;
 
 // Values that stay constant for the whole mesh.
-uniform sampler2D texSampler[3];
+uniform sampler2D texSampler[24];
 uniform mat4 MV;
 uniform vec3 LightPosition_worldspace;
 
-vec3 getTexSample(int texID, vec2 localUV) {
-    if (texID == 0)
-        return texture(texSampler[0], localUV).rgb;
-    if (texID == 1)
-        return texture(texSampler[1], localUV).rgb;
-    return texture(texSampler[2], localUV).rgb;
+#define DEF_TEX_SAMPLER_ID(n) \
+    if (texID == 6 * (n)) return texture(texSampler[6 * (n)], UV).rgb; \
+    if (texID == 6 * (n) + 1) return texture(texSampler[6 * (n) + 1], UV).rgb; \
+    if (texID == 6 * (n) + 2) return texture(texSampler[6 * (n) + 2], UV).rgb; \
+    if (texID == 6 * (n) + 3) return texture(texSampler[6 * (n) + 3], UV).rgb; \
+    if (texID == 6 * (n) + 4) return texture(texSampler[6 * (n) + 4], UV).rgb; \
+    if (texID == 6 * (n) + 5) return texture(texSampler[6 * (n) + 5], UV).rgb; \
+
+vec3 getTexSample(int id) {
+    DEF_TEX_SAMPLER_ID(0)
+    DEF_TEX_SAMPLER_ID(1)  // grass
+    DEF_TEX_SAMPLER_ID(2)  // dirt
+    DEF_TEX_SAMPLER_ID(3)  // stone
 }
 
 void main() {
     // Light emission properties
-    // You probably want to put them as uniforms
     vec3 LightColor = vec3(1);
     float LightPower = 0.0f;
 
-    int texID = int(UV.x);
-    vec2 localUV = UV;
-    localUV.x -= texID;
-
     // Material properties
-    vec3 MaterialDiffuseColor = getTexSample(texID, localUV);
+    vec3 MaterialDiffuseColor = getTexSample(texID);
     vec3 MaterialAmbientColor = vec3(0.5) * MaterialDiffuseColor;
     vec3 MaterialSpecularColor = vec3(0.1);
 
@@ -62,13 +65,13 @@ void main() {
     //  - Looking elsewhere => less than 1
     float cosAlpha = clamp(dot(E, R), 0, 1);
 
-    vec3 opaqueColor = //MaterialDiffuseColor + MaterialAmbientColor * 0.1;
-        // Ambient : simulates indirect lighting
-        MaterialAmbientColor +
-        // Diffuse : "color" of the object
-        MaterialDiffuseColor * LightColor * LightPower * cosTheta / (distance * distance) +
-        // Specular : reflective highlight, like a mirror
-        MaterialSpecularColor * LightColor * LightPower * pow(cosAlpha, 5) / (distance * distance);
+    vec3 opaqueColor =
+    // Ambient : simulates indirect lighting
+    MaterialAmbientColor +
+    // Diffuse : "color" of the object
+    MaterialDiffuseColor * LightColor * LightPower * cosTheta / (distance * distance) +
+    // Specular : reflective highlight, like a mirror
+    MaterialSpecularColor * LightColor * LightPower * pow(cosAlpha, 5) / (distance * distance);
 
     color = vec4(opaqueColor, 1.0);
 }

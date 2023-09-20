@@ -9,6 +9,8 @@
 namespace VecUtils {
     using Vec3Discrete = glm::vec<3, int>;
 
+    int sum(Vec3Discrete v);
+
     std::string toString(glm::vec3 vec);
 
     using VecPredicate = std::function<bool(float)>;
