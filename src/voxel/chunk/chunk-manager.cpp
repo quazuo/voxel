@@ -111,15 +111,7 @@ void ChunkManager::unloadFarChunks(VecUtils::Vec3Discrete currChunkPos) {
 
 void ChunkManager::loadNearChunks(VecUtils::Vec3Discrete currChunkPos) {
     constexpr size_t newChunkLoadCubeWidth = 2 * RENDER_DISTANCE + 1;
-    SizeUtils::CubeArray<bool, newChunkLoadCubeWidth> loadedChunksMap;
-
-    for (size_t x = 0; x < newChunkLoadCubeWidth; x++) {
-        for (size_t y = 0; y < newChunkLoadCubeWidth; y++) {
-            for (size_t z = 0; z < newChunkLoadCubeWidth; z++) {
-                loadedChunksMap[x][y][z] = false;
-            }
-        }
-    }
+    CubeArray<bool, newChunkLoadCubeWidth> loadedChunksMap{};
 
     // check which positions, relative to ours, are occupied by loaded chunks
     for (auto &slot: chunkSlots) {
@@ -142,24 +134,19 @@ void ChunkManager::loadNearChunks(VecUtils::Vec3Discrete currChunkPos) {
     // use the previously gathered information to load missing chunks to free slots
     auto slotIt = chunkSlots.begin();
 
-    for (size_t x = 0; x < newChunkLoadCubeWidth; x++) {
-        for (size_t y = 0; y < newChunkLoadCubeWidth; y++) {
-            for (size_t z = 0; z < newChunkLoadCubeWidth; z++) {
-                if (loadedChunksMap[x][y][z])
-                    continue;
+    loadedChunksMap.forEach([&](size_t x, size_t y, size_t z, bool &isLoaded) {
+        if (isLoaded) return;
 
-                // chunk at `newChunkPos` is unloaded but should be -- load it
-                const glm::vec3 newChunkPos = currChunkPos + VecUtils::Vec3Discrete(x, y, z) - RENDER_DISTANCE;
-                const auto newChunk = std::make_shared<Chunk>(newChunkPos);
-                loadableChunks.push_back(newChunk);
+        // chunk at `newChunkPos` is unloaded but should be -- load it
+        const glm::vec3 newChunkPos = currChunkPos + VecUtils::Vec3Discrete(x, y, z) - RENDER_DISTANCE;
+        const auto newChunk = std::make_shared<Chunk>(newChunkPos);
+        loadableChunks.push_back(newChunk);
 
-                // find a free slot and bind it with the new chunk
-                while (slotIt->isBound())
-                    slotIt++;
-                slotIt->bind(newChunk);
-            }
-        }
-    }
+        // find a free slot and bind it with the new chunk
+        while (slotIt->isBound())
+            slotIt++;
+        slotIt->bind(newChunk);
+    });
 }
 
 

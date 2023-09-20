@@ -13,6 +13,7 @@ struct PackedVertex {
     glm::vec3 position;
     glm::vec2 uv;
     glm::vec3 normal;
+    int texSamplerID;
 
     bool operator<(const PackedVertex other) const {
         return memcmp((void *) this, (void *) &other, sizeof(PackedVertex)) > 0;
@@ -23,6 +24,7 @@ struct IndexedMeshData {
     std::vector<glm::vec3> vertices;
     std::vector<glm::vec2> uvs;
     std::vector<glm::vec3> normals;
+    std::vector<int> texIDs;
 
     // the indices are currently kept as unsigned shorts. this leads to a problem, because in an edge case
     // a chunk with `CHUNK_SIZE == 16` may contain more than USHRT_MAX rendered vertices.
@@ -35,6 +37,9 @@ struct IndexedMeshData {
 };
 
 class MeshContext {
+    using Quad = std::pair<PackedVertex, PackedVertex>;
+
+    std::vector<Quad> quads{};
     std::vector<std::tuple<PackedVertex, PackedVertex, PackedVertex>> triangles{};
 
     IndexedMeshData indexedData;
@@ -43,6 +48,7 @@ class MeshContext {
 
     GLArrayBuffer<glm::vec3> vertices, normals;
     GLArrayBuffer<glm::vec2> uvs;
+    GLArrayBuffer<int> texIDs;
     GLElementBuffer indices;
 
 public:
@@ -52,7 +58,13 @@ public:
 
     void clear();
 
+    void addQuad(PackedVertex &min, PackedVertex &max);
+
     void addTriangle(PackedVertex &vertex1, PackedVertex &vertex2, PackedVertex &vertex3);
+
+    void triangulateQuads();
+
+    void mergeQuads();
 
     void makeIndexed();
 
@@ -67,6 +79,8 @@ public:
 private:
     static void indexVertex(const PackedVertex &vertex, IndexedMeshData &data,
                             std::map<PackedVertex, unsigned short> &vertexToOutIndex);
+
+    static std::vector<Quad> mergeQuadMap(CubeArray<short, Chunk::CHUNK_SIZE> &quadMap, glm::vec3 normal);
 };
 
 #endif //VOXEL_MESH_CONTEXT_H

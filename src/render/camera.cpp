@@ -83,6 +83,10 @@ void Camera::bindMovementKeys() {
     keyManager.bindCallback(GLFW_KEY_SPACE, EActivationType::PRESS_ANY, [&](float deltaTime) {
         pos += glm::vec3(0, 1, 0) * deltaTime * movementSpeed; // Fly upwards
     });
+
+    keyManager.bindCallback(GLFW_KEY_LEFT_SHIFT, EActivationType::PRESS_ANY, [&](float deltaTime) {
+        pos -= glm::vec3(0, 1, 0) * deltaTime * movementSpeed; // Fly downwards
+    });
 }
 
 void Camera::updateFrustum() {

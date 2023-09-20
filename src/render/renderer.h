@@ -20,7 +20,7 @@ class OpenGLRenderer {
     struct GLFWwindow *window = nullptr;
     glm::vec2 windowSize;
 
-    std::shared_ptr<class TextureManager> texManager = std::make_shared<TextureManager>();
+    std::shared_ptr<class TextureManager> textureManager = std::make_shared<TextureManager>();
 
     KeyManager keyManager;
 

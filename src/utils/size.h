@@ -5,9 +5,6 @@
 #include <array>
 
 namespace SizeUtils {
-    template<typename T, size_t S>
-    using CubeArray = std::array<std::array<std::array<T, S>, S>, S>;
-
     constexpr size_t pow(const size_t x, const size_t p)
     {
         if (p == 0) return 1;
@@ -18,7 +15,6 @@ namespace SizeUtils {
             return tmp * tmp;
         return x * tmp * tmp;
     }
-
 }
 
 #endif //VOXEL_SIZE_H

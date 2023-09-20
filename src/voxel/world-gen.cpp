@@ -1,4 +1,3 @@
-#include <iostream>
 #include "world-gen.h"
 #include "src/voxel/chunk/chunk.h"
 
@@ -18,6 +17,7 @@ EBlockType WorldGen::getBlockTypeAt(const int x, const int y, const int z) {
     constexpr int dirtHeight = 5;
     if (absY + dirtHeight < threshold)
         return EBlockType::BlockType_Stone;
+
     return EBlockType::BlockType_Dirt;
 }
 
