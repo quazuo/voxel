@@ -494,7 +494,11 @@ void OpenGLRenderer::debugCallback(GLenum source, GLenum type, GLuint id, GLenum
 
     ss << "\nmessage: " << message << "\n";
 
-    throw std::runtime_error(ss.str());
+    if (severity == GL_DEBUG_SEVERITY_NOTIFICATION) {
+        std::cout << ss.str();
+    } else {
+        throw std::runtime_error(ss.str());
+    }
 }
 
 void OpenGLRenderer::terminate() {

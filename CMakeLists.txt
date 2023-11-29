@@ -31,7 +31,8 @@ add_definitions(
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_FLAGS "-Wall -Wextra -Werror -Wpedantic -Wunused -Wcast-align \
     -Wdouble-promotion -Wmissing-declarations -Wmissing-include-dirs        \
-    -Wnon-virtual-dtor -Wredundant-decls -Wodr -Wunreachable-code -Wshadow")
+    -Wnon-virtual-dtor -Wredundant-decls -Wodr -Wunreachable-code -Wshadow  \
+    -I/usr/local/include -L/usr/local/lib -lnoise")
 
 file(GLOB voxel_SRC
     "src/*"
