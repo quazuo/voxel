@@ -221,6 +221,10 @@ void OpenGLRenderer::startRendering() {
 
     glm::vec3 lightPos = camera.pos;
     glUniform3f(lightID, lightPos.x, lightPos.y, lightPos.z);
+
+    for (auto &[gid, vertices] : tempLineVertexGroups) {
+        vertices.clear();
+    }
 }
 
 void OpenGLRenderer::renderChunk(const std::shared_ptr<MeshContext> &ctx) {
@@ -244,30 +248,32 @@ void OpenGLRenderer::renderChunk(const std::shared_ptr<MeshContext> &ctx) {
     ctx->drawElements();
 }
 
-void OpenGLRenderer::renderOutline(const std::vector<glm::vec3> &vertices, const glm::mat4 &mvpMatrix,
-                                   glm::vec3 color) {
+void OpenGLRenderer::renderOutlines() {
+    glm::mat4 modelMatrix = glm::mat4(1.0f);
+    glm::mat4 mvpMatrix = projectionMatrix * viewMatrix * modelMatrix;
+
     glUseProgram(lineShaderID);
 
-    lineVertices.write(vertices);
+    for (const auto &[gid, vertices] : tempLineVertexGroups) {
+        lineVertices.write(vertices);
 
-    GLint mvpID = glGetUniformLocation(lineShaderID, "MVP");
-    glUniformMatrix4fv(mvpID, 1, GL_FALSE, &mvpMatrix[0][0]);
+        GLint mvpID = glGetUniformLocation(lineShaderID, "MVP");
+        glUniformMatrix4fv(mvpID, 1, GL_FALSE, &mvpMatrix[0][0]);
 
-    GLint colorID = glGetUniformLocation(lineShaderID, "color");
-    glUniform3f(colorID, color.r, color.g, color.b);
+        GLint colorID = glGetUniformLocation(lineShaderID, "color");
+        const glm::vec3 color = vertexGroupColors.at(gid);
+        glUniform3f(colorID, color.r, color.g, color.b);
 
-    lineVertices.enable();
-    glDrawArrays(GL_LINES, 0, (GLsizei) vertices.size());
-    lineVertices.disable();
+        lineVertices.enable();
+        glDrawArrays(GL_LINES, 0, (GLsizei) vertices.size());
+        lineVertices.disable();
+    }
 
     glUseProgram(cubeShaderID);
 }
 
-void OpenGLRenderer::renderCubeOutline(const glm::vec3 minVec, const float sideLength, const glm::vec3 color) {
-    glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), minVec);
-    glm::mat4 mvpMatrix = projectionMatrix * viewMatrix * modelMatrix;
-
-    std::vector<glm::vec3> vertices;
+void OpenGLRenderer::addCubeOutline(const glm::vec3 minVec, const float sideLength, const LineVertexGroup gid) {
+    std::vector<glm::vec3>& vertexGroup = tempLineVertexGroups[gid];
 
     // add x-aligned lines
     std::vector<glm::vec3> vs = {
@@ -277,8 +283,8 @@ void OpenGLRenderer::renderCubeOutline(const glm::vec3 minVec, const float sideL
         {0, sideLength, sideLength}
     };
     for (const auto &v: vs) {
-        vertices.push_back(v);
-        vertices.push_back(v + glm::vec3(sideLength, 0, 0));
+        vertexGroup.push_back(minVec + v);
+        vertexGroup.push_back(minVec + v + glm::vec3(sideLength, 0, 0));
     }
 
     // add y-aligned lines
@@ -289,8 +295,8 @@ void OpenGLRenderer::renderCubeOutline(const glm::vec3 minVec, const float sideL
         {sideLength, 0, sideLength}
     };
     for (const auto &v: vs) {
-        vertices.push_back(v);
-        vertices.push_back(v + glm::vec3(0, sideLength, 0));
+        vertexGroup.push_back(minVec + v);
+        vertexGroup.push_back(minVec + v + glm::vec3(0, sideLength, 0));
     }
 
     // add z-aligned lines
@@ -301,22 +307,20 @@ void OpenGLRenderer::renderCubeOutline(const glm::vec3 minVec, const float sideL
         {sideLength, sideLength, 0}
     };
     for (const auto &v: vs) {
-        vertices.push_back(v);
-        vertices.push_back(v + glm::vec3(0, 0, sideLength));
+        vertexGroup.push_back(minVec + v);
+        vertexGroup.push_back(minVec + v + glm::vec3(0, 0, sideLength));
     }
-
-    renderOutline(vertices, mvpMatrix, color);
 }
 
-void OpenGLRenderer::renderChunkOutline(const glm::vec3 chunkPos, const glm::vec3 color) {
+void OpenGLRenderer::addChunkOutline(const glm::vec3 chunkPos, const LineVertexGroup gid) {
     const glm::vec3 chunkMinVec =
         chunkPos - glm::vec3(Block::RENDER_SIZE, Block::RENDER_SIZE, Block::RENDER_SIZE) * 0.5f;
-    renderCubeOutline(chunkMinVec, Chunk::CHUNK_SIZE * Block::RENDER_SIZE, color);
+    addCubeOutline(chunkMinVec, Chunk::CHUNK_SIZE * Block::RENDER_SIZE, gid);
 }
 
-void OpenGLRenderer::renderTargetedBlockOutline(const glm::vec3 blockPos) {
+void OpenGLRenderer::addTargetedBlockOutline(const glm::vec3 blockPos) {
     const glm::vec3 minVec = blockPos - glm::vec3(Block::RENDER_SIZE, Block::RENDER_SIZE, Block::RENDER_SIZE) * 0.5f;
-    renderCubeOutline(minVec, Block::RENDER_SIZE, {0, 1, 1});
+    addCubeOutline(minVec, Block::RENDER_SIZE, LineVertexGroup::SELECTED_BLOCK);
 }
 
 void OpenGLRenderer::renderText(const std::string &text, float x, float y, size_t fontSize) {
@@ -398,7 +402,23 @@ void OpenGLRenderer::renderHud() {
     vertices.push_back(bottom * windowSize.x / windowSize.y);
 
     glClear(GL_DEPTH_BUFFER_BIT);
-    renderOutline(vertices, glm::mat4(1), {1, 1, 1});
+    glUseProgram(lineShaderID);
+
+    lineVertices.write(vertices);
+
+    glm::mat4 mvpMatrix = glm::mat4(1.0f);
+    GLint mvpID = glGetUniformLocation(lineShaderID, "MVP");
+    glUniformMatrix4fv(mvpID, 1, GL_FALSE, &mvpMatrix[0][0]);
+
+    GLint colorID = glGetUniformLocation(lineShaderID, "color");
+    const glm::vec3 color = {1, 1, 1};
+    glUniform3f(colorID, color.r, color.g, color.b);
+
+    lineVertices.enable();
+    glDrawArrays(GL_LINES, 0, (GLsizei) vertices.size());
+    lineVertices.disable();
+
+    glUseProgram(cubeShaderID);
 }
 
 void OpenGLRenderer::finishRendering() {
