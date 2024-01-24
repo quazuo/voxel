@@ -59,12 +59,12 @@ void ChunkManager::renderChunkOutlines() const {
         if (!slot.isBound())
             continue;
 
-        glm::vec3 color = {1, 1, 0}; // yellow
+        OpenGLRenderer::LineVertexGroup gid = OpenGLRenderer::CHUNK;
         if (std::find(visibleChunks.begin(), visibleChunks.end(), slot.chunk) == visibleChunks.end()) {
-            color = {1, 0, 0}; // red
+            gid = OpenGLRenderer::CHUNK_EMPTY;
         }
 
-        renderer->renderChunkOutline(slot.chunk->getPos() * Chunk::CHUNK_SIZE, color);
+        renderer->addChunkOutline(slot.chunk->getPos() * Chunk::CHUNK_SIZE, gid);
     }
 }
 

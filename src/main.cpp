@@ -72,8 +72,10 @@ public:
 
         isTargetedBlockValid = chunkManager->getTargetedBlock(renderer->getLookedAtBlocks(), targetedBlockPos);
         if (isTargetedBlockValid) {
-            renderer->renderTargetedBlockOutline(targetedBlockPos);
+            renderer->addTargetedBlockOutline(targetedBlockPos);
         }
+
+        renderer->renderOutlines();
 
         // following functions HAVE TO be called as the last thing, because while rendering overlays we clear
         // the z-buffer so that the text is on top of everything.

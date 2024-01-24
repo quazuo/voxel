@@ -17,6 +17,14 @@
 #include "gl-buffer.h"
 
 class OpenGLRenderer {
+public:
+    enum LineVertexGroup {
+        CHUNK,
+        CHUNK_EMPTY,
+        SELECTED_BLOCK
+    };
+
+private:
     struct GLFWwindow *window = nullptr;
     glm::vec2 windowSize;
 
@@ -37,6 +45,13 @@ class OpenGLRenderer {
 
     // OpenGL buffers used for outline rendering
     GLArrayBuffer<glm::vec3> lineVertices;
+
+    std::map<LineVertexGroup, glm::vec3> vertexGroupColors = {
+            { CHUNK, {1, 1, 0}},
+            { CHUNK_EMPTY, {1, 0, 0}},
+            { SELECTED_BLOCK, {0, 1, 1}},
+    };
+    std::map<LineVertexGroup, std::vector<glm::vec3>> tempLineVertexGroups;
 
     // cached view and projection matrices for the current render tick
     // model matrix can't be cached because it's different for each chunk
@@ -69,18 +84,18 @@ public:
 
     void renderChunk(const std::shared_ptr<MeshContext>& ctx);
 
-    void renderChunkOutline(glm::vec3 chunkPos, glm::vec3 color);
+    void addChunkOutline(glm::vec3 chunkPos, LineVertexGroup gid);
 
-    void renderTargetedBlockOutline(glm::vec3 blockPos);
+    void addTargetedBlockOutline(glm::vec3 blockPos);
 
     void renderText(const std::string& text, float x, float y, size_t fontSize);
 
     void renderHud();
 
-private:
-    void renderCubeOutline(glm::vec3 minVec, float sideLength, glm::vec3 color);
+    void renderOutlines();
 
-    void renderOutline(const std::vector<glm::vec3> &vertices, const glm::mat4& mvpMatrix, glm::vec3 color);
+private:
+    void addCubeOutline(glm::vec3 minVec, float sideLength, LineVertexGroup gid);
 
     void tickMouseMovement(float deltaTime);
 
