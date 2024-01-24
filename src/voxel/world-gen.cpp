@@ -1,10 +1,7 @@
 #include "world-gen.h"
 #include "src/voxel/chunk/chunk.h"
 
-noiseutils::NoiseMap WorldGen::heightMap;
-VecUtils::Vec3Discrete WorldGen::chunkPos;
-
-EBlockType WorldGen::getBlockTypeAt(const int x, const int y, const int z) {
+EBlockType DefaultWorldGen::getBlockTypeAt(const int x, const int y, const int z) {
     const float height = heightMap.GetValue(x, z) * Chunk::CHUNK_SIZE;
     const int threshold = (int) height;
     const int absY = chunkPos.y * Chunk::CHUNK_SIZE + y;
@@ -21,7 +18,7 @@ EBlockType WorldGen::getBlockTypeAt(const int x, const int y, const int z) {
     return EBlockType::BlockType_Dirt;
 }
 
-void WorldGen::setChunkGenCtx(VecUtils::Vec3Discrete cPos) {
+void DefaultWorldGen::setChunkGenCtx(VecUtils::Vec3Discrete cPos) {
     chunkPos = cPos;
     heightMap = {};
 

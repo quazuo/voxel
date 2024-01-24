@@ -137,8 +137,8 @@ void MeshContext::triangulateQuads() {
 }
 
 void MeshContext::mergeQuads() {
-    // front[x][y][z] == -1 means that there's no quad facing the {0, 0, 1} normal at these coords,
-    // a non-zero value is the ID of the texture used by the quad.
+    // front[x][y][z] == -1 iff there's no quad facing the {0, 0, 1} normal at these coords,
+    // a non-zero value is the ID of the texture used by the quad. other on work analogically.
     CubeArray<short, Chunk::CHUNK_SIZE> front{-1}, back{-1}, right{-1}, left{-1}, top{-1}, bottom{-1};
 
     for (auto &[v1, v2]: quads) {

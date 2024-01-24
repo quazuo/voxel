@@ -50,10 +50,10 @@ static inline EBlockFace getFaceFromNormal(glm::vec3 normal) {
     throw std::runtime_error("invalid normal in getFaceFromNormal()");
 }
 
-static const std::uint8_t ALL_FACES = Front | Back | Right | Left | Top | Bottom;
-static const std::uint8_t ALL_SIDE_FACES = Front | Back | Right | Left;
+static constexpr std::uint8_t ALL_FACES = Front | Back | Right | Left | Top | Bottom;
+static constexpr std::uint8_t ALL_SIDE_FACES = Front | Back | Right | Left;
 
-// this is *purposefully* not an enum class, as we want to use the underlying numeric values
+// this is purposefully not an enum class, as we want to use the underlying numeric values
 // to also index into texture samplers inside the cube fragment shader
 enum EBlockType : std::uint8_t {
     BlockType_None = 0,
@@ -71,9 +71,11 @@ public:
 
     EBlockType blockType = EBlockType::BlockType_Grass;
 
-    // a block's width.
-    // this is NOT intended be changed, as such it can (and will) break if changed to any other value than `1.0f`.
-    // this is the case because we'd like to preserve the 1-1 mapping between (floored) world coordinates and blocks
+    /**
+     * a single block's width.
+     * this is NOT intended be changed, this it can (and will) break if changed to any other value than `1.0f`.
+     * this is the case because we'd like to preserve the 1-1 mapping between (floored) world coordinates and blocks
+     */
     static constexpr float RENDER_SIZE = 1.0f;
 
     [[nodiscard]]

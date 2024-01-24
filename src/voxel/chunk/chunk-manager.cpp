@@ -155,7 +155,7 @@ void ChunkManager::updateLoadList() {
 
     for (const ChunkPtr &chunk: loadableChunks) {
         if (!chunk->isLoaded()) {
-            chunk->load();
+            chunk->generate(worldGen);
             nChunksLoaded++;
         }
 

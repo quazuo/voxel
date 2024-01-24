@@ -8,13 +8,22 @@
 #include "src/utils/vec.h"
 
 class WorldGen {
-    static noiseutils::NoiseMap heightMap;
-    static VecUtils::Vec3Discrete chunkPos;
+public:
+    virtual ~WorldGen() = default;
+
+    virtual EBlockType getBlockTypeAt(int x, int y, int z) = 0;
+
+    virtual void setChunkGenCtx(VecUtils::Vec3Discrete chunkPos) = 0;
+};
+
+class DefaultWorldGen : public WorldGen {
+    noiseutils::NoiseMap heightMap;
+    VecUtils::Vec3Discrete chunkPos;
 
 public:
-    static EBlockType getBlockTypeAt(int x, int y, int z);
+    EBlockType getBlockTypeAt(int x, int y, int z) override;
 
-    static void setChunkGenCtx(VecUtils::Vec3Discrete chunkPos);
+    void setChunkGenCtx(VecUtils::Vec3Discrete chunkPos) override;
 };
 
 #endif //VOXEL_WORLD_GEN_H

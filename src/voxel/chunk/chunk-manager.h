@@ -1,6 +1,7 @@
 #ifndef MYGE_CHUNK_MANAGER_H
 #define MYGE_CHUNK_MANAGER_H
 
+#include <utility>
 #include <vector>
 #include <array>
 #include <memory>
@@ -46,11 +47,13 @@ class ChunkManager {
     VecUtils::Vec3Discrete lastOccupiedChunkPos = {0, 0, 0};
 
     std::shared_ptr<OpenGLRenderer> renderer;
+    std::shared_ptr<class WorldGen> worldGen;
 
     static constexpr size_t MAX_CHUNKS_SERVE_PER_PRAME = 2;
 
 public:
-    explicit ChunkManager(const std::shared_ptr<OpenGLRenderer> &rendererPtr) : renderer(rendererPtr) { }
+    explicit ChunkManager(std::shared_ptr<OpenGLRenderer> r, std::shared_ptr<WorldGen> wg)
+        : renderer(std::move(r)), worldGen(std::move(wg)) {}
 
     void init();
 
@@ -63,11 +66,12 @@ public:
     void renderChunkOutlines() const;
 
     [[nodiscard]]
-    bool getTargetedBlock(const std::vector<VecUtils::Vec3Discrete>& lookedAtBlocks, glm::vec3& outBlock) const;
+    bool getTargetedBlock(const std::vector<VecUtils::Vec3Discrete> &lookedAtBlocks, glm::vec3 &outBlock) const;
 
     void updateBlock(VecUtils::Vec3Discrete block, EBlockType type) const;
 
 private:
+    [[nodiscard]]
     ChunkPtr getOwningChunk(VecUtils::Vec3Discrete block) const;
 
     void updateChunkSlots();

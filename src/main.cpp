@@ -7,12 +7,15 @@
 #include "render/renderer.h"
 #include "voxel/chunk/chunk-manager.h"
 #include "utils/key-manager.h"
+#include "src/voxel/world-gen.h"
 
 class VEngine {
-    std::shared_ptr<OpenGLRenderer> renderer = std::make_shared<OpenGLRenderer>();
+    std::shared_ptr<OpenGLRenderer> renderer;
     struct GLFWwindow *window = nullptr;
 
-    std::shared_ptr<ChunkManager> chunkManager = std::make_shared<ChunkManager>(renderer);
+    std::shared_ptr<ChunkManager> chunkManager;
+
+    std::shared_ptr<WorldGen> worldGen;
 
     KeyManager keyManager;
 
@@ -31,8 +34,10 @@ public:
             throw std::runtime_error("Failed to initialize GLFW");
         }
 
-        window = renderer->init(1024, 768);
-        chunkManager->init();
+        renderer = std::make_shared<OpenGLRenderer>(1024, 768);
+        window = renderer->getWindow();
+        worldGen = std::make_shared<DefaultWorldGen>();
+        chunkManager = std::make_shared<ChunkManager>(renderer, worldGen);
         bindKeyActions();
     }
 

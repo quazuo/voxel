@@ -5,13 +5,11 @@
 #include "src/render/mesh-context.h"
 #include "src/voxel/world-gen.h"
 
-void Chunk::load() {
-    // todo - check if is stored on the disk and if it is, load it, otherwise generate terrain for it
-    // todo - all of this should probably be done in the chunk manager. or at least the disk thing
+void Chunk::generate(const std::shared_ptr<WorldGen>& worldGen) {
+    worldGen->setChunkGenCtx(pos);
 
-    WorldGen::setChunkGenCtx(pos);
     blocks.forEach([&](int x, int y, int z, Block& b) {
-        b.blockType = WorldGen::getBlockTypeAt(x, y, z);
+        b.blockType = worldGen->getBlockTypeAt(x, y, z);
 
         if (blocks[x][y][z].blockType != BlockType_None)
             activeBlockCount++;

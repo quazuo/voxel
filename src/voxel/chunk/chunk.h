@@ -67,7 +67,7 @@ public:
         return {};
     }
 
-    void load();
+    void generate(const std::shared_ptr<class WorldGen>& worldGen);
 
     void unload();
 

@@ -12,9 +12,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-struct GLFWwindow *OpenGLRenderer::init(int windowWidth, int windowHeight) {
-    if (isInit) return nullptr;
-
+OpenGLRenderer::OpenGLRenderer(int windowWidth, int windowHeight) : windowSize(windowWidth, windowHeight) {
     glfwWindowHint(GLFW_SAMPLES, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -22,7 +20,6 @@ struct GLFWwindow *OpenGLRenderer::init(int windowWidth, int windowHeight) {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     // Open a window and create its OpenGL context
-    windowSize = {windowWidth, windowHeight};
     window = glfwCreateWindow(windowWidth, windowHeight, "0x22's Voxel Engine", nullptr, nullptr);
     if (!window) {
         const char *desc;
@@ -92,10 +89,6 @@ struct GLFWwindow *OpenGLRenderer::init(int windowWidth, int windowHeight) {
 
     // init peripheral structures
     camera.init(window);
-
-    isInit = true;
-
-    return window;
 }
 
 void OpenGLRenderer::tick(float deltaTime) {

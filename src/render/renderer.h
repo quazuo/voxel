@@ -24,8 +24,6 @@ class OpenGLRenderer {
 
     KeyManager keyManager;
 
-    bool isInit = false;
-
     Camera camera{};
 
     // OpenGL handles for various objects
@@ -42,10 +40,10 @@ class OpenGLRenderer {
 
     // cached view and projection matrices for the current render tick
     // model matrix can't be cached because it's different for each chunk
-    glm::mat4 viewMatrix, projectionMatrix;
+    glm::mat4 viewMatrix{}, projectionMatrix{};
 
 public:
-    struct GLFWwindow *init(int windowWidth, int windowHeight);
+    OpenGLRenderer(int windowWidth, int windowHeight);
 
     void tick(float deltaTime);
 
