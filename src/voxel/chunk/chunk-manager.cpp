@@ -3,8 +3,7 @@
 
 #include "src/render/renderer.h"
 
-void ChunkManager::ChunkSlot::init() {
-    mesh = std::make_shared<MeshContext>();
+ChunkManager::ChunkSlot::ChunkSlot() {
     mesh->initBuffers();
 }
 
@@ -27,10 +26,8 @@ void ChunkManager::ChunkSlot::unbind() {
     _isBound = false;
 }
 
-void ChunkManager::init() {
-    for (auto &slot: chunkSlots) {
-        slot.init();
-    }
+ChunkManager::ChunkManager(std::shared_ptr<OpenGLRenderer> r, std::shared_ptr<WorldGen> wg)
+    : renderer(std::move(r)), worldGen(std::move(wg)) {
 
     auto slotIter = chunkSlots.begin();
 

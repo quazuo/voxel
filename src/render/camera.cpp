@@ -3,6 +3,8 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include <algorithm>
+#include <vector>
 #include "glm/geometric.hpp"
 #include "src/utils/vec.h"
 #include "src/voxel/chunk/chunk.h"
@@ -143,7 +145,7 @@ std::vector<VecUtils::Vec3Discrete> Camera::getLookedAtBlocks() const {
     }
 
     std::sort(result.begin(), result.end(), [&](glm::vec3 a, glm::vec3 b) {
-        return glm::length(a - pos) <= glm::length(b - pos);
+        return glm::length(a - pos) < glm::length(b - pos);
     });
 
     return result;

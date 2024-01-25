@@ -7,6 +7,7 @@
 #include "glm/geometric.hpp"
 #include "src/utils/vec.h"
 #include "src/utils/key-manager.h"
+#include <vector>
 
 class Plane {
     glm::vec3 normal = {0, 0, 0};

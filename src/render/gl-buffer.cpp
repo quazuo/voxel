@@ -56,7 +56,7 @@ void GLArrayBuffer<T>::write(const std::vector<T> &data) {
 
     this->updateBufferCapacity(dataSize);
     glBindBuffer(GL_ARRAY_BUFFER, this->bufferID);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, dataSize * sizeof(T), &data[0]);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, dataSize * sizeof(T), data.data());
 }
 
 template<typename T>
@@ -86,7 +86,7 @@ void GLElementBuffer::write(const std::vector<elemType> &data) {
 
     updateBufferCapacity(dataSize);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferID);
-    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, dataSize * sizeof(elemType), &data[0]);
+    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, dataSize * sizeof(elemType), data.data());
 }
 
 void GLElementBuffer::enable() {

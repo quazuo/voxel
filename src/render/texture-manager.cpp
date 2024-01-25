@@ -4,6 +4,8 @@
 #include <cstring>
 #include <vector>
 #include <iostream>
+#include <array>
+#include <filesystem>
 
 void TextureManager::loadBlockTexture(EBlockType blockType, std::uint8_t faces, const std::filesystem::path &path) {
     static constexpr std::array<EBlockFace, EBlockFace::N_FACES> blockFaces = {
@@ -144,7 +146,7 @@ GLuint TextureManager::loadDDS(const std::filesystem::path &path) {
             (GLsizei) height,
             0,
             (GLsizei) size,
-            buffer.begin().base() + offset
+            buffer.data() + offset
         );
 
         offset += size;

@@ -26,13 +26,13 @@ class ChunkManager {
 
     struct ChunkSlot {
         std::shared_ptr<Chunk> chunk;
-        std::shared_ptr<MeshContext> mesh;
+        std::shared_ptr<MeshContext> mesh = std::make_shared<MeshContext>();
 
     private:
         bool _isBound = false;
 
     public:
-        void init();
+        ChunkSlot();
 
         [[nodiscard]]
         bool isBound() const { return _isBound; }
@@ -52,10 +52,7 @@ class ChunkManager {
     static constexpr size_t MAX_CHUNKS_SERVE_PER_PRAME = 2;
 
 public:
-    explicit ChunkManager(std::shared_ptr<OpenGLRenderer> r, std::shared_ptr<WorldGen> wg)
-        : renderer(std::move(r)), worldGen(std::move(wg)) {}
-
-    void init();
+    explicit ChunkManager(std::shared_ptr<OpenGLRenderer> r, std::shared_ptr<WorldGen> wg);
 
     void tick();
 

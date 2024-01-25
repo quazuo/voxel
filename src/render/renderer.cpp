@@ -58,7 +58,7 @@ OpenGLRenderer::OpenGLRenderer(int windowWidth, int windowHeight) : windowSize(w
     glEnable(GL_CULL_FACE);
 
     glEnable(GL_DEBUG_OUTPUT);
-    glDebugMessageCallback(debugCallback, nullptr);
+    glDebugMessageCallback((GLDEBUGPROC)&debugCallback, nullptr);
 
     glGenVertexArrays(1, &vertexArrayID);
     glBindVertexArray(vertexArrayID);
@@ -100,7 +100,7 @@ void OpenGLRenderer::tickMouseMovement(const float deltaTime) {
     double xpos, ypos;
     glfwGetCursorPos(window, &xpos, &ypos);
 
-    const float mouseSpeed = 0.05f;
+    const float mouseSpeed = 0.35f;
     camera.updateRotation(
         mouseSpeed * deltaTime * (windowSize.x / 2 - (float) xpos),
         mouseSpeed * deltaTime * (windowSize.y / 2 - (float) ypos)
@@ -198,12 +198,12 @@ GLuint OpenGLRenderer::loadShaders(const std::filesystem::path &vertexShaderPath
 }
 
 void OpenGLRenderer::loadTextures() const {
-    textureManager->loadFontTexture("font.dds");
-    textureManager->loadBlockTexture(EBlockType::BlockType_Grass, ALL_SIDE_FACES, "grass-side.dds");
-    textureManager->loadBlockTexture(EBlockType::BlockType_Grass, EBlockFace::Top, "grass-top.dds");
-    textureManager->loadBlockTexture(EBlockType::BlockType_Grass, EBlockFace::Bottom, "dirt.dds");
-    textureManager->loadBlockTexture(EBlockType::BlockType_Dirt, ALL_FACES, "dirt.dds");
-    textureManager->loadBlockTexture(EBlockType::BlockType_Stone, ALL_FACES, "stone.dds");
+    textureManager->loadFontTexture("assets/font.dds");
+    textureManager->loadBlockTexture(EBlockType::BlockType_Grass, ALL_SIDE_FACES, "assets/grass-side.dds");
+    textureManager->loadBlockTexture(EBlockType::BlockType_Grass, EBlockFace::Top, "assets/grass-top.dds");
+    textureManager->loadBlockTexture(EBlockType::BlockType_Grass, EBlockFace::Bottom, "assets/dirt.dds");
+    textureManager->loadBlockTexture(EBlockType::BlockType_Dirt, ALL_FACES, "assets/dirt.dds");
+    textureManager->loadBlockTexture(EBlockType::BlockType_Stone, ALL_FACES, "assets/stone.dds");
 }
 
 void OpenGLRenderer::startRendering() {
