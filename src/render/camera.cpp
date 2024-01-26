@@ -2,22 +2,44 @@
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include <iostream>
 #include <algorithm>
 #include <vector>
 #include "glm/geometric.hpp"
-#include "src/utils/vec.h"
+#include <glm/gtc/matrix_transform.hpp>
 #include "src/voxel/chunk/chunk.h"
 
-void Camera::init(struct GLFWwindow *w) {
-    window = w;
+bool Plane::isChunkInFront(const VecUtils::Vec3Discrete chunkPos) const {
+    const glm::vec3 chunkAbsPos = (glm::vec3) chunkPos * (float) Chunk::CHUNK_SIZE / Block::RENDER_SIZE;
+    const glm::vec3 chunkMinPoint = chunkAbsPos - glm::vec3(Block::RENDER_SIZE / 2);
+    const float chunkAbsSize = Chunk::CHUNK_SIZE * Block::RENDER_SIZE;
+    const glm::vec3 chunkCenter = chunkMinPoint + glm::vec3(chunkAbsSize / 2);
+
+    const float projectionRadius = (chunkAbsSize / 2) * std::abs(normal.x) +
+                                   (chunkAbsSize / 2) * std::abs(normal.y) +
+                                   (chunkAbsSize / 2) * std::abs(normal.z);
+
+    const float signedDistance = glm::dot(normal, chunkCenter) - distance;
+
+    return -projectionRadius <= signedDistance;
+}
+
+bool Frustum::isChunkContained(VecUtils::Vec3Discrete chunkPos) const {
+    return near.isChunkInFront(chunkPos) &&
+           far.isChunkInFront(chunkPos) &&
+           top.isChunkInFront(chunkPos) &&
+           bottom.isChunkInFront(chunkPos) &&
+           left.isChunkInFront(chunkPos) &&
+           right.isChunkInFront(chunkPos);
+}
+
+Camera::Camera(struct GLFWwindow *w) : window(w) {
     keyManager.bindWindow(window);
     bindRotationKeys();
     bindMovementKeys();
 }
 
-void Camera::tick(float dt) {
-    keyManager.tick(dt);
+void Camera::tick(float deltaTime) {
+    keyManager.tick(deltaTime);
     updateVecs();
     updateFrustum();
 }
@@ -105,28 +127,12 @@ void Camera::updateFrustum() {
     frustum.bottom = {glm::cross(right, frontMultFar - up * halfVSide), pos};
 }
 
-bool Camera::isChunkInFrustum(const VecUtils::Vec3Discrete chunkPos) const {
-    return isChunkInFrontOfPlane(chunkPos, frustum.near) &&
-           isChunkInFrontOfPlane(chunkPos, frustum.far) &&
-           isChunkInFrontOfPlane(chunkPos, frustum.top) &&
-           isChunkInFrontOfPlane(chunkPos, frustum.bottom) &&
-           isChunkInFrontOfPlane(chunkPos, frustum.left) &&
-           isChunkInFrontOfPlane(chunkPos, frustum.right);
+glm::mat4 Camera::getViewMatrix() const {
+    return glm::lookAt(pos, pos + front, glm::vec3(0, 1, 0));
 }
 
-bool Camera::isChunkInFrontOfPlane(const VecUtils::Vec3Discrete chunkPos, const Plane &plane) {
-    const glm::vec3 chunkAbsPos = (glm::vec3) chunkPos * (float) Chunk::CHUNK_SIZE / Block::RENDER_SIZE;
-    const glm::vec3 chunkMinPoint = chunkAbsPos - glm::vec3(Block::RENDER_SIZE / 2);
-    const float chunkAbsSize = Chunk::CHUNK_SIZE * Block::RENDER_SIZE;
-    const glm::vec3 chunkCenter = chunkMinPoint + glm::vec3(chunkAbsSize / 2);
-
-    const float projectionRadius = (chunkAbsSize / 2) * std::abs(plane.getNormal().x) +
-                                   (chunkAbsSize / 2) * std::abs(plane.getNormal().y) +
-                                   (chunkAbsSize / 2) * std::abs(plane.getNormal().z);
-
-    const float signedDistance = glm::dot(plane.getNormal(), chunkCenter) - plane.getDistance();
-
-    return -projectionRadius <= signedDistance;
+glm::mat4 Camera::getProjectionMatrix() const {
+    return glm::perspective(fieldOfView, aspectRatio, zNear, zFar);
 }
 
 std::vector<VecUtils::Vec3Discrete> Camera::getLookedAtBlocks() const {

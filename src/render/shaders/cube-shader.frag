@@ -4,6 +4,7 @@
 in vec2 UV;
 flat in int texID;
 in vec3 Position_worldspace;
+in vec3 Normal_modelspace;
 in vec3 Normal_cameraspace;
 in vec3 EyeDirection_cameraspace;
 in vec3 LightDirection_cameraspace;
@@ -34,20 +35,17 @@ vec3 getTexSample(int id) {
 void main() {
     // Light emission properties
     vec3 LightColor = vec3(1);
-    float LightPower = 0.0f;
+    float LightPower = 0.7f;
 
     // Material properties
     vec3 MaterialDiffuseColor = getTexSample(texID);
-    vec3 MaterialAmbientColor = vec3(0.5) * MaterialDiffuseColor;
-    vec3 MaterialSpecularColor = vec3(0.1);
-
-    // Distance to the light
-    float distance = length(LightPosition_worldspace - Position_worldspace);
+    vec3 MaterialAmbientColor = vec3(0.3) * MaterialDiffuseColor;
+    vec3 MaterialSpecularColor = vec3(0);
 
     // Normal of the computed fragment, in camera space
-    vec3 n = normalize(Normal_cameraspace);
+    vec3 n = normalize(Normal_modelspace);
     // Direction of the light (from the fragment to the light)
-    vec3 l = normalize(LightDirection_cameraspace);
+    vec3 l = normalize(vec3(0.2, 0.3, 0.4));
     // Cosine of the angle between the normal and the light direction,
     // clamped above 0
     //  - light is at the vertical of the triangle -> 1
@@ -69,9 +67,9 @@ void main() {
     // Ambient : simulates indirect lighting
     MaterialAmbientColor +
     // Diffuse : "color" of the object
-    MaterialDiffuseColor * LightColor * LightPower * cosTheta / (distance * distance) +
+    MaterialDiffuseColor * LightColor * LightPower * cosTheta +
     // Specular : reflective highlight, like a mirror
-    MaterialSpecularColor * LightColor * LightPower * pow(cosAlpha, 5) / (distance * distance);
+    MaterialSpecularColor * LightColor * LightPower * pow(cosAlpha, 5);
 
     color = vec4(opaqueColor, 1.0);
 }

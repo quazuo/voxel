@@ -42,7 +42,7 @@ OpenGLRenderer::OpenGLRenderer(int windowWidth, int windowHeight) : windowSize(w
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
     // Hide the mouse and enable unlimited movement
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    glfwSetCursorPos(window, 1024.0 / 2, 768.0 / 2);
+    glfwSetCursorPos(window, (double) windowWidth / 2, (double) windowHeight / 2);
 
     glfwPollEvents();
 
@@ -88,11 +88,11 @@ OpenGLRenderer::OpenGLRenderer(int windowWidth, int windowHeight) : windowSize(w
     textUVs.init(1, 2);
 
     // init peripheral structures
-    camera.init(window);
+    camera = std::make_shared<Camera>(window);
 }
 
 void OpenGLRenderer::tick(float deltaTime) {
-    camera.tick(deltaTime);
+    camera->tick(deltaTime);
     tickMouseMovement(deltaTime);
 }
 
@@ -100,10 +100,10 @@ void OpenGLRenderer::tickMouseMovement(const float deltaTime) {
     double xpos, ypos;
     glfwGetCursorPos(window, &xpos, &ypos);
 
-    const float mouseSpeed = 0.35f;
-    camera.updateRotation(
-        mouseSpeed * deltaTime * (windowSize.x / 2 - (float) xpos),
-        mouseSpeed * deltaTime * (windowSize.y / 2 - (float) ypos)
+    const float mouseSpeed = 0.004f;
+    camera->updateRotation(
+        mouseSpeed * (windowSize.x / 2 - (float) xpos),
+        mouseSpeed * (windowSize.y / 2 - (float) ypos)
     );
 
     glfwSetCursorPos(window, (double) windowSize.x / 2, (double) windowSize.y / 2);
@@ -209,10 +209,10 @@ void OpenGLRenderer::loadTextures() const {
 void OpenGLRenderer::startRendering() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    viewMatrix = glm::lookAt(camera.pos, camera.pos + camera.front, glm::vec3(0, 1, 0));
-    projectionMatrix = glm::perspective(camera.fieldOfView, camera.aspectRatio, camera.zNear, camera.zFar);
+    viewMatrix = camera->getViewMatrix();
+    projectionMatrix = camera->getProjectionMatrix();
 
-    glm::vec3 lightPos = camera.pos;
+    glm::vec3 lightPos = camera->getPos();
     glUniform3f(lightID, lightPos.x, lightPos.y, lightPos.z);
 
     for (auto &[gid, vertices] : tempLineVertexGroups) {

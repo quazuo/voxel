@@ -10,6 +10,7 @@ layout(location = 3) in int textureID;
 out vec2 UV;
 flat out int texID;
 out vec3 Position_worldspace;
+out vec3 Normal_modelspace;
 out vec3 Normal_cameraspace;
 out vec3 EyeDirection_cameraspace;
 out vec3 LightDirection_cameraspace;
@@ -43,6 +44,7 @@ void main() {
 
     // Normal of the the vertex, in camera space
     // Only correct if ModelMatrix does not scale the model! Use its inverse transpose if not.
+    Normal_modelspace = vertexNormal_modelspace;
     Normal_cameraspace = (V * M * vec4(vertexNormal_modelspace, 0)).xyz;
 
     // UV of the vertex. No special space for this one.

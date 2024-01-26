@@ -32,7 +32,7 @@ private:
 
     KeyManager keyManager;
 
-    Camera camera{};
+    std::shared_ptr<Camera> camera;
 
     // OpenGL handles for various objects
     GLuint vertexArrayID{};
@@ -64,23 +64,25 @@ public:
 
     void terminate();
 
-    // should be called before any rendering
+    /// starts the rendering process.
+    /// should be called before any rendering is done
     void startRendering();
 
-    // should be called after all rendering in the current tick has been finished
+    /// wraps up the rendering process.
+    /// should be called after all rendering in the current tick has been finished
     void finishRendering();
 
     [[nodiscard]]
     inline GLFWwindow *getWindow() const { return window; }
 
     [[nodiscard]]
-    glm::vec3 getCameraPos() const { return camera.pos; }
+    glm::vec3 getCameraPos() const { return camera->getPos(); }
 
     [[nodiscard]]
-    std::vector<VecUtils::Vec3Discrete> getLookedAtBlocks() const { return camera.getLookedAtBlocks(); }
+    std::vector<VecUtils::Vec3Discrete> getLookedAtBlocks() const { return camera->getLookedAtBlocks(); }
 
     [[nodiscard]]
-    bool isChunkInFrustum(const Chunk& chunk) const { return camera.isChunkInFrustum(chunk.getPos()); };
+    bool isChunkInFrustum(const Chunk& chunk) const { return camera->isChunkInFrustum(chunk.getPos()); };
 
     void renderChunk(const std::shared_ptr<MeshContext>& ctx);
 
