@@ -80,13 +80,13 @@ public:
      * @param min Vertex with the lowest coordinates in the quad.
      * @param max Vertex with the highest coordinates in the quad.
      */
-    void addQuad(PackedVertex &min, PackedVertex &max);
+    void addQuad(const PackedVertex &min, const PackedVertex &max);
 
     /**
      * Adds a new triangle to this mesh, described by its vertices.
      */
     [[maybe_unused]]
-    void addTriangle(PackedVertex &vertex1, PackedVertex &vertex2, PackedVertex &vertex3);
+    void addTriangle(const PackedVertex &vertex1, const PackedVertex &vertex2, const PackedVertex &vertex3);
 
     /**
      * Splits all quads in this mesh into triangles.
@@ -116,16 +116,6 @@ public:
     void drawElements();
 
 private:
-    /**
-     * Indexes a single, specific vertex.
-     *
-     * @param vertex The vertex to be indexed.
-     * @param data The structure holding the indexed mesh data.
-     * @param vertexToOutIndex Mapping between vertices and indexes.
-     */
-    static void indexVertex(const PackedVertex &vertex, IndexedMeshData &data,
-                            std::map<PackedVertex, unsigned short> &vertexToOutIndex);
-
     /**
      * Merges a set of quads facing the same direction, i.e. all up-facing quads or down-facing or etc.
      *

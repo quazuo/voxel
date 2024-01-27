@@ -35,16 +35,16 @@ public:
     /**
      * Checks if the given chunk is at least partly in front of the plane.
      *
-     * @param chunkPos position of the chunk, given by the vertex with the lowest coordinates
-     * @return is the chunk in front of the plane?
+     * @param chunkPos Position of the chunk, given by the vertex with the lowest coordinates
+     * @return Is the chunk in front of the plane?
      */
     [[nodiscard]]
     bool isChunkInFront(VecUtils::Vec3Discrete chunkPos) const;
 };
 
 /**
- * a frustum used to deduce what areas are visible by the camera.
- * this is used primarily for frustum culling, which excludes unseen chunks from rendering.
+ * A frustum used to deduce what areas are visible by the camera.
+ * This is used primarily for frustum culling, which excludes unseen chunks from rendering.
  */
 struct Frustum {
     Plane top, bottom;
@@ -54,8 +54,8 @@ struct Frustum {
     /**
      * Checks if the given chunk is at least partly contained within the planes of the frustum.
      *
-     * @param chunkPos position of the chunk, given by the vertex with the lowest coordinates
-     * @return is the chunk inside the frustum?
+     * @param chunkPos Position of the chunk, given by the vertex with the lowest coordinates
+     * @return Is the chunk inside the frustum?
      */
     [[nodiscard]]
     bool isChunkContained(VecUtils::Vec3Discrete chunkPos) const;
@@ -99,8 +99,8 @@ public:
     /**
      * Checks if the given chunk is at least partly contained within the camera's frustum.
      *
-     * @param chunkPos position of the chunk, given by the vertex with the lowest coordinates
-     * @return is the chunk inside the frustum?
+     * @param chunkPos Position of the chunk, given by the vertex with the lowest coordinates
+     * @return Is the chunk inside the frustum?
      */
     [[nodiscard]]
     bool isChunkInFrustum(VecUtils::Vec3Discrete chunkPos) const { return frustum.isChunkContained(chunkPos); }

@@ -15,16 +15,17 @@ void ChunkMeshContext::clear() {
     indexedData = {};
 }
 
-void ChunkMeshContext::addQuad(PackedVertex &min, PackedVertex &max) {
+void ChunkMeshContext::addQuad(const PackedVertex &min, const PackedVertex &max) {
     quads.emplace_back(min, max);
 }
 
-void ChunkMeshContext::addTriangle(PackedVertex &vertex1, PackedVertex &vertex2, PackedVertex &vertex3) {
+void ChunkMeshContext::addTriangle(const PackedVertex &vertex1, const PackedVertex &vertex2,
+                                   const PackedVertex &vertex3) {
     triangles.emplace_back(vertex1, vertex2, vertex3);
 }
 
-void ChunkMeshContext::indexVertex(const PackedVertex &vertex, IndexedMeshData &data,
-                                   std::map<PackedVertex, unsigned short> &vertexToOutIndex) {
+static void indexVertex(const PackedVertex &vertex, IndexedMeshData &data,
+                        std::map<PackedVertex, unsigned short> &vertexToOutIndex) {
     int index = -1;
     auto it = vertexToOutIndex.find(vertex);
     if (it != vertexToOutIndex.end()) {
@@ -126,8 +127,10 @@ void ChunkMeshContext::triangulateQuads() {
 }
 
 void ChunkMeshContext::mergeQuads() {
-    // front[x][y][z] == -1 iff there's no quad facing the {0, 0, 1} normal at these coords,
-    // a non-zero value is the ID of the texture used by the quad. other ones work analogically.
+    /*
+     * front[x][y][z] == -1 iff there's no quad facing the {0, 0, 1} normal at these coords,
+     * a non-zero value is the ID of the texture used by the quad. other ones work analogically.
+     */
     CubeArray<short, Chunk::CHUNK_SIZE> front{-1}, back{-1}, right{-1}, left{-1}, top{-1}, bottom{-1};
 
     for (auto &[v1, v2]: quads) {

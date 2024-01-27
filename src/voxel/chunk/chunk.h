@@ -11,11 +11,16 @@
 #include "src/utils/vec.h"
 #include "src/utils/cube-array.h"
 
+/**
+ * A chunk groups up nearby blocks into cubes of `CHUNK_SIZE` width.
+ * It's used primarily as an optimization tool, as managing singular blocks is very ineffective.
+ */
 class Chunk {
 public:
     static constexpr int CHUNK_SIZE = 16;
 
 private:
+    // coordinates of the block with the lowest coordinates
     VecUtils::Vec3Discrete pos{};
 
     std::shared_ptr<class ChunkMeshContext> meshContext;
@@ -27,76 +32,11 @@ private:
     CubeArray<Block, CHUNK_SIZE> blocks;
     size_t activeBlockCount = 0;
 
-    /*
-    the below offsets signify a standardized specific ordering of vertices of a cube,
-    used primarily in the mesh constructing algorithm and the face merging algorithm.
-
-    the vertices are numbered as follows:
-       6--------7
-      /|       /|
-     / |      / |
-    3--------2  |
-    |  |     |  |
-    |  5-----|--4
-    | /      | /
-    |/       |/
-    0--------1
-    where the front face is the 0-1-2-3 one.
-    */
-    static constexpr std::array<glm::vec3, 8> vertexOffsets = {
-        {
-            Block::RENDER_SIZE * glm::vec3(-0.5, -0.5, 0.5),  // 0
-            Block::RENDER_SIZE * glm::vec3(0.5, -0.5, 0.5),   // 1
-            Block::RENDER_SIZE * glm::vec3(0.5, 0.5, 0.5),    // 2
-            Block::RENDER_SIZE * glm::vec3(-0.5, 0.5, 0.5),   // 3
-            Block::RENDER_SIZE * glm::vec3(0.5, -0.5, -0.5),  // 4
-            Block::RENDER_SIZE * glm::vec3(-0.5, -0.5, -0.5), // 5
-            Block::RENDER_SIZE * glm::vec3(-0.5, 0.5, -0.5),  // 6
-            Block::RENDER_SIZE * glm::vec3(0.5, 0.5, -0.5)    // 7
-        }
-    };
-
 public:
-    Chunk() = default;
-
     explicit Chunk(glm::vec3 p) : pos(p) {}
-
-    static std::pair<glm::vec3, glm::vec3> getFaceCorners(EBlockFace face) {
-        switch (face) {
-            case Front:
-                return {vertexOffsets[0], vertexOffsets[2]};
-            case Back:
-                return {vertexOffsets[4], vertexOffsets[6]};
-            case Right:
-                return {vertexOffsets[1], vertexOffsets[7]};
-            case Left:
-                return {vertexOffsets[5], vertexOffsets[3]};
-            case Top:
-                return {vertexOffsets[3], vertexOffsets[7]};
-            case Bottom:
-                return {vertexOffsets[5], vertexOffsets[1]};
-            case N_FACES:
-                throw std::runtime_error("invalid face value in getFaceCorners()");
-        }
-        return {};
-    }
-
-    void generate(const std::shared_ptr<class WorldGen>& worldGen);
-
-    void unload();
-
-    void bindMeshContext(std::shared_ptr<class ChunkMeshContext> ctx) { meshContext = std::move(ctx); }
 
     [[nodiscard]]
     VecUtils::Vec3Discrete getPos() const { return pos; }
-
-    [[nodiscard]]
-    bool isLoaded() const { return _isLoaded; }
-
-    [[nodiscard]]
-    bool shouldRender() const;
-
-    void render(const std::shared_ptr<class OpenGLRenderer> &renderer);
 
     [[nodiscard]]
     EBlockType getBlock(int x, int y, int z) const { return blocks[x][y][z].blockType; }
@@ -104,17 +44,47 @@ public:
     [[nodiscard]]
     EBlockType getBlock(VecUtils::Vec3Discrete v) const { return blocks[v.x][v.y][v.z].blockType; }
 
+    [[nodiscard]]
+    bool isLoaded() const { return _isLoaded; }
+
+    [[nodiscard]]
+    bool shouldRender() const;
+
+    void bindMeshContext(std::shared_ptr<class ChunkMeshContext> ctx) { meshContext = std::move(ctx); }
+
+    void markDirty() { _isDirty = true; }
+
     void updateBlock(VecUtils::Vec3Discrete block, EBlockType type);
 
     void updateBlock(int x, int y, int z, EBlockType type);
 
-    void markDirty() { _isDirty = true; }
+    /**
+     * Uses a provided world generation module to generate the contents of this chunk.
+     */
+    void generate(const std::shared_ptr<class WorldGen>& worldGen);
+
+    /**
+     * Unloads this chunk from memory, letting the ChunkManager free a ChunkSlot in which this chunk resides.
+     */
+    void unload();
+
+    void render(const std::shared_ptr<class OpenGLRenderer> &renderer);
 
 private:
+    /**
+     * Creates a new mesh for this chunk. This requires the mesh context to be bound beforehand.
+     * This does nothing if there weren't any changes to this chunk since it was last loaded.
+     */
     void createMesh();
 
+    /**
+     * Adds a specific cube at coordinates [x, y, z] relative to the chunk's `pos` coordinates.
+     */
     void createCube(int x, int y, int z);
 
+    /**
+     * Adds a specific cube's face to this mesh.
+     */
     void createFace(glm::vec3 cubePos, EBlockFace face, EBlockType blockType);
 };
 

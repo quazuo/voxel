@@ -19,8 +19,7 @@ class VEngine {
 
     KeyManager keyManager;
 
-    glm::vec3 targetedBlockPos{};
-    bool isTargetedBlockValid = false;
+    std::optional<glm::vec3> targetedBlockPos{};
 
     float lastTime = 0.f;
 
@@ -65,9 +64,9 @@ public:
         if (doRenderChunkOutlines)
             chunkManager->renderChunkOutlines();
 
-        isTargetedBlockValid = chunkManager->getTargetedBlock(renderer->getLookedAtBlocks(), targetedBlockPos);
-        if (isTargetedBlockValid) {
-            renderer->addTargetedBlockOutline(targetedBlockPos);
+        targetedBlockPos = chunkManager->getTargetedBlock(renderer->getLookedAtBlocks());
+        if (targetedBlockPos) {
+            renderer->addTargetedBlockOutline(*targetedBlockPos);
         }
 
         renderer->renderOutlines();
@@ -94,8 +93,8 @@ public:
 
         keyManager.bindCallback(GLFW_KEY_Q, EActivationType::PRESS_ONCE, [&](float deltaTime) {
             (void) deltaTime;
-            if (isTargetedBlockValid) {
-                chunkManager->updateBlock(targetedBlockPos, EBlockType::BlockType_None);
+            if (targetedBlockPos) {
+                chunkManager->updateBlock(*targetedBlockPos, EBlockType::BlockType_None);
             }
         });
 

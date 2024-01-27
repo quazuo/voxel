@@ -5,10 +5,10 @@
 #include "src/render/mesh-context.h"
 #include "src/voxel/world-gen.h"
 
-void Chunk::generate(const std::shared_ptr<WorldGen>& worldGen) {
+void Chunk::generate(const std::shared_ptr<WorldGen> &worldGen) {
     worldGen->setChunkGenCtx(pos);
 
-    blocks.forEach([&](int x, int y, int z, Block& b) {
+    blocks.forEach([&](int x, int y, int z, Block &b) {
         b.blockType = worldGen->getBlockTypeAt(x, y, z);
 
         if (blocks[x][y][z].blockType != BlockType_None)
@@ -27,16 +27,18 @@ void Chunk::updateBlock(VecUtils::Vec3Discrete block, EBlockType type) {
 }
 
 void Chunk::updateBlock(int x, int y, int z, EBlockType type) {
+    if (!blocks[x][y][z].isNone() && type == BlockType_None) {
+        activeBlockCount--;
+    } else if (blocks[x][y][z].isNone() && type != BlockType_None) {
+        activeBlockCount++;
+    }
+
     blocks[x][y][z].blockType = type;
     _isDirty = true;
 }
 
 bool Chunk::shouldRender() const {
-    if (activeBlockCount == 0)
-        return false;
-    if (!_isLoaded)
-        return false;
-    return true;
+    return activeBlockCount != 0 && _isLoaded;
 }
 
 void Chunk::render(const std::shared_ptr<OpenGLRenderer> &renderer) {
@@ -61,7 +63,7 @@ void Chunk::createMesh() {
     meshContext->clear();
     meshContext->modelTranslate = pos * CHUNK_SIZE;
 
-    blocks.forEach([&](int x, int y, int z, Block& b) {
+    blocks.forEach([&](int x, int y, int z, Block &b) {
         if (b.isNone()) return;
         createCube(x, y, z);
     });
@@ -81,7 +83,7 @@ void Chunk::createCube(const int x, const int y, const int z) {
     constexpr size_t N_POINTS = 8;
     std::array<glm::vec3, N_POINTS> points = {};
     for (size_t i = 0; i < N_POINTS; i++) {
-        points[i] = cubePos + vertexOffsets[i];
+        points[i] = cubePos + Block::vertexOffsets[i];
     }
 
     EBlockType blockType = blocks[x][y][z].blockType;
@@ -121,13 +123,13 @@ void Chunk::createFace(const glm::vec3 cubePos, const EBlockFace face, const EBl
         {Bottom, {0.0,  -1.0, 0.0}}
     };
 
-    const auto corners = getFaceCorners(face);
+    const auto corners = Block::getFaceCorners(face);
     const glm::vec3 minPos = cubePos + corners.first;
     const glm::vec3 maxPos = cubePos + corners.second;
 
-    PackedVertex packedMin = {minPos, {0, 1.0}, faceNormals.at(face),
-                              TextureManager::getBlockSamplerID(blockType, face)};
-    PackedVertex packedMax = {maxPos, {1.0, 0}, faceNormals.at(face),
-                              TextureManager::getBlockSamplerID(blockType, face)};
+    const PackedVertex packedMin = {minPos, {0, 1.0}, faceNormals.at(face),
+                                    TextureManager::getBlockSamplerID(blockType, face)};
+    const PackedVertex packedMax = {maxPos, {1.0, 0}, faceNormals.at(face),
+                                    TextureManager::getBlockSamplerID(blockType, face)};
     meshContext->addQuad(packedMin, packedMax);
 }

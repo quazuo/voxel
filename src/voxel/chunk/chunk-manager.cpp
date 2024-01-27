@@ -51,12 +51,12 @@ void ChunkManager::renderChunkOutlines() const {
         if (!slot.isBound())
             continue;
 
-        OpenGLRenderer::LineType gid = OpenGLRenderer::CHUNK_OUTLINE;
+        OpenGLRenderer::LineType lineType = OpenGLRenderer::CHUNK_OUTLINE;
         if (std::find(visibleChunks.begin(), visibleChunks.end(), slot.chunk) == visibleChunks.end()) {
-            gid = OpenGLRenderer::EMPTY_CHUNK_OUTLINE;
+            lineType = OpenGLRenderer::EMPTY_CHUNK_OUTLINE;
         }
 
-        renderer->addChunkOutline(slot.chunk->getPos() * Chunk::CHUNK_SIZE, gid);
+        renderer->addChunkOutline(slot.chunk->getPos() * Chunk::CHUNK_SIZE, lineType);
     }
 }
 
@@ -147,7 +147,7 @@ void ChunkManager::updateLoadList() {
 
     for (const ChunkPtr &chunk: loadableChunks) {
         if (!chunk->isLoaded()) {
-            chunk->generate(worldGen);
+            chunk->generate(worldGen); // todo - this should load from disk, not always generate.
             nChunksLoaded++;
         }
 
@@ -169,12 +169,13 @@ void ChunkManager::updateRenderList() {
             continue;
         if (!renderer->isChunkInFrustum(*slot.chunk))
             continue;
+
         visibleChunks.push_back(slot.chunk);
     }
 }
 
-bool
-ChunkManager::getTargetedBlock(const std::vector<VecUtils::Vec3Discrete> &lookedAtBlocks, glm::vec3 &outBlock) const {
+std::optional<glm::vec3>
+ChunkManager::getTargetedBlock(const std::vector<VecUtils::Vec3Discrete> &lookedAtBlocks) const {
     for (auto &block: lookedAtBlocks) {
         const ChunkPtr chunk = getOwningChunk(block);
         if (!chunk)
@@ -184,12 +185,11 @@ ChunkManager::getTargetedBlock(const std::vector<VecUtils::Vec3Discrete> &looked
         const EBlockType blockType = chunk->getBlock(relativeBlockPos);
 
         if (blockType != BlockType_None) {
-            outBlock = block;
-            return true;
+            return block;
         }
     }
 
-    return false;
+    return {};
 }
 
 void ChunkManager::updateBlock(VecUtils::Vec3Discrete block, EBlockType type) const {

@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <stdexcept>
+#include <array>
 #include "glm/vec3.hpp"
 
 enum EBlockFace : std::uint8_t {
@@ -65,12 +66,6 @@ enum EBlockType : std::uint8_t {
 
 class Block {
 public:
-    Block() = default;
-
-    explicit Block(EBlockType type) : blockType(type) {}
-
-    EBlockType blockType = EBlockType::BlockType_Grass;
-
     /**
      * a single block's width.
      * this is NOT intended be changed, this it can (and will) break if changed to any other value than `1.0f`.
@@ -78,9 +73,68 @@ public:
      */
     static constexpr float RENDER_SIZE = 1.0f;
 
+    EBlockType blockType = EBlockType::BlockType_Grass;
+
+    /*
+        the below offsets signify a standardized specific ordering of vertices of a cube,
+        used primarily in the mesh constructing algorithm and the face merging algorithm.
+
+        the vertices are numbered as follows:
+           6--------7
+          /|       /|
+         / |      / |
+        3--------2  |
+        |  |     |  |
+        |  5-----|--4
+        | /      | /
+        |/       |/
+        0--------1
+        where the front face is the 0-1-2-3 one.
+    */
+    static constexpr std::array<glm::vec3, 8> vertexOffsets = {
+        {
+            Block::RENDER_SIZE * glm::vec3(-0.5, -0.5, 0.5),  // 0
+            Block::RENDER_SIZE * glm::vec3(0.5, -0.5, 0.5),   // 1
+            Block::RENDER_SIZE * glm::vec3(0.5, 0.5, 0.5),    // 2
+            Block::RENDER_SIZE * glm::vec3(-0.5, 0.5, 0.5),   // 3
+            Block::RENDER_SIZE * glm::vec3(0.5, -0.5, -0.5),  // 4
+            Block::RENDER_SIZE * glm::vec3(-0.5, -0.5, -0.5), // 5
+            Block::RENDER_SIZE * glm::vec3(-0.5, 0.5, -0.5),  // 6
+            Block::RENDER_SIZE * glm::vec3(0.5, 0.5, -0.5)    // 7
+        }
+    };
+
+public:
+    Block() = default;
+
+    explicit Block(EBlockType type) : blockType(type) {}
+
     [[nodiscard]]
-    bool isNone() const {
-        return blockType == EBlockType::BlockType_None;
+    bool isNone() const { return blockType == EBlockType::BlockType_None; }
+
+    /**
+     * @param face A cube face.
+     * @return The bottom-left and top-right corners of a given face.
+     * This does not return vertices with lowest and highest coordinates respectively,
+     * but it considers them "as the face is looked at by an observer" if that makes sense.
+     */
+    static std::pair<glm::vec3, glm::vec3> getFaceCorners(EBlockFace face) {
+        switch (face) {
+            case Front:
+                return {vertexOffsets[0], vertexOffsets[2]};
+            case Back:
+                return {vertexOffsets[4], vertexOffsets[6]};
+            case Right:
+                return {vertexOffsets[1], vertexOffsets[7]};
+            case Left:
+                return {vertexOffsets[5], vertexOffsets[3]};
+            case Top:
+                return {vertexOffsets[3], vertexOffsets[7]};
+            case Bottom:
+                return {vertexOffsets[5], vertexOffsets[1]};
+            default:
+                throw std::runtime_error("invalid face value in getFaceCorners()");
+        }
     }
 };
 
