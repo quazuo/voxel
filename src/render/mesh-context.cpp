@@ -1,7 +1,6 @@
 #include "mesh-context.h"
 
 #include <iostream>
-#include "src/utils/cube-array.h"
 
 void MeshContext::clear() {
     quads = {};
@@ -57,11 +56,11 @@ void MeshContext::makeIndexed() {
 }
 
 void MeshContext::initBuffers() {
-    vertices.init(0, 3);
-    uvs.init(1, 2);
-    normals.init(2, 3);
-    texIDs.init(3, 1);
-    indices.init();
+    vertices = std::make_unique<GLArrayBuffer<glm::vec3>>(0, 3);
+    uvs = std::make_unique<GLArrayBuffer<glm::vec2>>(1, 2);
+    normals = std::make_unique<GLArrayBuffer<glm::vec3>>(2, 3);
+    texIDs = std::make_unique<GLArrayBuffer<int>>(3, 1);
+    indices = std::make_unique<GLElementBuffer>();
 }
 
 void MeshContext::writeToBuffers() {
@@ -69,34 +68,26 @@ void MeshContext::writeToBuffers() {
         throw std::runtime_error("tried to call writeToBuffers() without prior indexing");
     }
 
-    vertices.write(indexedData.vertices);
-    uvs.write(indexedData.uvs);
-    normals.write(indexedData.normals);
-    texIDs.write(indexedData.texIDs);
-    indices.write(indexedData.indices);
-}
-
-void MeshContext::freeBuffers() {
-    vertices.free();
-    uvs.free();
-    normals.free();
-    texIDs.free();
-    indices.free();
+    vertices->write(indexedData.vertices);
+    uvs->write(indexedData.uvs);
+    normals->write(indexedData.normals);
+    texIDs->write(indexedData.texIDs);
+    indices->write(indexedData.indices);
 }
 
 void MeshContext::drawElements() {
-    vertices.enable();
-    uvs.enable();
-    normals.enable();
-    texIDs.enable();
+    vertices->enable();
+    uvs->enable();
+    normals->enable();
+    texIDs->enable();
 
-    indices.enable();
+    indices->enable();
     glDrawElements(GL_TRIANGLES, (GLsizei) indexedData.indices.size(), GL_UNSIGNED_SHORT, nullptr);
 
-    vertices.disable();
-    uvs.disable();
-    normals.disable();
-    texIDs.disable();
+    vertices->disable();
+    uvs->disable();
+    normals->disable();
+    texIDs->disable();
 }
 
 void MeshContext::triangulateQuads() {

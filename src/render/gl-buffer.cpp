@@ -3,7 +3,7 @@
 #include "glm/vec2.hpp"
 
 template<typename T>
-void GLBuffer<T>::free() {
+GLBuffer<T>::~GLBuffer<T>() {
     const GLuint buffers[1] = { bufferID };
     glDeleteBuffers(1, buffers);
 }
@@ -37,13 +37,7 @@ void GLBuffer<T>::updateBufferCapacity(GLsizeiptr dataSize) {
 }
 
 template<typename T>
-void GLArrayBuffer<T>::init(GLuint index, GLint count) {
-    if (this->isInit) return;
-
-    this->isInit = true;
-    bufferIndex = index;
-    compCount = count;
-
+GLArrayBuffer<T>::GLArrayBuffer(GLuint index, GLint count) : bufferIndex(index), compCount(count) {
     glGenBuffers(1, &this->bufferID);
     glBindBuffer(GL_ARRAY_BUFFER, this->bufferID);
     glVertexAttribPointer(bufferIndex, compCount, GL_FLOAT, GL_FALSE, 0, nullptr);
@@ -71,11 +65,7 @@ void GLArrayBuffer<T>::disable() {
     glDisableVertexAttribArray(bufferIndex);
 }
 
-void GLElementBuffer::init() {
-    if (isInit) return;
-
-    isInit = true;
-
+GLElementBuffer::GLElementBuffer() {
     glGenBuffers(1, &bufferID);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferID);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, BASE_CAPACITY * sizeof(elemType), nullptr, GL_DYNAMIC_DRAW);

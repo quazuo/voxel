@@ -56,8 +56,6 @@ public:
 
     void tick();
 
-    void terminate();
-
     void renderChunks() const;
 
     void renderChunkOutlines() const;

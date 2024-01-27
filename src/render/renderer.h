@@ -41,10 +41,10 @@ private:
     GLint lightID{};
 
     // OpenGL buffers used for text rendering
-    GLArrayBuffer<glm::vec2> textVertices, textUVs;
+    std::unique_ptr<GLArrayBuffer<glm::vec2>> textVertices, textUVs;
 
     // OpenGL buffers used for outline rendering
-    GLArrayBuffer<glm::vec3> lineVertices;
+    std::unique_ptr<GLArrayBuffer<glm::vec3>> lineVertices;
 
     std::map<LineVertexGroup, glm::vec3> vertexGroupColors = {
             { CHUNK, {1, 1, 0}},
@@ -60,9 +60,9 @@ private:
 public:
     OpenGLRenderer(int windowWidth, int windowHeight);
 
-    void tick(float deltaTime);
+    ~OpenGLRenderer();
 
-    void terminate();
+    void tick(float deltaTime);
 
     /// starts the rendering process.
     /// should be called before any rendering is done

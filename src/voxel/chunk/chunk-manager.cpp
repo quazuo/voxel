@@ -197,12 +197,6 @@ ChunkManager::getTargetedBlock(const std::vector<VecUtils::Vec3Discrete> &looked
     return false;
 }
 
-void ChunkManager::terminate() {
-    for (const auto &slot : chunkSlots) {
-        slot.mesh->freeBuffers();
-    }
-}
-
 void ChunkManager::updateBlock(VecUtils::Vec3Discrete block, EBlockType type) const {
     const ChunkPtr chunk = getOwningChunk(block);
     if (!chunk)

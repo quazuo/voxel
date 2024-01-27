@@ -13,7 +13,7 @@ class VEngine {
     std::shared_ptr<OpenGLRenderer> renderer;
     struct GLFWwindow *window = nullptr;
 
-    std::shared_ptr<ChunkManager> chunkManager;
+    std::unique_ptr<ChunkManager> chunkManager;
 
     std::shared_ptr<WorldGen> worldGen;
 
@@ -37,7 +37,7 @@ public:
         renderer = std::make_shared<OpenGLRenderer>(1024, 768);
         window = renderer->getWindow();
         worldGen = std::make_shared<DefaultWorldGen>();
-        chunkManager = std::make_shared<ChunkManager>(renderer, worldGen);
+        chunkManager = std::make_unique<ChunkManager>(renderer, worldGen);
         bindKeyActions();
     }
 
@@ -45,11 +45,6 @@ public:
         while (doTick && !glfwWindowShouldClose(window)) {
             tick();
         }
-    }
-
-    void terminate() {
-        renderer->terminate();
-        chunkManager->terminate();
     }
 
     void tick() {
@@ -125,7 +120,5 @@ int main() {
     VEngine engine;
     engine.init();
     engine.startTicking();
-    engine.terminate();
-
     return 0;
 }

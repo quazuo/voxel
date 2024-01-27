@@ -81,14 +81,18 @@ OpenGLRenderer::OpenGLRenderer(int windowWidth, int windowHeight) : windowSize(w
     lightID = glGetUniformLocation(cubeShaderID, "LightPosition_worldspace");
 
     // generate buffer for line vertices and allocate it beforehand
-    lineVertices.init(3, 3);
+    lineVertices = std::make_unique<GLArrayBuffer<glm::vec3>>(3, 3);
 
     // generate buffers for hud text
-    textVertices.init(0, 2);
-    textUVs.init(1, 2);
+    textVertices = std::make_unique<GLArrayBuffer<glm::vec2>>(0, 2);
+    textUVs = std::make_unique<GLArrayBuffer<glm::vec2>>(1, 2);
 
     // init peripheral structures
     camera = std::make_shared<Camera>(window);
+}
+
+OpenGLRenderer::~OpenGLRenderer() {
+    glfwTerminate();
 }
 
 void OpenGLRenderer::tick(float deltaTime) {
@@ -248,7 +252,7 @@ void OpenGLRenderer::renderOutlines() {
     glUseProgram(lineShaderID);
 
     for (const auto &[gid, vertices] : tempLineVertexGroups) {
-        lineVertices.write(vertices);
+        lineVertices->write(vertices);
 
         GLint mvpID = glGetUniformLocation(lineShaderID, "MVP");
         glUniformMatrix4fv(mvpID, 1, GL_FALSE, &mvpMatrix[0][0]);
@@ -257,9 +261,9 @@ void OpenGLRenderer::renderOutlines() {
         const glm::vec3 color = vertexGroupColors.at(gid);
         glUniform3f(colorID, color.r, color.g, color.b);
 
-        lineVertices.enable();
+        lineVertices->enable();
         glDrawArrays(GL_LINES, 0, (GLsizei) vertices.size());
-        lineVertices.disable();
+        lineVertices->disable();
     }
 
     glUseProgram(cubeShaderID);
@@ -359,11 +363,11 @@ void OpenGLRenderer::renderText(const std::string &text, float x, float y, size_
     glUseProgram(textShaderID);
     textureManager->bindFontTexture(textShaderID);
 
-    textVertices.write(vertices);
-    textUVs.write(uvs);
+    textVertices->write(vertices);
+    textUVs->write(uvs);
 
-    textVertices.enable();
-    textUVs.enable();
+    textVertices->enable();
+    textUVs->enable();
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -397,7 +401,7 @@ void OpenGLRenderer::renderHud() {
     glClear(GL_DEPTH_BUFFER_BIT);
     glUseProgram(lineShaderID);
 
-    lineVertices.write(vertices);
+    lineVertices->write(vertices);
 
     glm::mat4 mvpMatrix = glm::mat4(1.0f);
     GLint mvpID = glGetUniformLocation(lineShaderID, "MVP");
@@ -407,9 +411,9 @@ void OpenGLRenderer::renderHud() {
     const glm::vec3 color = {1, 1, 1};
     glUniform3f(colorID, color.r, color.g, color.b);
 
-    lineVertices.enable();
+    lineVertices->enable();
     glDrawArrays(GL_LINES, 0, (GLsizei) vertices.size());
-    lineVertices.disable();
+    lineVertices->disable();
 
     glUseProgram(cubeShaderID);
 }
@@ -512,8 +516,4 @@ void OpenGLRenderer::debugCallback(GLenum source, GLenum type, GLuint id, GLenum
     } else {
         throw std::runtime_error(ss.str());
     }
-}
-
-void OpenGLRenderer::terminate() {
-    glfwTerminate();
 }

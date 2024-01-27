@@ -46,10 +46,10 @@ class MeshContext {
 
     bool isIndexed = false;
 
-    GLArrayBuffer<glm::vec3> vertices, normals;
-    GLArrayBuffer<glm::vec2> uvs;
-    GLArrayBuffer<int> texIDs;
-    GLElementBuffer indices;
+    std::unique_ptr<GLArrayBuffer<glm::vec3>> vertices, normals;
+    std::unique_ptr<GLArrayBuffer<glm::vec2>> uvs;
+    std::unique_ptr<GLArrayBuffer<int>> texIDs;
+    std::unique_ptr<GLElementBuffer> indices;
 
 public:
     glm::vec3 modelTranslate;
@@ -71,8 +71,6 @@ public:
     void initBuffers();
 
     void writeToBuffers();
-
-    void freeBuffers();
 
     void drawElements();
 
