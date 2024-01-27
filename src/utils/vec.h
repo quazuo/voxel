@@ -6,6 +6,9 @@
 #include "glm/vec3.hpp"
 #include "glm/geometric.hpp"
 
+/**
+ * Collection of various utils for handling GLM vectors.
+ */
 namespace VecUtils {
     using Vec3Discrete = glm::vec<3, int>;
 
@@ -14,8 +17,8 @@ namespace VecUtils {
     std::string toString(glm::vec3 vec);
 
     using VecPredicate = std::function<bool(float)>;
-    bool testAnd(glm::vec3 vec, const VecPredicate& pred);
-    bool testOr(glm::vec3 vec, const VecPredicate& pred);
+    bool all(glm::vec3 vec, const VecPredicate& pred);
+    bool any(glm::vec3 vec, const VecPredicate& pred);
 
     using VecFunctor = std::function<float(float)>;
     glm::vec3 map(glm::vec3 vec, const VecFunctor& f);

@@ -5,6 +5,12 @@
 #include <array>
 #include <functional>
 
+/**
+ * Helper structure wrapping a nested 3-dimensional array of equal sizes.
+ *
+ * @tparam T Element type.
+ * @tparam S Size of the arrays.
+ */
 template<typename T, size_t S>
 struct CubeArray {
     std::array<std::array<std::array<T, S>, S>, S> arr;

@@ -11,11 +11,11 @@ std::string VecUtils::toString(glm::vec3 vec) {
     return ss.str();
 }
 
-bool VecUtils::testAnd(glm::vec3 vec, const VecPredicate& pred) {
+bool VecUtils::all(glm::vec3 vec, const VecPredicate& pred) {
     return pred(vec.x) && pred(vec.y) && pred(vec.z);
 }
 
-bool VecUtils::testOr(glm::vec3 vec, const VecPredicate& pred) {
+bool VecUtils::any(glm::vec3 vec, const VecPredicate& pred) {
     return pred(vec.x) || pred(vec.y) || pred(vec.z);
 }
 

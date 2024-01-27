@@ -4,6 +4,9 @@
 #include <cstddef>
 #include <array>
 
+/**
+ * Collection of various constexpr utils, currently only for handling array size-related stuff.
+ */
 namespace SizeUtils {
     constexpr size_t pow(const size_t x, const size_t p)
     {

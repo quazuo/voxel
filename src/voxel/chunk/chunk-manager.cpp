@@ -86,7 +86,7 @@ void ChunkManager::unloadFarChunks(VecUtils::Vec3Discrete currChunkPos) {
             continue;
 
         glm::vec3 chunkPosDist = VecUtils::abs(slot.chunk->getPos() - currChunkPos);
-        bool isOutsideRenderDistance = VecUtils::testOr(
+        bool isOutsideRenderDistance = VecUtils::any(
             chunkPosDist,
             [](float x) { return x > RENDER_DISTANCE + GRACE_PERIOD_WIDTH; }
         );
