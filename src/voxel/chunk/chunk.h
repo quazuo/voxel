@@ -3,6 +3,7 @@
 
 #include <array>
 #include <memory>
+#include <utility>
 #include "src/voxel/block.h"
 #include "glm/vec3.hpp"
 #include "glm/vec2.hpp"
@@ -12,11 +13,19 @@
 
 class Chunk {
 public:
-    Chunk() = default;
-
-    explicit Chunk(glm::vec3 p) : pos(p) {}
-
     static constexpr int CHUNK_SIZE = 16;
+
+private:
+    VecUtils::Vec3Discrete pos{};
+
+    std::shared_ptr<class ChunkMeshContext> meshContext;
+    bool isMesh = false;
+
+    bool _isLoaded = false;
+    bool _isDirty = true;
+
+    CubeArray<Block, CHUNK_SIZE> blocks;
+    size_t activeBlockCount = 0;
 
     /*
     the below offsets signify a standardized specific ordering of vertices of a cube,
@@ -47,6 +56,11 @@ public:
         }
     };
 
+public:
+    Chunk() = default;
+
+    explicit Chunk(glm::vec3 p) : pos(p) {}
+
     static std::pair<glm::vec3, glm::vec3> getFaceCorners(EBlockFace face) {
         switch (face) {
             case Front:
@@ -71,7 +85,7 @@ public:
 
     void unload();
 
-    void bindMeshContext(std::shared_ptr<class MeshContext> ctx) { meshContext = ctx; }
+    void bindMeshContext(std::shared_ptr<class ChunkMeshContext> ctx) { meshContext = std::move(ctx); }
 
     [[nodiscard]]
     VecUtils::Vec3Discrete getPos() const { return pos; }
@@ -97,17 +111,6 @@ public:
     void markDirty() { _isDirty = true; }
 
 private:
-    VecUtils::Vec3Discrete pos{};
-
-    std::shared_ptr<class MeshContext> meshContext;
-    bool isMesh = false;
-
-    bool _isLoaded = false;
-    bool _isDirty = true;
-
-    CubeArray<Block, CHUNK_SIZE> blocks;
-    size_t activeBlockCount = 0;
-
     void createMesh();
 
     void createCube(int x, int y, int z);

@@ -9,6 +9,7 @@
 #include "src/utils/vec.h"
 #include "src/utils/key-manager.h"
 #include <vector>
+#include <memory>
 
 /**
  * this represents a plane, represented by its normal vector and distance to the origin (0, 0, 0).
@@ -123,6 +124,8 @@ private:
      * Binds keys (currently restricted to WSAD, Space & LShift) used to move the camera.
      */
     void bindMovementKeys();
+
+    void tickMouseMovement(float deltaTime);
 
     /**
      * Updates the `front`, `right` and `up` vectors, which are used to help determine

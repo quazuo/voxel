@@ -1,5 +1,4 @@
 #include "renderer.h"
-#include "src/utils/vec.h"
 #include "mesh-context.h"
 
 #include <stdexcept>
@@ -12,7 +11,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-OpenGLRenderer::OpenGLRenderer(int windowWidth, int windowHeight) : windowSize(windowWidth, windowHeight) {
+OpenGLRenderer::OpenGLRenderer(int windowWidth, int windowHeight) {
     glfwWindowHint(GLFW_SAMPLES, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -80,7 +79,7 @@ OpenGLRenderer::OpenGLRenderer(int windowWidth, int windowHeight) : windowSize(w
     // Get a handle for our "LightPosition" uniform
     lightID = glGetUniformLocation(cubeShaderID, "LightPosition_worldspace");
 
-    // generate buffer for line vertices and allocate it beforehand
+    // generate a buffer for line vertices and allocate it beforehand
     lineVertices = std::make_unique<GLArrayBuffer<glm::vec3>>(3, 3);
 
     // generate buffers for hud text
@@ -88,7 +87,7 @@ OpenGLRenderer::OpenGLRenderer(int windowWidth, int windowHeight) : windowSize(w
     textUVs = std::make_unique<GLArrayBuffer<glm::vec2>>(1, 2);
 
     // init peripheral structures
-    camera = std::make_shared<Camera>(window);
+    camera = std::make_unique<Camera>(window);
 }
 
 OpenGLRenderer::~OpenGLRenderer() {
@@ -97,20 +96,6 @@ OpenGLRenderer::~OpenGLRenderer() {
 
 void OpenGLRenderer::tick(float deltaTime) {
     camera->tick(deltaTime);
-    tickMouseMovement(deltaTime);
-}
-
-void OpenGLRenderer::tickMouseMovement(const float deltaTime) {
-    double xpos, ypos;
-    glfwGetCursorPos(window, &xpos, &ypos);
-
-    const float mouseSpeed = 0.004f;
-    camera->updateRotation(
-        mouseSpeed * (windowSize.x / 2 - (float) xpos),
-        mouseSpeed * (windowSize.y / 2 - (float) ypos)
-    );
-
-    glfwSetCursorPos(window, (double) windowSize.x / 2, (double) windowSize.y / 2);
 }
 
 GLuint OpenGLRenderer::loadShaders(const std::filesystem::path &vertexShaderPath,
@@ -224,7 +209,7 @@ void OpenGLRenderer::startRendering() {
     }
 }
 
-void OpenGLRenderer::renderChunk(const std::shared_ptr<MeshContext> &ctx) {
+void OpenGLRenderer::renderChunk(const std::shared_ptr<ChunkMeshContext> &ctx) {
     glUseProgram(cubeShaderID);
     textureManager->bindBlockTextures(cubeShaderID);
 
@@ -269,7 +254,7 @@ void OpenGLRenderer::renderOutlines() {
     glUseProgram(cubeShaderID);
 }
 
-void OpenGLRenderer::addCubeOutline(const glm::vec3 minVec, const float sideLength, const LineVertexGroup gid) {
+void OpenGLRenderer::addCubeOutline(const glm::vec3 minVec, const float sideLength, const LineType gid) {
     std::vector<glm::vec3>& vertexGroup = tempLineVertexGroups[gid];
 
     // add x-aligned lines
@@ -309,7 +294,7 @@ void OpenGLRenderer::addCubeOutline(const glm::vec3 minVec, const float sideLeng
     }
 }
 
-void OpenGLRenderer::addChunkOutline(const glm::vec3 chunkPos, const LineVertexGroup gid) {
+void OpenGLRenderer::addChunkOutline(const glm::vec3 chunkPos, const LineType gid) {
     const glm::vec3 chunkMinVec =
         chunkPos - glm::vec3(Block::RENDER_SIZE, Block::RENDER_SIZE, Block::RENDER_SIZE) * 0.5f;
     addCubeOutline(chunkMinVec, Chunk::CHUNK_SIZE * Block::RENDER_SIZE, gid);
@@ -317,7 +302,7 @@ void OpenGLRenderer::addChunkOutline(const glm::vec3 chunkPos, const LineVertexG
 
 void OpenGLRenderer::addTargetedBlockOutline(const glm::vec3 blockPos) {
     const glm::vec3 minVec = blockPos - glm::vec3(Block::RENDER_SIZE, Block::RENDER_SIZE, Block::RENDER_SIZE) * 0.5f;
-    addCubeOutline(minVec, Block::RENDER_SIZE, LineVertexGroup::SELECTED_BLOCK);
+    addCubeOutline(minVec, Block::RENDER_SIZE, LineType::SELECTED_BLOCK_OUTLINE);
 }
 
 void OpenGLRenderer::renderText(const std::string &text, float x, float y, size_t fontSize) {
@@ -395,8 +380,11 @@ void OpenGLRenderer::renderHud() {
     vertices.push_back(left);
     vertices.push_back(right);
 
-    vertices.push_back(top * windowSize.x / windowSize.y);
-    vertices.push_back(bottom * windowSize.x / windowSize.y);
+    glm::vec<2, int> windowSize{};
+    glfwGetWindowSize(window, &windowSize.x, &windowSize.y);
+
+    vertices.push_back(top * (float) windowSize.x / (float) windowSize.y);
+    vertices.push_back(bottom * (float) windowSize.x / (float) windowSize.y);
 
     glClear(GL_DEPTH_BUFFER_BIT);
     glUseProgram(lineShaderID);

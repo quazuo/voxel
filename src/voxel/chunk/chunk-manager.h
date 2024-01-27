@@ -26,16 +26,10 @@ class ChunkManager {
 
     struct ChunkSlot {
         std::shared_ptr<Chunk> chunk;
-        std::shared_ptr<MeshContext> mesh = std::make_shared<MeshContext>();
-
-    private:
-        bool _isBound = false;
-
-    public:
-        ChunkSlot();
+        std::shared_ptr<ChunkMeshContext> mesh = std::make_shared<ChunkMeshContext>();
 
         [[nodiscard]]
-        bool isBound() const { return _isBound; }
+        bool isBound() const { return chunk != nullptr; }
 
         void bind(std::shared_ptr<Chunk> c);
 

@@ -1,29 +1,24 @@
 #include <iostream>
+#include <utility>
 #include "chunk-manager.h"
 
 #include "src/render/renderer.h"
 
-ChunkManager::ChunkSlot::ChunkSlot() {
-    mesh->initBuffers();
-}
-
 void ChunkManager::ChunkSlot::bind(std::shared_ptr<Chunk> c) {
-    if (_isBound)
+    if (isBound())
         throw std::runtime_error("tried to call bind() while already bound");
 
-    chunk = c;
+    chunk = std::move(c);
     chunk->bindMeshContext(mesh);
-    _isBound = true;
 }
 
 void ChunkManager::ChunkSlot::unbind() {
-    if (!_isBound)
+    if (!isBound())
         throw std::runtime_error("tried to call unbind() while not bound");
 
     if (chunk->isLoaded())
         chunk->unload();
-    chunk.reset();
-    _isBound = false;
+    chunk = nullptr;
 }
 
 ChunkManager::ChunkManager(std::shared_ptr<OpenGLRenderer> r, std::shared_ptr<WorldGen> wg)
@@ -56,9 +51,9 @@ void ChunkManager::renderChunkOutlines() const {
         if (!slot.isBound())
             continue;
 
-        OpenGLRenderer::LineVertexGroup gid = OpenGLRenderer::CHUNK;
+        OpenGLRenderer::LineType gid = OpenGLRenderer::CHUNK_OUTLINE;
         if (std::find(visibleChunks.begin(), visibleChunks.end(), slot.chunk) == visibleChunks.end()) {
-            gid = OpenGLRenderer::CHUNK_EMPTY;
+            gid = OpenGLRenderer::EMPTY_CHUNK_OUTLINE;
         }
 
         renderer->addChunkOutline(slot.chunk->getPos() * Chunk::CHUNK_SIZE, gid);

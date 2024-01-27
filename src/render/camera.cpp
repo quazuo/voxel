@@ -40,6 +40,7 @@ Camera::Camera(struct GLFWwindow *w) : window(w) {
 
 void Camera::tick(float deltaTime) {
     keyManager.tick(deltaTime);
+    tickMouseMovement(deltaTime);
     updateVecs();
     updateFrustum();
 }
@@ -111,6 +112,25 @@ void Camera::bindMovementKeys() {
     keyManager.bindCallback(GLFW_KEY_LEFT_SHIFT, EActivationType::PRESS_ANY, [&](float deltaTime) {
         pos -= glm::vec3(0, 1, 0) * deltaTime * movementSpeed; // Fly downwards
     });
+}
+
+void Camera::tickMouseMovement(const float deltaTime) {
+    glm::vec<2, double> cursorPos{};
+    glfwGetCursorPos(window, &cursorPos.x, &cursorPos.y);
+
+    glm::vec<2, int> windowSize{};
+    glfwGetWindowSize(window, &windowSize.x, &windowSize.y);
+
+    const float mouseSpeed = 0.004f;
+    updateRotation(
+        mouseSpeed * ((float) windowSize.x / 2 - (float) cursorPos.x),
+        mouseSpeed * ((float) windowSize.y / 2 - (float) cursorPos.y)
+    );
+    glfwSetCursorPos(
+        window,
+        (double) windowSize.x / 2,
+        (double) windowSize.y / 2
+    );
 }
 
 void Camera::updateFrustum() {

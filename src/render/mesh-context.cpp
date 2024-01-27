@@ -2,27 +2,34 @@
 
 #include <iostream>
 
-void MeshContext::clear() {
+ChunkMeshContext::ChunkMeshContext() :
+    vertices(std::make_unique<GLArrayBuffer<glm::vec3>>(0, 3)),
+    uvs(std::make_unique<GLArrayBuffer<glm::vec2>>(1, 2)),
+    normals(std::make_unique<GLArrayBuffer<glm::vec3>>(2, 3)),
+    texIDs(std::make_unique<GLArrayBuffer<int>>(3, 1)),
+    indices(std::make_unique<GLElementBuffer>()) {}
+
+void ChunkMeshContext::clear() {
     quads = {};
     triangles = {};
     indexedData = {};
-    isIndexed = false;
 }
 
-void MeshContext::addQuad(PackedVertex &min, PackedVertex &max) {
+void ChunkMeshContext::addQuad(PackedVertex &min, PackedVertex &max) {
     quads.emplace_back(min, max);
 }
 
-void MeshContext::addTriangle(PackedVertex &vertex1, PackedVertex &vertex2, PackedVertex &vertex3) {
+void ChunkMeshContext::addTriangle(PackedVertex &vertex1, PackedVertex &vertex2, PackedVertex &vertex3) {
     triangles.emplace_back(vertex1, vertex2, vertex3);
 }
 
-void MeshContext::indexVertex(const PackedVertex &vertex, IndexedMeshData &data,
-                              std::map<PackedVertex, unsigned short> &vertexToOutIndex) {
+void ChunkMeshContext::indexVertex(const PackedVertex &vertex, IndexedMeshData &data,
+                                   std::map<PackedVertex, unsigned short> &vertexToOutIndex) {
     int index = -1;
     auto it = vertexToOutIndex.find(vertex);
-    if (it != vertexToOutIndex.end())
+    if (it != vertexToOutIndex.end()) {
         index = it->second;
+    }
 
     bool found = index != -1;
 
@@ -40,49 +47,40 @@ void MeshContext::indexVertex(const PackedVertex &vertex, IndexedMeshData &data,
     }
 }
 
-void MeshContext::makeIndexed() {
-    if (isIndexed)
+void ChunkMeshContext::makeIndexed() {
+    if (indexedData)
         return;
 
+    indexedData = IndexedMeshData();
     std::map<PackedVertex, unsigned short> vertexToOutIndex;
 
     for (const auto &[v1, v2, v3]: triangles) {
-        indexVertex(v1, indexedData, vertexToOutIndex);
-        indexVertex(v2, indexedData, vertexToOutIndex);
-        indexVertex(v3, indexedData, vertexToOutIndex);
+        indexVertex(v1, *indexedData, vertexToOutIndex);
+        indexVertex(v2, *indexedData, vertexToOutIndex);
+        indexVertex(v3, *indexedData, vertexToOutIndex);
     }
-
-    isIndexed = true;
 }
 
-void MeshContext::initBuffers() {
-    vertices = std::make_unique<GLArrayBuffer<glm::vec3>>(0, 3);
-    uvs = std::make_unique<GLArrayBuffer<glm::vec2>>(1, 2);
-    normals = std::make_unique<GLArrayBuffer<glm::vec3>>(2, 3);
-    texIDs = std::make_unique<GLArrayBuffer<int>>(3, 1);
-    indices = std::make_unique<GLElementBuffer>();
-}
-
-void MeshContext::writeToBuffers() {
-    if (!isIndexed) {
+void ChunkMeshContext::writeToBuffers() {
+    if (!indexedData) {
         throw std::runtime_error("tried to call writeToBuffers() without prior indexing");
     }
 
-    vertices->write(indexedData.vertices);
-    uvs->write(indexedData.uvs);
-    normals->write(indexedData.normals);
-    texIDs->write(indexedData.texIDs);
-    indices->write(indexedData.indices);
+    vertices->write(indexedData->vertices);
+    uvs->write(indexedData->uvs);
+    normals->write(indexedData->normals);
+    texIDs->write(indexedData->texIDs);
+    indices->write(indexedData->indices);
 }
 
-void MeshContext::drawElements() {
+void ChunkMeshContext::drawElements() {
     vertices->enable();
     uvs->enable();
     normals->enable();
     texIDs->enable();
 
     indices->enable();
-    glDrawElements(GL_TRIANGLES, (GLsizei) indexedData.indices.size(), GL_UNSIGNED_SHORT, nullptr);
+    glDrawElements(GL_TRIANGLES, (GLsizei) indexedData->indices.size(), GL_UNSIGNED_SHORT, nullptr);
 
     vertices->disable();
     uvs->disable();
@@ -90,7 +88,7 @@ void MeshContext::drawElements() {
     texIDs->disable();
 }
 
-void MeshContext::triangulateQuads() {
+void ChunkMeshContext::triangulateQuads() {
     for (auto &[v1, v2]: quads) {
         PackedVertex v3 = {
             .position = {},
@@ -127,9 +125,9 @@ void MeshContext::triangulateQuads() {
     }
 }
 
-void MeshContext::mergeQuads() {
+void ChunkMeshContext::mergeQuads() {
     // front[x][y][z] == -1 iff there's no quad facing the {0, 0, 1} normal at these coords,
-    // a non-zero value is the ID of the texture used by the quad. other on work analogically.
+    // a non-zero value is the ID of the texture used by the quad. other ones work analogically.
     CubeArray<short, Chunk::CHUNK_SIZE> front{-1}, back{-1}, right{-1}, left{-1}, top{-1}, bottom{-1};
 
     for (auto &[v1, v2]: quads) {
@@ -178,8 +176,8 @@ void MeshContext::mergeQuads() {
     quads.insert(quads.end(), newBottomQuads.begin(), newBottomQuads.end());
 }
 
-std::vector<MeshContext::Quad>
-MeshContext::mergeQuadMap(CubeArray<short, Chunk::CHUNK_SIZE> &quadMap, glm::vec3 normal) {
+std::vector<ChunkMeshContext::Quad>
+ChunkMeshContext::mergeQuadMap(CubeArray<short, Chunk::CHUNK_SIZE> &quadMap, glm::vec3 normal) {
     std::vector<Quad> newQuads;
 
     const auto merge = [&](size_t x, size_t y, size_t z) {
