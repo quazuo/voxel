@@ -1,6 +1,8 @@
 #include <utility>
 #include "chunk-manager.h"
 
+#include <iostream>
+
 #include "src/render/renderer.h"
 
 void ChunkManager::ChunkSlot::bind(std::shared_ptr<Chunk> c) {
@@ -106,8 +108,7 @@ void ChunkManager::loadNearChunks(const VecUtils::Vec3Discrete &currChunkPos) {
 
     // check which positions, relative to ours, are occupied by loaded chunks
     for (auto &slot: chunkSlots) {
-        if (!slot.isBound())
-            continue;
+        if (!slot.isBound()) continue;
 
         const VecUtils::Vec3Discrete relPos = slot.chunk->getPos() - currChunkPos;
 
@@ -124,23 +125,36 @@ void ChunkManager::loadNearChunks(const VecUtils::Vec3Discrete &currChunkPos) {
     }
 
     // use the previously gathered information to load missing chunks to free slots
-    auto slotIt = chunkSlots.begin();
+    std::vector<ChunkPtr> chunksToLoad;
 
     loadedChunksMap.forEach([&](const size_t x, const size_t y, const size_t z, const bool &isLoaded) {
         if (isLoaded) return;
 
-        // chunk at `newChunkPos` is unloaded but should be -- load it
+        // chunk at `newChunkPos` is unloaded but should be -- we'll load it
         const glm::vec3 newChunkPos = currChunkPos + VecUtils::Vec3Discrete(x, y, z) - RENDER_DISTANCE;
         const auto newChunk = std::make_shared<Chunk>(newChunkPos);
-        loadableChunks.push_back(newChunk);
+        chunksToLoad.push_back(newChunk);
+    });
+
+    // sort the chunks we will load so that the chunks closest to the camera get loaded first
+    const glm::vec3 cameraPos = renderer->getCameraPos();
+    std::ranges::sort(chunksToLoad, [&](const ChunkPtr& a, const ChunkPtr& b) {
+        const auto aDist = glm::length(cameraPos - static_cast<glm::vec3>(a->getPos() * Chunk::CHUNK_SIZE));
+        const auto bDist = glm::length(cameraPos - static_cast<glm::vec3>(b->getPos() * Chunk::CHUNK_SIZE));
+        return aDist < bDist;
+    });
+
+    auto slotIt = chunkSlots.begin();
+    for (const auto &chunk: chunksToLoad) {
+        loadableChunks.push_back(chunk);
 
         // find a free slot and bind it with the new chunk
         while (slotIt->isBound()) {
             slotIt++;
         }
 
-        slotIt->bind(newChunk);
-    });
+        slotIt->bind(chunk);
+    }
 }
 
 
@@ -153,8 +167,9 @@ void ChunkManager::updateLoadList() {
             nChunksLoaded++;
         }
 
-        if (nChunksLoaded == MAX_CHUNKS_SERVE_PER_PRAME)
+        if (nChunksLoaded == MAX_CHUNKS_SERVE_PER_PRAME) {
             break;
+        }
     }
 
     erase_if(loadableChunks, [](const ChunkPtr &chunk) { return chunk->isLoaded(); });
