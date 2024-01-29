@@ -11,7 +11,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-OpenGLRenderer::OpenGLRenderer(int windowWidth, int windowHeight) {
+OpenGLRenderer::OpenGLRenderer(const int windowWidth, const int windowHeight) {
     glfwWindowHint(GLFW_SAMPLES, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -22,7 +22,7 @@ OpenGLRenderer::OpenGLRenderer(int windowWidth, int windowHeight) {
     window = glfwCreateWindow(windowWidth, windowHeight, "0x22's Voxel Engine", nullptr, nullptr);
     if (!window) {
         const char *desc;
-        int code = glfwGetError(&desc);
+        const int code = glfwGetError(&desc);
         glfwTerminate();
         throw std::runtime_error("Failed to open GLFW window. Error: " + std::to_string(code) + " " + desc);
     }
@@ -41,7 +41,7 @@ OpenGLRenderer::OpenGLRenderer(int windowWidth, int windowHeight) {
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
     // Hide the mouse and enable unlimited movement
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    glfwSetCursorPos(window, (double) windowWidth / 2, (double) windowHeight / 2);
+    glfwSetCursorPos(window, static_cast<double>(windowWidth) / 2, static_cast<double>(windowHeight) / 2);
 
     glfwPollEvents();
 
@@ -57,7 +57,10 @@ OpenGLRenderer::OpenGLRenderer(int windowWidth, int windowHeight) {
     glEnable(GL_CULL_FACE);
 
     glEnable(GL_DEBUG_OUTPUT);
-    glDebugMessageCallback((GLDEBUGPROC)&debugCallback, nullptr);
+    glDebugMessageCallback(reinterpret_cast<GLDEBUGPROC>(&debugCallback), nullptr);
+
+    glfwSetWindowRefreshCallback(window, windowRefreshCallback);
+    glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 
     glGenVertexArrays(1, &vertexArrayID);
     glBindVertexArray(vertexArrayID);
@@ -80,11 +83,11 @@ OpenGLRenderer::OpenGLRenderer(int windowWidth, int windowHeight) {
     lightID = glGetUniformLocation(cubeShaderID, "LightPosition_worldspace");
 
     // generate a buffer for line vertices and allocate it beforehand
-    lineVertices = std::make_unique<GLArrayBuffer<glm::vec3>>(3, 3);
+    lineVertices = std::make_unique<GLArrayBuffer<glm::vec3> >(3, 3);
 
     // generate buffers for hud text
-    textVertices = std::make_unique<GLArrayBuffer<glm::vec2>>(0, 2);
-    textUVs = std::make_unique<GLArrayBuffer<glm::vec2>>(1, 2);
+    textVertices = std::make_unique<GLArrayBuffer<glm::vec2> >(0, 2);
+    textUVs = std::make_unique<GLArrayBuffer<glm::vec2> >(1, 2);
 
     // init peripheral structures
     camera = std::make_unique<Camera>(window);
@@ -94,7 +97,7 @@ OpenGLRenderer::~OpenGLRenderer() {
     glfwTerminate();
 }
 
-void OpenGLRenderer::tick(float deltaTime) {
+void OpenGLRenderer::tick(const float deltaTime) const {
     camera->tick(deltaTime);
 }
 
@@ -201,10 +204,10 @@ void OpenGLRenderer::startRendering() {
     viewMatrix = camera->getViewMatrix();
     projectionMatrix = camera->getProjectionMatrix();
 
-    glm::vec3 lightPos = camera->getPos();
+    const glm::vec3 lightPos = camera->getPos();
     glUniform3f(lightID, lightPos.x, lightPos.y, lightPos.z);
 
-    for (auto &[gid, vertices] : tempLineVertexGroups) {
+    for (auto &[gid, vertices]: tempLineVertexGroups) {
         vertices.clear();
     }
 }
@@ -231,37 +234,37 @@ void OpenGLRenderer::renderChunk(const std::shared_ptr<ChunkMeshContext> &ctx) {
 }
 
 void OpenGLRenderer::renderOutlines() {
-    glm::mat4 modelMatrix = glm::mat4(1.0f);
-    glm::mat4 mvpMatrix = projectionMatrix * viewMatrix * modelMatrix;
+    constexpr auto modelMatrix = glm::mat4(1.0f);
+    const glm::mat4 mvpMatrix = projectionMatrix * viewMatrix * modelMatrix;
 
     glUseProgram(lineShaderID);
 
-    for (const auto &[gid, vertices] : tempLineVertexGroups) {
+    for (const auto &[gid, vertices]: tempLineVertexGroups) {
         lineVertices->write(vertices);
 
-        GLint mvpID = glGetUniformLocation(lineShaderID, "MVP");
+        const GLint mvpID = glGetUniformLocation(lineShaderID, "MVP");
         glUniformMatrix4fv(mvpID, 1, GL_FALSE, &mvpMatrix[0][0]);
 
-        GLint colorID = glGetUniformLocation(lineShaderID, "color");
+        const GLint colorID = glGetUniformLocation(lineShaderID, "color");
         const glm::vec3 color = vertexGroupColors.at(gid);
         glUniform3f(colorID, color.r, color.g, color.b);
 
         lineVertices->enable();
-        glDrawArrays(GL_LINES, 0, (GLsizei) vertices.size());
+        glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(vertices.size()));
         lineVertices->disable();
     }
 
     glUseProgram(cubeShaderID);
 }
 
-void OpenGLRenderer::addCubeOutline(const glm::vec3 minVec, const float sideLength, const LineType gid) {
-    std::vector<glm::vec3>& vertexGroup = tempLineVertexGroups[gid];
+void OpenGLRenderer::addCubeOutline(const glm::vec3 &minVec, const float sideLength, const LineType gid) {
+    std::vector<glm::vec3> &vertexGroup = tempLineVertexGroups[gid];
 
     // add x-aligned lines
     std::vector<glm::vec3> vs = {
-        {0, 0,          0},
+        {0, 0, 0},
         {0, sideLength, 0},
-        {0, 0,          sideLength},
+        {0, 0, sideLength},
         {0, sideLength, sideLength}
     };
     for (const auto &v: vs) {
@@ -271,9 +274,9 @@ void OpenGLRenderer::addCubeOutline(const glm::vec3 minVec, const float sideLeng
 
     // add y-aligned lines
     vs = {
-        {0,          0, 0},
+        {0, 0, 0},
         {sideLength, 0, 0},
-        {0,          0, sideLength},
+        {0, 0, sideLength},
         {sideLength, 0, sideLength}
     };
     for (const auto &v: vs) {
@@ -283,9 +286,9 @@ void OpenGLRenderer::addCubeOutline(const glm::vec3 minVec, const float sideLeng
 
     // add z-aligned lines
     vs = {
-        {0,          0,          0},
-        {sideLength, 0,          0},
-        {0,          sideLength, 0},
+        {0, 0, 0},
+        {sideLength, 0, 0},
+        {0, sideLength, 0},
         {sideLength, sideLength, 0}
     };
     for (const auto &v: vs) {
@@ -294,28 +297,27 @@ void OpenGLRenderer::addCubeOutline(const glm::vec3 minVec, const float sideLeng
     }
 }
 
-void OpenGLRenderer::addChunkOutline(const glm::vec3 chunkPos, const LineType gid) {
-    const glm::vec3 chunkMinVec =
-        chunkPos - glm::vec3(Block::RENDER_SIZE, Block::RENDER_SIZE, Block::RENDER_SIZE) * 0.5f;
+void OpenGLRenderer::addChunkOutline(const glm::vec3 &chunkPos, const LineType gid) {
+    const glm::vec3 chunkMinVec = chunkPos - Block::RENDER_SIZE / 2;
     addCubeOutline(chunkMinVec, Chunk::CHUNK_SIZE * Block::RENDER_SIZE, gid);
 }
 
-void OpenGLRenderer::addTargetedBlockOutline(const glm::vec3 blockPos) {
-    const glm::vec3 minVec = blockPos - glm::vec3(Block::RENDER_SIZE, Block::RENDER_SIZE, Block::RENDER_SIZE) * 0.5f;
-    addCubeOutline(minVec, Block::RENDER_SIZE, LineType::SELECTED_BLOCK_OUTLINE);
+auto OpenGLRenderer::addTargetedBlockOutline(const glm::vec3 &blockPos) -> void {
+    const glm::vec3 minVec = blockPos - Block::RENDER_SIZE / 2;
+    addCubeOutline(minVec, Block::RENDER_SIZE, SELECTED_BLOCK_OUTLINE);
 }
 
-void OpenGLRenderer::renderText(const std::string &text, float x, float y, size_t fontSize) {
+void OpenGLRenderer::renderText(const std::string &text, const float x, const float y, const float fontSize) const {
     std::vector<glm::vec2> vertices;
     std::vector<glm::vec2> uvs;
     constexpr float widthMult = 0.7f;
     constexpr float uvOffset = 1.0f / 16 * (1.0f - widthMult) / 2;
 
     for (size_t i = 0; i < text.size(); i++) {
-        glm::vec2 vertexUpLeft = glm::vec2(x + i * fontSize * widthMult, y + (float) fontSize);
-        glm::vec2 vertexUpRight = glm::vec2(x + (i + 1) * fontSize * widthMult, y + (float) fontSize);
-        glm::vec2 vertexDownRight = glm::vec2(x + (i + 1) * fontSize * widthMult, y);
-        glm::vec2 vertexDownLeft = glm::vec2(x + i * fontSize * widthMult, y);
+        const auto vertexUpLeft = glm::vec2(x + i * fontSize * widthMult, y + fontSize);
+        const auto vertexUpRight = glm::vec2(x + (i + 1) * fontSize * widthMult, y + fontSize);
+        const auto vertexDownRight = glm::vec2(x + (i + 1) * fontSize * widthMult, y);
+        const auto vertexDownLeft = glm::vec2(x + i * fontSize * widthMult, y);
 
         vertices.push_back(vertexUpLeft);
         vertices.push_back(vertexDownLeft);
@@ -325,16 +327,16 @@ void OpenGLRenderer::renderText(const std::string &text, float x, float y, size_
         vertices.push_back(vertexUpRight);
         vertices.push_back(vertexDownLeft);
 
-        char character = text[i];
-        glm::vec2 uv = {
-            (float) (character % 16) / 16.0f,
-            (float) (character / 16) / 16.0f
+        const char character = text[i];
+        const glm::vec2 uv = {
+            static_cast<float>(character % 16) / 16,
+            static_cast<float>(character / 16) / 16
         };
 
-        glm::vec2 uvUpLeft = glm::vec2(uv.x + uvOffset, uv.y);
-        glm::vec2 uvUpRight = glm::vec2(uv.x + 1.0f / 16.0f - uvOffset, uv.y);
-        glm::vec2 uvDownRight = glm::vec2(uv.x + 1.0f / 16.0f - uvOffset, uv.y + 1.0f / 16.0f);
-        glm::vec2 uvDownLeft = glm::vec2(uv.x + uvOffset, uv.y + 1.0f / 16.0f);
+        const auto uvUpLeft = glm::vec2(uv.x + uvOffset, uv.y);
+        const auto uvUpRight = glm::vec2(uv.x + 1.0f / 16.0f - uvOffset, uv.y);
+        const auto uvDownRight = glm::vec2(uv.x + 1.0f / 16.0f - uvOffset, uv.y + 1.0f / 16.0f);
+        const auto uvDownLeft = glm::vec2(uv.x + uvOffset, uv.y + 1.0f / 16.0f);
 
         uvs.push_back(uvUpLeft);
         uvs.push_back(uvDownLeft);
@@ -358,7 +360,7 @@ void OpenGLRenderer::renderText(const std::string &text, float x, float y, size_
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glClear(GL_DEPTH_BUFFER_BIT);
 
-    glDrawArrays(GL_TRIANGLES, 0, (GLsizei) vertices.size());
+    glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(vertices.size()));
 
     glDisable(GL_BLEND);
 
@@ -368,7 +370,7 @@ void OpenGLRenderer::renderText(const std::string &text, float x, float y, size_
     glUseProgram(cubeShaderID);
 }
 
-void OpenGLRenderer::renderHud() {
+void OpenGLRenderer::renderHud() const {
     constexpr float crosshairLength = 0.02;
     std::vector<glm::vec3> vertices;
 
@@ -383,37 +385,37 @@ void OpenGLRenderer::renderHud() {
     glm::vec<2, int> windowSize{};
     glfwGetWindowSize(window, &windowSize.x, &windowSize.y);
 
-    vertices.push_back(top * (float) windowSize.x / (float) windowSize.y);
-    vertices.push_back(bottom * (float) windowSize.x / (float) windowSize.y);
+    vertices.push_back(top * static_cast<float>(windowSize.x) / static_cast<float>(windowSize.y));
+    vertices.push_back(bottom * static_cast<float>(windowSize.x) / static_cast<float>(windowSize.y));
 
     glClear(GL_DEPTH_BUFFER_BIT);
     glUseProgram(lineShaderID);
 
     lineVertices->write(vertices);
 
-    glm::mat4 mvpMatrix = glm::mat4(1.0f);
-    GLint mvpID = glGetUniformLocation(lineShaderID, "MVP");
+    constexpr auto mvpMatrix = glm::mat4(1.0f);
+    const GLint mvpID = glGetUniformLocation(lineShaderID, "MVP");
     glUniformMatrix4fv(mvpID, 1, GL_FALSE, &mvpMatrix[0][0]);
 
-    GLint colorID = glGetUniformLocation(lineShaderID, "color");
-    const glm::vec3 color = {1, 1, 1};
+    const GLint colorID = glGetUniformLocation(lineShaderID, "color");
+    constexpr glm::vec3 color = {1, 1, 1};
     glUniform3f(colorID, color.r, color.g, color.b);
 
     lineVertices->enable();
-    glDrawArrays(GL_LINES, 0, (GLsizei) vertices.size());
+    glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(vertices.size()));
     lineVertices->disable();
 
     glUseProgram(cubeShaderID);
 }
 
-void OpenGLRenderer::finishRendering() {
+void OpenGLRenderer::finishRendering() const {
     glFlush();
     glfwSwapBuffers(window);
     glfwPollEvents();
 }
 
-void OpenGLRenderer::debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
-                                   const GLchar *message, const void *userParam) {
+void OpenGLRenderer::debugCallback(const GLenum source, const GLenum type, const GLuint id, const GLenum severity,
+                                   const GLsizei length, const GLchar *message, const void *userParam) {
     (void) userParam;
     (void) length;
 
@@ -504,4 +506,14 @@ void OpenGLRenderer::debugCallback(GLenum source, GLenum type, GLuint id, GLenum
     } else {
         throw std::runtime_error(ss.str());
     }
+}
+
+void OpenGLRenderer::windowRefreshCallback(GLFWwindow *window) {
+    // render();
+    glfwSwapBuffers(window);
+    glFinish(); // important, this waits until rendering result is actually visible, thus making resizing less ugly
+}
+
+void OpenGLRenderer::framebufferSizeCallback(GLFWwindow *window, const int width, const int height) {
+    glViewport(0, 0, width, height);
 }

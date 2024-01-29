@@ -1,4 +1,3 @@
-#include <iostream>
 #include "chunk.h"
 
 #include "src/render/renderer.h"
@@ -8,7 +7,7 @@
 void Chunk::generate(const std::shared_ptr<WorldGen> &worldGen) {
     worldGen->setChunkGenCtx(pos);
 
-    blocks.forEach([&](int x, int y, int z, Block &b) {
+    blocks.forEach([&](const int x, const int y, const int z, Block &b) {
         b.blockType = worldGen->getBlockTypeAt(x, y, z);
 
         if (blocks[x][y][z].blockType != BlockType_None)
@@ -22,11 +21,11 @@ void Chunk::unload() {
     _isLoaded = false;
 }
 
-void Chunk::updateBlock(VecUtils::Vec3Discrete block, EBlockType type) {
+void Chunk::updateBlock(const VecUtils::Vec3Discrete &block, const EBlockType type) {
     updateBlock(block.x, block.y, block.z, type);
 }
 
-void Chunk::updateBlock(int x, int y, int z, EBlockType type) {
+void Chunk::updateBlock(const int x, const int y, const int z, const EBlockType type) {
     if (!blocks[x][y][z].isNone() && type == BlockType_None) {
         activeBlockCount--;
     } else if (blocks[x][y][z].isNone() && type != BlockType_None) {
@@ -63,7 +62,7 @@ void Chunk::createMesh() {
     meshContext->clear();
     meshContext->modelTranslate = pos * CHUNK_SIZE;
 
-    blocks.forEach([&](int x, int y, int z, Block &b) {
+    blocks.forEach([&](const int x, const int y, const int z, const Block &b) {
         if (b.isNone()) return;
         createCube(x, y, z);
     });
@@ -76,8 +75,8 @@ void Chunk::createMesh() {
 }
 
 void Chunk::createCube(const int x, const int y, const int z) {
-    glm::vec3 cubeIndexPos = {x, y, z};
-    glm::vec3 cubePos = cubeIndexPos * (float) Block::RENDER_SIZE;
+    const glm::vec3 cubeIndexPos = {x, y, z};
+    const glm::vec3 cubePos = cubeIndexPos * Block::RENDER_SIZE;
 
     // these points are indexed as mentioned in the header file.
     constexpr size_t N_POINTS = 8;
@@ -86,7 +85,7 @@ void Chunk::createCube(const int x, const int y, const int z) {
         points[i] = cubePos + Block::vertexOffsets[i];
     }
 
-    EBlockType blockType = blocks[x][y][z].blockType;
+    const EBlockType blockType = blocks[x][y][z].blockType;
 
     if (z == CHUNK_SIZE - 1 || blocks[x][y][z + 1].isNone()) {
         createFace(cubePos, Front, blockType);
@@ -113,7 +112,7 @@ void Chunk::createCube(const int x, const int y, const int z) {
     }
 }
 
-void Chunk::createFace(const glm::vec3 cubePos, const EBlockFace face, const EBlockType blockType) {
+void Chunk::createFace(const glm::vec3 &cubePos, const EBlockFace face, const EBlockType blockType) const {
     static const std::map<EBlockFace, glm::vec3> faceNormals = {
         {Front,  {0.0,  0.0,  1.0}},
         {Back,   {0.0,  0.0,  -1.0}},
@@ -123,9 +122,9 @@ void Chunk::createFace(const glm::vec3 cubePos, const EBlockFace face, const EBl
         {Bottom, {0.0,  -1.0, 0.0}}
     };
 
-    const auto corners = Block::getFaceCorners(face);
-    const glm::vec3 minPos = cubePos + corners.first;
-    const glm::vec3 maxPos = cubePos + corners.second;
+    const auto [bottomLeft, topRight] = Block::getFaceCorners(face);
+    const glm::vec3 minPos = cubePos + bottomLeft;
+    const glm::vec3 maxPos = cubePos + topRight;
 
     const PackedVertex packedMin = {minPos, {0, 1.0}, faceNormals.at(face),
                                     TextureManager::getBlockSamplerID(blockType, face)};

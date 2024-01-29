@@ -48,7 +48,7 @@ public:
      * @param type The way the key should be managed.
      * @param f The callback.
      */
-    void bindCallback(EKey k, EActivationType type, EKeyCallback f);
+    void bindCallback(EKey k, EActivationType type, const EKeyCallback& f);
 
     void tick(float deltaTime);
 

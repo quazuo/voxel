@@ -12,20 +12,20 @@
 namespace VecUtils {
     using Vec3Discrete = glm::vec<3, int>;
 
-    int sum(Vec3Discrete v);
+    int sum(const Vec3Discrete &v);
 
-    std::string toString(glm::vec3 vec);
+    std::string toString(const glm::vec3 &vec);
 
     using VecPredicate = std::function<bool(float)>;
-    bool all(glm::vec3 vec, const VecPredicate& pred);
-    bool any(glm::vec3 vec, const VecPredicate& pred);
+    bool all(const glm::vec3 &vec, const VecPredicate& pred);
+    bool any(const glm::vec3 &vec, const VecPredicate& pred);
 
     using VecFunctor = std::function<float(float)>;
     glm::vec3 map(glm::vec3 vec, const VecFunctor& f);
 
-    glm::vec3 floor(glm::vec3 vec);
+    glm::vec3 floor(const glm::vec3 &vec);
 
-    glm::vec3 abs(glm::vec3 vec);
+    glm::vec3 abs(const glm::vec3 &vec);
 }
 
 #endif //VOXEL_VEC_H

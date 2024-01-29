@@ -1,4 +1,3 @@
-#include <iostream>
 #include <utility>
 #include "chunk-manager.h"
 
@@ -23,7 +22,6 @@ void ChunkManager::ChunkSlot::unbind() {
 
 ChunkManager::ChunkManager(std::shared_ptr<OpenGLRenderer> r, std::shared_ptr<WorldGen> wg)
     : renderer(std::move(r)), worldGen(std::move(wg)) {
-
     auto slotIter = chunkSlots.begin();
 
     for (int x = -RENDER_DISTANCE; x <= RENDER_DISTANCE; x++) {
@@ -52,7 +50,7 @@ void ChunkManager::renderChunkOutlines() const {
             continue;
 
         OpenGLRenderer::LineType lineType = OpenGLRenderer::CHUNK_OUTLINE;
-        if (std::find(visibleChunks.begin(), visibleChunks.end(), slot.chunk) == visibleChunks.end()) {
+        if (std::ranges::find(visibleChunks, slot.chunk) == visibleChunks.end()) {
             lineType = OpenGLRenderer::EMPTY_CHUNK_OUTLINE;
         }
 
@@ -68,7 +66,7 @@ void ChunkManager::tick() {
 
 void ChunkManager::updateChunkSlots() {
     const glm::vec3 currPos = renderer->getCameraPos();
-    const VecUtils::Vec3Discrete currChunkPos = VecUtils::floor(currPos / (float) Chunk::CHUNK_SIZE);
+    const VecUtils::Vec3Discrete currChunkPos = VecUtils::floor(currPos / static_cast<float>(Chunk::CHUNK_SIZE));
 
     // if we didn't cross a chunk boundary, then there's nothing to do
     if (currChunkPos == lastOccupiedChunkPos)
@@ -80,28 +78,29 @@ void ChunkManager::updateChunkSlots() {
     loadNearChunks(currChunkPos);
 }
 
-void ChunkManager::unloadFarChunks(VecUtils::Vec3Discrete currChunkPos) {
+void ChunkManager::unloadFarChunks(const VecUtils::Vec3Discrete &currChunkPos) {
     for (auto &slot: chunkSlots) {
         if (!slot.isBound())
             continue;
 
         glm::vec3 chunkPosDist = VecUtils::abs(slot.chunk->getPos() - currChunkPos);
-        bool isOutsideRenderDistance = VecUtils::any(
+        const bool isOutsideRenderDistance = VecUtils::any(
             chunkPosDist,
-            [](float x) { return x > RENDER_DISTANCE + GRACE_PERIOD_WIDTH; }
+            [](const float x) { return x > RENDER_DISTANCE + GRACE_PERIOD_WIDTH; }
         );
 
         if (isOutsideRenderDistance) {
             slot.unbind();
 
-            auto it = std::find(loadableChunks.begin(), loadableChunks.end(), slot.chunk);
-            if (it != loadableChunks.end())
+            const auto it = std::ranges::find(loadableChunks, slot.chunk);
+            if (it != loadableChunks.end()) {
                 loadableChunks.erase(it);
+            }
         }
     }
 }
 
-void ChunkManager::loadNearChunks(VecUtils::Vec3Discrete currChunkPos) {
+void ChunkManager::loadNearChunks(const VecUtils::Vec3Discrete &currChunkPos) {
     constexpr size_t newChunkLoadCubeWidth = 2 * RENDER_DISTANCE + 1;
     CubeArray<bool, newChunkLoadCubeWidth> loadedChunksMap{};
 
@@ -110,23 +109,24 @@ void ChunkManager::loadNearChunks(VecUtils::Vec3Discrete currChunkPos) {
         if (!slot.isBound())
             continue;
 
-        VecUtils::Vec3Discrete relPos = slot.chunk->getPos() - currChunkPos;
+        const VecUtils::Vec3Discrete relPos = slot.chunk->getPos() - currChunkPos;
 
         // relPos components shifted so that they are non-negative
-        size_t x = relPos.x + RENDER_DISTANCE;
-        size_t y = relPos.y + RENDER_DISTANCE;
-        size_t z = relPos.z + RENDER_DISTANCE;
+        const size_t x = relPos.x + RENDER_DISTANCE;
+        const size_t y = relPos.y + RENDER_DISTANCE;
+        const size_t z = relPos.z + RENDER_DISTANCE;
 
         // we're interested only in positions within render distance -- we don't care about chunks that are
         // still loaded only because they're in the grace period
-        if (x < newChunkLoadCubeWidth && y < newChunkLoadCubeWidth && z < newChunkLoadCubeWidth)
+        if (x < newChunkLoadCubeWidth && y < newChunkLoadCubeWidth && z < newChunkLoadCubeWidth) {
             loadedChunksMap[x][y][z] = true;
+        }
     }
 
     // use the previously gathered information to load missing chunks to free slots
     auto slotIt = chunkSlots.begin();
 
-    loadedChunksMap.forEach([&](size_t x, size_t y, size_t z, bool &isLoaded) {
+    loadedChunksMap.forEach([&](const size_t x, const size_t y, const size_t z, const bool &isLoaded) {
         if (isLoaded) return;
 
         // chunk at `newChunkPos` is unloaded but should be -- load it
@@ -135,8 +135,10 @@ void ChunkManager::loadNearChunks(VecUtils::Vec3Discrete currChunkPos) {
         loadableChunks.push_back(newChunk);
 
         // find a free slot and bind it with the new chunk
-        while (slotIt->isBound())
+        while (slotIt->isBound()) {
             slotIt++;
+        }
+
         slotIt->bind(newChunk);
     });
 }
@@ -155,7 +157,7 @@ void ChunkManager::updateLoadList() {
             break;
     }
 
-    erase_if(loadableChunks, [](ChunkPtr &chunk) { return chunk->isLoaded(); });
+    erase_if(loadableChunks, [](const ChunkPtr &chunk) { return chunk->isLoaded(); });
 }
 
 void ChunkManager::updateRenderList() {
@@ -178,8 +180,7 @@ std::optional<glm::vec3>
 ChunkManager::getTargetedBlock(const std::vector<VecUtils::Vec3Discrete> &lookedAtBlocks) const {
     for (auto &block: lookedAtBlocks) {
         const ChunkPtr chunk = getOwningChunk(block);
-        if (!chunk)
-            continue;
+        if (!chunk) continue;
 
         const VecUtils::Vec3Discrete relativeBlockPos = block - chunk->getPos() * Chunk::CHUNK_SIZE;
         const EBlockType blockType = chunk->getBlock(relativeBlockPos);
@@ -192,24 +193,23 @@ ChunkManager::getTargetedBlock(const std::vector<VecUtils::Vec3Discrete> &looked
     return {};
 }
 
-void ChunkManager::updateBlock(VecUtils::Vec3Discrete block, EBlockType type) const {
+void ChunkManager::updateBlock(const VecUtils::Vec3Discrete &block, const EBlockType type) const {
     const ChunkPtr chunk = getOwningChunk(block);
-    if (!chunk)
-        return;
+    if (!chunk) return;
 
     const VecUtils::Vec3Discrete relativeBlockPos = block - chunk->getPos() * Chunk::CHUNK_SIZE;
     chunk->updateBlock(relativeBlockPos, type);
 }
 
-ChunkManager::ChunkPtr ChunkManager::getOwningChunk(VecUtils::Vec3Discrete block) const {
+ChunkManager::ChunkPtr ChunkManager::getOwningChunk(const VecUtils::Vec3Discrete &block) const {
     const VecUtils::Vec3Discrete owningChunkPos =
-        VecUtils::floor((glm::vec3) block * (1.0f / (float) Chunk::CHUNK_SIZE));
+            VecUtils::floor(static_cast<glm::vec3>(block) * (1.0f / Chunk::CHUNK_SIZE));
 
-    auto it = std::find_if(chunkSlots.begin(), chunkSlots.end(), [&](const ChunkSlot &slot) {
+    const auto it = std::ranges::find_if(chunkSlots, [&](const ChunkSlot &slot) {
         return slot.isBound() && slot.chunk->isLoaded() && slot.chunk->getPos() == owningChunkPos;
     });
 
-    if (it == chunkSlots.end())
-        return nullptr;
-    return it->chunk;
+    return it != chunkSlots.end()
+               ? it->chunk
+               : nullptr;
 }

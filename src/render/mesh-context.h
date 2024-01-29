@@ -20,8 +20,8 @@ struct PackedVertex {
     int texSamplerID;
 
     bool operator<(const PackedVertex other) const {
-        return memcmp((void *) this, (void *) &other, sizeof(PackedVertex)) > 0;
-    };
+        return memcmp(this, &other, sizeof(PackedVertex)) > 0;
+    }
 };
 
 
@@ -108,12 +108,12 @@ public:
     /**
      * Moves the indexed data to the GL buffers. This required `makeIndexed` to be called beforehand.
      */
-    void writeToBuffers();
+    void writeToBuffers() const;
 
     /**
      * Renders this mesh. This required `makeIndexed` to be called beforehand.
      */
-    void drawElements();
+    void drawElements() const;
 
 private:
     /**
@@ -123,7 +123,7 @@ private:
      * @param normal The normal vector shared by all the quads.
      * @return List of merged quads.
      */
-    static std::vector<Quad> mergeQuadMap(CubeArray<short, Chunk::CHUNK_SIZE> &quadMap, glm::vec3 normal);
+    static std::vector<Quad> mergeQuadMap(CubeArray<short, Chunk::CHUNK_SIZE> &quadMap, const glm::vec3 &normal);
 };
 
 #endif //VOXEL_MESH_CONTEXT_H

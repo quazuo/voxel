@@ -6,8 +6,9 @@
 #include <array>
 #include <filesystem>
 
-void TextureManager::loadBlockTexture(EBlockType blockType, std::uint8_t faces, const std::filesystem::path &path) {
-    static constexpr std::array<EBlockFace, EBlockFace::N_FACES> blockFaces = {
+void TextureManager::loadBlockTexture(const EBlockType blockType, const std::uint8_t faces,
+                                      const std::filesystem::path &path) {
+    static constexpr std::array blockFaces = {
         EBlockFace::Front,
         EBlockFace::Back,
         EBlockFace::Right,
@@ -21,7 +22,7 @@ void TextureManager::loadBlockTexture(EBlockType blockType, std::uint8_t faces, 
             return;
     }
 
-    auto texID = loadDDS(path);
+    const GLuint texID = loadDDS(path);
 
     for (auto face: blockFaces) {
         if (faces & face) {
@@ -34,7 +35,7 @@ void TextureManager::loadFontTexture(const std::filesystem::path &path) {
     fontTexture = loadDDS(path);
 }
 
-int TextureManager::getBlockSamplerID(EBlockType blockType, EBlockFace face) {
+int TextureManager::getBlockSamplerID(const EBlockType blockType, const EBlockFace face) {
     static const std::map<EBlockFace, int> faceIdOffsets = {
         {Front, 0},
         {Back, 1},
@@ -44,7 +45,7 @@ int TextureManager::getBlockSamplerID(EBlockType blockType, EBlockFace face) {
         {Bottom, 5}
     };
 
-    return (int) EBlockFace::N_FACES * (blockType - 1) + faceIdOffsets.at(face);
+    return static_cast<int>(EBlockFace::N_FACES) * (blockType - 1) + faceIdOffsets.at(face);
 }
 
 void TextureManager::bindBlockTextures(const GLuint blockShaderID) const {
@@ -59,16 +60,20 @@ void TextureManager::bindBlockTextures(const GLuint blockShaderID) const {
         handles[samplerID] = samplerID;
     }
 
-    glUniform1iv(glGetUniformLocation(blockShaderID, "texSampler"), (GLint) blockTextures.size(), &handles[0]);
+    glUniform1iv(
+        glGetUniformLocation(blockShaderID, "texSampler"),
+        static_cast<GLint>(blockTextures.size()),
+        &handles[0]
+    );
 }
 
-void TextureManager::bindFontTexture(GLuint textShaderID) const {
+void TextureManager::bindFontTexture(const GLuint textShaderID) const {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, fontTexture);
     glUniform1i(glGetUniformLocation(textShaderID, "texSampler"), 0);
 }
 
-GLuint TextureManager::getBlockTextureID(EBlockType blockType, EBlockFace face) const {
+GLuint TextureManager::getBlockTextureID(const EBlockType blockType, const EBlockFace face) const {
     if (!blockTextures.contains({blockType, face})) {
         throw std::runtime_error("tried to call getTextureIDs() on uninitialized texture data");
     }
@@ -95,13 +100,15 @@ GLuint TextureManager::loadDDS(const std::filesystem::path &path) {
     char header[headerSize];
     fileStream.read(header, headerSize);
 
-    uint32_t height = *(uint32_t *) &(header[8]);
-    uint32_t width = *(uint32_t *) &(header[12]);
-    uint32_t linearSize = *(uint32_t *) &(header[16]);
-    uint32_t mipMapCount = *(uint32_t *) &(header[24]);
-    uint32_t fourCC = *(uint32_t *) &(header[80]);
+    uint32_t height = *reinterpret_cast<uint32_t *>(&(header[8]));
+    uint32_t width = *reinterpret_cast<uint32_t *>(&(header[12]));
+    const uint32_t linearSize = *reinterpret_cast<uint32_t *>(&(header[16]));
+    const uint32_t mipMapCount = *reinterpret_cast<uint32_t *>(&(header[24]));
+    const uint32_t fourCC = *reinterpret_cast<uint32_t *>(&(header[80]));
 
-    unsigned int bufsize = mipMapCount > 1 ? linearSize * 2 : linearSize;
+    const unsigned int bufsize = mipMapCount > 1
+                                     ? linearSize * 2
+                                     : linearSize;
     std::vector<char> buffer(bufsize);
     fileStream.read(&buffer[0], bufsize);
 
@@ -131,20 +138,20 @@ GLuint TextureManager::loadDDS(const std::filesystem::path &path) {
     glBindTexture(GL_TEXTURE_2D, textureID);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-    unsigned int blockSize = (format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT) ? 8 : 16;
+    const unsigned int blockSize = (format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT) ? 8 : 16;
     unsigned int offset = 0;
 
     // load the mipmaps
     for (unsigned int level = 0; level < mipMapCount && (width || height); ++level) {
-        unsigned int size = ((width + 3) / 4) * ((height + 3) / 4) * blockSize;
+        const unsigned int size = ((width + 3) / 4) * ((height + 3) / 4) * blockSize;
         glCompressedTexImage2D(
             GL_TEXTURE_2D,
-            (GLint) level,
+            static_cast<GLint>(level),
             format,
-            (GLsizei) width,
-            (GLsizei) height,
+            static_cast<GLsizei>(width),
+            static_cast<GLsizei>(height),
             0,
-            (GLsizei) size,
+            static_cast<GLsizei>(size),
             buffer.data() + offset
         );
 

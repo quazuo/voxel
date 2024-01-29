@@ -16,7 +16,7 @@ enum EBlockFace : std::uint8_t {
     N_FACES = 6
 };
 
-static inline glm::vec3 getNormalFromFace(EBlockFace face) {
+static glm::vec3 getNormalFromFace(const EBlockFace face) {
     switch (face) {
         case Front:
             return {0, 0, 1};
@@ -35,7 +35,7 @@ static inline glm::vec3 getNormalFromFace(EBlockFace face) {
     }
 }
 
-static inline EBlockFace getFaceFromNormal(glm::vec3 normal) {
+static EBlockFace getFaceFromNormal(const glm::vec3& normal) {
     if (normal == glm::vec3(0, 0, 1))
         return Front;
     if (normal == glm::vec3(0, 0, -1))
@@ -107,7 +107,7 @@ public:
 public:
     Block() = default;
 
-    explicit Block(EBlockType type) : blockType(type) {}
+    explicit Block(const EBlockType type) : blockType(type) {}
 
     [[nodiscard]]
     bool isNone() const { return blockType == EBlockType::BlockType_None; }
@@ -118,7 +118,7 @@ public:
      * This does not return vertices with lowest and highest coordinates respectively,
      * but it considers them "as the face is looked at by an observer" if that makes sense.
      */
-    static std::pair<glm::vec3, glm::vec3> getFaceCorners(EBlockFace face) {
+    static std::pair<glm::vec3, glm::vec3> getFaceCorners(const EBlockFace face) {
         switch (face) {
             case Front:
                 return {vertexOffsets[0], vertexOffsets[2]};

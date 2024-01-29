@@ -3,13 +3,13 @@
 #include "glm/vec2.hpp"
 
 template<typename T>
-GLBuffer<T>::~GLBuffer<T>() {
+GLBuffer<T>::~GLBuffer() {
     const GLuint buffers[1] = { bufferID };
     glDeleteBuffers(1, buffers);
 }
 
 template<typename T>
-void GLBuffer<T>::updateBufferCapacity(GLsizeiptr dataSize) {
+void GLBuffer<T>::updateBufferCapacity(const GLsizeiptr dataSize) {
     glBindBuffer(GL_ARRAY_BUFFER, bufferID);
 
     if (dataSize > capacity) {
@@ -37,7 +37,7 @@ void GLBuffer<T>::updateBufferCapacity(GLsizeiptr dataSize) {
 }
 
 template<typename T>
-GLArrayBuffer<T>::GLArrayBuffer(GLuint index, GLint count) : bufferIndex(index), compCount(count) {
+GLArrayBuffer<T>::GLArrayBuffer(const GLuint index, const GLint count) : bufferIndex(index), compCount(count) {
     glGenBuffers(1, &this->bufferID);
     glBindBuffer(GL_ARRAY_BUFFER, this->bufferID);
     glVertexAttribPointer(bufferIndex, compCount, GL_FLOAT, GL_FALSE, 0, nullptr);
@@ -61,7 +61,7 @@ void GLArrayBuffer<T>::enable() {
 }
 
 template<typename T>
-void GLArrayBuffer<T>::disable() {
+void GLArrayBuffer<T>::disable() const {
     glDisableVertexAttribArray(bufferIndex);
 }
 
@@ -72,9 +72,8 @@ GLElementBuffer::GLElementBuffer() {
 }
 
 void GLElementBuffer::write(const std::vector<elemType> &data) {
-    size_t dataSize = data.size();
-
-    updateBufferCapacity(dataSize);
+    const size_t dataSize = data.size();
+    updateBufferCapacity(static_cast<GLsizeiptr>(dataSize));
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferID);
     glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, dataSize * sizeof(elemType), data.data());
 }

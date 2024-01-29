@@ -1,12 +1,9 @@
 #ifndef MYGE_CHUNK_MANAGER_H
 #define MYGE_CHUNK_MANAGER_H
 
-#include <utility>
 #include <vector>
 #include <array>
 #include <memory>
-#include <map>
-#include <cmath>
 #include "chunk.h"
 #include "src/render/mesh-context.h"
 #include "src/utils/size.h"
@@ -89,7 +86,7 @@ public:
      * @param block The block's coordinates.
      * @param type Type of which the block should now be.
      */
-    void updateBlock(VecUtils::Vec3Discrete block, EBlockType type) const;
+    void updateBlock(const VecUtils::Vec3Discrete &block, EBlockType type) const;
 
 private:
     /**
@@ -99,7 +96,7 @@ private:
      * @return Pointer to the owning chunk.
      */
     [[nodiscard]]
-    ChunkPtr getOwningChunk(VecUtils::Vec3Discrete block) const;
+    ChunkPtr getOwningChunk(const VecUtils::Vec3Discrete &block) const;
 
     /**
      * Checks if any chunks should be loaded or unloaded, and does so if that's the case.
@@ -113,7 +110,7 @@ private:
      * @param currChunkPos Position of the chunk the camera currently resides in,
      * given by the position of the chunk's vertex with the lowest coordinates.
      */
-    void unloadFarChunks(VecUtils::Vec3Discrete currChunkPos);
+    void unloadFarChunks(const VecUtils::Vec3Discrete &currChunkPos);
 
     /**
      * Loads all chunks that are within `RENDER_DISTANCE` chunks' worth of distance from the camera's position.
@@ -121,7 +118,7 @@ private:
      * @param currChunkPos Position of the chunk the camera currently resides in,
      * given by the position of the chunk's vertex with the lowest coordinates.
      */
-    void loadNearChunks(VecUtils::Vec3Discrete currChunkPos);
+    void loadNearChunks(const VecUtils::Vec3Discrete &currChunkPos);
 
     /**
      * Takes up to `MAX_CHUNKS_SERVE_PER_PRAME` chunks from the `loadableChunks` list and loads them.

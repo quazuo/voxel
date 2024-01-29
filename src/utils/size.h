@@ -2,7 +2,6 @@
 #define VOXEL_SIZE_H
 
 #include <cstddef>
-#include <array>
 
 /**
  * Collection of various constexpr utils, currently only for handling array size-related stuff.
@@ -13,7 +12,7 @@ namespace SizeUtils {
         if (p == 0) return 1;
         if (p == 1) return x;
 
-        size_t tmp = pow(x, p / 2);
+        const size_t tmp = pow(x, p / 2);
         if (p % 2 == 0)
             return tmp * tmp;
         return x * tmp * tmp;

@@ -1,4 +1,3 @@
-#include <iostream>
 #include <memory>
 
 #include "GL/glew.h"
@@ -11,7 +10,7 @@
 
 class VEngine {
     std::shared_ptr<OpenGLRenderer> renderer;
-    struct GLFWwindow *window = nullptr;
+    GLFWwindow *window = nullptr;
 
     std::unique_ptr<ChunkManager> chunkManager;
 
@@ -48,7 +47,7 @@ public:
 
     void tick() {
         // calculate this tick's delta time
-        auto currentTime = (float) glfwGetTime();
+        const auto currentTime = static_cast<float>(glfwGetTime());
         const float deltaTime = currentTime - lastTime;
         lastTime = currentTime;
 
@@ -81,7 +80,7 @@ public:
         renderer->finishRendering();
     }
 
-    void renderDebugText(float fps) {
+    void renderDebugText(const float fps) const {
         constexpr float fontSize = 16;
         constexpr float yOffset = fontSize;
         renderer->renderText("pos: " + VecUtils::toString(renderer->getCameraPos()), 0, 0, fontSize);
@@ -91,24 +90,24 @@ public:
     void bindKeyActions() {
         keyManager.bindWindow(window);
 
-        keyManager.bindCallback(GLFW_KEY_Q, EActivationType::PRESS_ONCE, [&](float deltaTime) {
+        keyManager.bindCallback(GLFW_KEY_Q, EActivationType::PRESS_ONCE, [&](const float deltaTime) {
             (void) deltaTime;
             if (targetedBlockPos) {
                 chunkManager->updateBlock(*targetedBlockPos, EBlockType::BlockType_None);
             }
         });
 
-        keyManager.bindCallback(GLFW_KEY_F1, EActivationType::PRESS_ONCE, [&](float deltaTime) {
+        keyManager.bindCallback(GLFW_KEY_F1, EActivationType::PRESS_ONCE, [&](const float deltaTime) {
             (void) deltaTime;
             doRenderChunkOutlines = !doRenderChunkOutlines;
         });
 
-        keyManager.bindCallback(GLFW_KEY_F2, EActivationType::PRESS_ONCE, [&](float deltaTime) {
+        keyManager.bindCallback(GLFW_KEY_F2, EActivationType::PRESS_ONCE, [&](const float deltaTime) {
             (void) deltaTime;
             doRenderDebugText = !doRenderDebugText;
         });
 
-        keyManager.bindCallback(GLFW_KEY_ESCAPE, EActivationType::PRESS_ONCE, [&](float deltaTime) {
+        keyManager.bindCallback(GLFW_KEY_ESCAPE, EActivationType::PRESS_ONCE, [&](const float deltaTime) {
             (void) deltaTime;
             doTick = false;
         });

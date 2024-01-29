@@ -1,36 +1,38 @@
 #include "key-manager.h"
 
-void KeyManager::bindCallback(EKey k, EActivationType type, EKeyCallback f) {
+void KeyManager::bindCallback(const EKey k, const EActivationType type, const EKeyCallback& f) {
     callbackMap[k] = {type, f};
     keyStateMap[k] = KeyState::RELEASED;
 }
 
-void KeyManager::tick(float deltaTime) {
+void KeyManager::tick(const float deltaTime) {
     for (const auto &[key, callbackInfo]: callbackMap) {
         const auto &[activationType, callback] = callbackInfo;
 
-        if (checkKey(key, activationType))
+        if (checkKey(key, activationType)) {
             callback(deltaTime);
+        }
     }
 }
 
 
-bool KeyManager::checkKey(EKey key, EActivationType type) {
+bool KeyManager::checkKey(const EKey key, const EActivationType type) {
     if (type == EActivationType::PRESS_ANY) {
         return glfwGetKey(window, key) == GLFW_PRESS;
+    }
 
-    } else if (type == EActivationType::PRESS_ONCE) {
+    if (type == EActivationType::RELEASE_ONCE) {
+        return glfwGetKey(window, key) == GLFW_RELEASE;
+    }
+
+    if (type == EActivationType::PRESS_ONCE) {
         if (glfwGetKey(window, key) == GLFW_PRESS) {
-            bool isOk = keyStateMap[key] == KeyState::RELEASED;
+            const bool isOk = keyStateMap[key] == KeyState::RELEASED;
             keyStateMap[key] = KeyState::PRESSED;
             return isOk;
-
-        } else {
-            keyStateMap[key] = KeyState::RELEASED;
         }
 
-    } else if (type == EActivationType::RELEASE_ONCE) {
-        return glfwGetKey(window, key) == GLFW_RELEASE;
+        keyStateMap[key] = KeyState::RELEASED;
     }
 
     return false;

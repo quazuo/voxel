@@ -5,7 +5,6 @@
 
 #include <string>
 #include <vector>
-#include <cstring>
 #include <map>
 #include <filesystem>
 
@@ -30,9 +29,9 @@ public:
     };
 
 private:
-    struct GLFWwindow *window = nullptr;
+    GLFWwindow *window;
 
-    std::unique_ptr<class TextureManager> textureManager = std::make_unique<TextureManager>();
+    std::unique_ptr<TextureManager> textureManager = std::make_unique<TextureManager>();
 
     KeyManager keyManager;
 
@@ -66,7 +65,7 @@ public:
 
     ~OpenGLRenderer();
 
-    void tick(float deltaTime);
+    void tick(float deltaTime) const;
 
     /**
      * Starts the rendering process.
@@ -78,10 +77,10 @@ public:
      * Wraps up the rendering process.
      * Should be called after all rendering in the current tick has been finished.
      */
-    void finishRendering();
+    void finishRendering() const;
 
     [[nodiscard]]
-    inline GLFWwindow *getWindow() const { return window; }
+    GLFWwindow *getWindow() const { return window; }
 
     [[nodiscard]]
     glm::vec3 getCameraPos() const { return camera->getPos(); }
@@ -100,14 +99,14 @@ public:
      * @param chunkPos The chunk's position, given by its vertex with the lowest coordinates.
      * @param gid Outline type that should be used.
      */
-    void addChunkOutline(glm::vec3 chunkPos, LineType gid);
+    void addChunkOutline(const glm::vec3 &chunkPos, LineType gid);
 
     /**
      * Adds a given block's outline to the list of lines that will be rendered later.
      *
      * @param blockPos The block's position, given by its vertex with the lowest coordinates.
      */
-    void addTargetedBlockOutline(glm::vec3 blockPos);
+    void addTargetedBlockOutline(const glm::vec3 &blockPos);
 
     /**
      * Renders a specified string of text at given coordinates.
@@ -117,13 +116,13 @@ public:
      * @param y Y coordinates of the down-left corner of the text box.
      * @param fontSize The size of the text.
      */
-    void renderText(const std::string& text, float x, float y, size_t fontSize);
+    void renderText(const std::string& text, float x, float y, float fontSize) const;
 
     /**
      * Renders the HUD, containing mostly text.
      * TODO: Will be later mostly replaced by the addition of ImGUI.
      */
-    void renderHud();
+    void renderHud() const;
 
     /**
      * Renders all the outlines added by previously defined functions.
@@ -134,10 +133,11 @@ private:
     /**
      * Adds a given axis-aligned cube's outline to the list of lines that will be rendered later.
      *
+     * @param minVec Position of the cube's vertex with lowest coordinates.
      * @param sideLength The cube's side length.
      * @param gid The type of outline that should be used.
      */
-    void addCubeOutline(glm::vec3 minVec, float sideLength, LineType gid);
+    void addCubeOutline(const glm::vec3 &minVec, float sideLength, LineType gid);
 
     static GLuint loadShaders(const std::filesystem::path &vertexShaderPath,
                               const std::filesystem::path &fragmentShaderPath);
@@ -149,6 +149,10 @@ private:
      */
     static void debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
                               const GLchar *message, const void *userParam);
+
+    static void windowRefreshCallback(GLFWwindow *window);
+
+    static void framebufferSizeCallback(GLFWwindow *window, int width, int height);
 };
 
 #endif //MYGE_RENDERER_H

@@ -53,7 +53,7 @@ protected:
  * @tparam T type of elements stored in the buffer.
  */
 template<typename T>
-class GLArrayBuffer : public GLBuffer<T> {
+class GLArrayBuffer final : public GLBuffer<T> {
     GLuint bufferIndex {};
     GLint compCount {};
 
@@ -64,7 +64,7 @@ public:
 
     void enable() override;
 
-    void disable();
+    void disable() const;
 };
 
 /**
@@ -72,7 +72,7 @@ public:
  * Used for storing indices for indexed vertices. As such, it's restricted to holding specifically
  * elements of type `unsigned short`.
  */
-class GLElementBuffer : public GLBuffer<unsigned short> {
+class GLElementBuffer final : public GLBuffer<unsigned short> {
     using elemType = unsigned short;
 
 public:

@@ -17,7 +17,7 @@ class TextureManager {
     using TextureMap = std::map<std::pair<EBlockType, EBlockFace>, GLuint>;
     TextureMap blockTextures;
 
-    GLuint fontTexture;
+    GLuint fontTexture{};
 
 public:
     /**
@@ -47,7 +47,7 @@ public:
     /**
      * Binds the font texture so that it can be used by the provided shader.
      *
-     * @param blockShaderID ID of the shader program which will use the font texture.
+     * @param textShaderID ID of the shader program which will use the font texture.
      */
     void bindFontTexture(GLuint textShaderID) const;
 

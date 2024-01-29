@@ -4,8 +4,8 @@
 
 ChunkMeshContext::ChunkMeshContext() :
     vertices(std::make_unique<GLArrayBuffer<glm::vec3>>(0, 3)),
-    uvs(std::make_unique<GLArrayBuffer<glm::vec2>>(1, 2)),
     normals(std::make_unique<GLArrayBuffer<glm::vec3>>(2, 3)),
+    uvs(std::make_unique<GLArrayBuffer<glm::vec2>>(1, 2)),
     texIDs(std::make_unique<GLArrayBuffer<int>>(3, 1)),
     indices(std::make_unique<GLElementBuffer>()) {}
 
@@ -26,32 +26,25 @@ void ChunkMeshContext::addTriangle(const PackedVertex &vertex1, const PackedVert
 
 static void indexVertex(const PackedVertex &vertex, IndexedMeshData &data,
                         std::map<PackedVertex, unsigned short> &vertexToOutIndex) {
-    int index = -1;
-    auto it = vertexToOutIndex.find(vertex);
+    const auto it = vertexToOutIndex.find(vertex);
+
     if (it != vertexToOutIndex.end()) {
-        index = it->second;
-    }
+        // A similar vertex is already indexed, use that index instead!
+        data.indices.push_back(it->second);
 
-    bool found = index != -1;
-
-    if (found) { // A similar vertex is already in the VBO, use it instead!
-        data.indices.push_back(index);
-
-    } else { // If not, it needs to be added in the output data.
+    } else {
+        // If not, it needs to be added.
         data.vertices.push_back(vertex.position);
         data.uvs.push_back(vertex.uv);
         data.normals.push_back(vertex.normal);
         data.texIDs.push_back(vertex.texSamplerID);
-        unsigned short newIndex = (unsigned short) data.vertices.size() - 1;
+        const unsigned short newIndex = static_cast<unsigned short>(data.vertices.size()) - 1;
         data.indices.push_back(newIndex);
-        vertexToOutIndex[vertex] = newIndex;
+        vertexToOutIndex.emplace(vertex, newIndex);
     }
 }
 
 void ChunkMeshContext::makeIndexed() {
-    if (indexedData)
-        return;
-
     indexedData = IndexedMeshData();
     std::map<PackedVertex, unsigned short> vertexToOutIndex;
 
@@ -62,7 +55,7 @@ void ChunkMeshContext::makeIndexed() {
     }
 }
 
-void ChunkMeshContext::writeToBuffers() {
+void ChunkMeshContext::writeToBuffers() const {
     if (!indexedData) {
         throw std::runtime_error("tried to call writeToBuffers() without prior indexing");
     }
@@ -74,14 +67,14 @@ void ChunkMeshContext::writeToBuffers() {
     indices->write(indexedData->indices);
 }
 
-void ChunkMeshContext::drawElements() {
+void ChunkMeshContext::drawElements() const {
     vertices->enable();
     uvs->enable();
     normals->enable();
     texIDs->enable();
 
     indices->enable();
-    glDrawElements(GL_TRIANGLES, (GLsizei) indexedData->indices.size(), GL_UNSIGNED_SHORT, nullptr);
+    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indexedData->indices.size()), GL_UNSIGNED_SHORT, nullptr);
 
     vertices->disable();
     uvs->disable();
@@ -134,9 +127,8 @@ void ChunkMeshContext::mergeQuads() {
     CubeArray<short, Chunk::CHUNK_SIZE> front{-1}, back{-1}, right{-1}, left{-1}, top{-1}, bottom{-1};
 
     for (auto &[v1, v2]: quads) {
-        const auto face = getFaceFromNormal(v1.normal);
-        const auto cornerOffsets = Chunk::getFaceCorners(face);
-        VecUtils::Vec3Discrete coords = v1.position - cornerOffsets.first;
+        const EBlockFace face = getFaceFromNormal(v1.normal);
+        const VecUtils::Vec3Discrete coords = v1.position - Block::getFaceCorners(face).first;
 
         if (face == Front) {
             front[coords] = v1.texSamplerID;
@@ -180,7 +172,7 @@ void ChunkMeshContext::mergeQuads() {
 }
 
 std::vector<ChunkMeshContext::Quad>
-ChunkMeshContext::mergeQuadMap(CubeArray<short, Chunk::CHUNK_SIZE> &quadMap, glm::vec3 normal) {
+ChunkMeshContext::mergeQuadMap(CubeArray<short, Chunk::CHUNK_SIZE> &quadMap, const glm::vec3 &normal) {
     std::vector<Quad> newQuads;
 
     const auto merge = [&](size_t x, size_t y, size_t z) {
@@ -196,7 +188,7 @@ ChunkMeshContext::mergeQuadMap(CubeArray<short, Chunk::CHUNK_SIZE> &quadMap, glm
         bool isInRange = true;
         while (isInRange && quadMap[firstStride] == quadMap[x][y][z]) {
             firstStride += firstAxis;
-            isInRange = VecUtils::all(firstStride, [](float f) { return f < Chunk::CHUNK_SIZE; });
+            isInRange = VecUtils::all(firstStride, [](const float f) { return f < Chunk::CHUNK_SIZE; });
         }
 
         const int width = VecUtils::sum(firstStride - VecUtils::Vec3Discrete(x, y, z));
@@ -221,16 +213,16 @@ ChunkMeshContext::mergeQuadMap(CubeArray<short, Chunk::CHUNK_SIZE> &quadMap, glm
                 break;
 
             secondStride += secondAxis;
-            isInRange = VecUtils::all(secondStride, [](float f) { return f < Chunk::CHUNK_SIZE; });
+            isInRange = VecUtils::all(secondStride, [](const float f) { return f < Chunk::CHUNK_SIZE; });
         }
 
         const int height = VecUtils::sum(secondStride - VecUtils::Vec3Discrete(x, y, z));
 
         VecUtils::Vec3Discrete v1 = {x, y, z};
-        VecUtils::Vec3Discrete v2 = v1 + (firstAxis * (width - 1)) + (secondAxis * (height - 1));
+        VecUtils::Vec3Discrete v2 = v1 + firstAxis * (width - 1) + secondAxis * (height - 1);
 
         const auto face = getFaceFromNormal(normal);
-        auto corners = Chunk::getFaceCorners(face);
+        const auto [bottomLeft, topRight] = Block::getFaceCorners(face);
 
         // these adjustments are needed if we want to stick with the same vertex indexing, and if we want to
         // keep the merging algorithm to one implementation.
@@ -242,14 +234,14 @@ ChunkMeshContext::mergeQuadMap(CubeArray<short, Chunk::CHUNK_SIZE> &quadMap, glm
 
         Quad q = {
             {
-                .position = glm::vec3(v1) + corners.first,
-                .uv = glm::vec2(0, 1) * (float) (face == Left || face == Right ? width : height),
+                .position = glm::vec3(v1) + bottomLeft,
+                .uv = glm::vec2(0, 1) * static_cast<float>(face == Left || face == Right ? width : height),
                 .normal = normal,
                 .texSamplerID = quadMap[x][y][z]
             },
             {
-                .position = glm::vec3(v2) + corners.second,
-                .uv = glm::vec2(1, 0) * (float) (face == Left || face == Right ? height : width),
+                .position = glm::vec3(v2) + topRight,
+                .uv = glm::vec2(1, 0) * static_cast<float>(face == Left || face == Right ? height : width),
                 .normal = normal,
                 .texSamplerID = quadMap[x][y][z]
             }
@@ -267,7 +259,7 @@ ChunkMeshContext::mergeQuadMap(CubeArray<short, Chunk::CHUNK_SIZE> &quadMap, glm
         // remove merged quads from the map
         for (int i = 0; i < width; i++) {
             for (int j = 0; j < height; j++) {
-                quadMap[v1 + (firstAxis * i) + (secondAxis * j)] = -1;
+                quadMap[v1 + firstAxis * i + secondAxis * j] = -1;
             }
         }
     };

@@ -21,9 +21,8 @@ class Plane {
 public:
     Plane() = default;
 
-    Plane(glm::vec3 normalVec, glm::vec3 pointOnPlane) {
-        normal = glm::normalize(normalVec);
-        distance = glm::dot(normal, pointOnPlane);
+    Plane(const glm::vec3& normalVec, const glm::vec3& pointOnPlane)
+        : normal(glm::normalize(normalVec)), distance(glm::dot(normal, pointOnPlane)) {
     }
 
     [[nodiscard]]
@@ -39,7 +38,7 @@ public:
      * @return Is the chunk in front of the plane?
      */
     [[nodiscard]]
-    bool isChunkInFront(VecUtils::Vec3Discrete chunkPos) const;
+    bool isChunkInFront(const VecUtils::Vec3Discrete &chunkPos) const;
 };
 
 /**
@@ -58,7 +57,7 @@ struct Frustum {
      * @return Is the chunk inside the frustum?
      */
     [[nodiscard]]
-    bool isChunkContained(VecUtils::Vec3Discrete chunkPos) const;
+    bool isChunkContained(const VecUtils::Vec3Discrete &chunkPos) const;
 };
 
 class Camera {
@@ -76,14 +75,14 @@ class Camera {
     float rotationSpeed = 2.5f;
     float movementSpeed = 8.0f;
 
-    static constexpr size_t TARGET_DISTANCE = 5;
+    static constexpr int TARGET_DISTANCE = 5;
 
-    struct GLFWwindow *window;
+    GLFWwindow *window;
 
     KeyManager keyManager;
 
 public:
-    explicit Camera(struct GLFWwindow *w);
+    explicit Camera(GLFWwindow *w);
 
     void tick(float deltaTime);
 
@@ -103,7 +102,7 @@ public:
      * @return Is the chunk inside the frustum?
      */
     [[nodiscard]]
-    bool isChunkInFrustum(VecUtils::Vec3Discrete chunkPos) const { return frustum.isChunkContained(chunkPos); }
+    bool isChunkInFrustum(const VecUtils::Vec3Discrete& chunkPos) const { return frustum.isChunkContained(chunkPos); }
 
     /**
      * @return Vector containing positions of blocks which are under the camera's crosshair, no further from
@@ -128,6 +127,11 @@ private:
     void tickMouseMovement(float deltaTime);
 
     /**
+     * Updates the aspect ratio to reflect the current window's dimensions.
+     */
+    void updateAspectRatio();
+
+    /**
      * Updates the `front`, `right` and `up` vectors, which are used to help determine
      * what is visible to the camera.
      */
@@ -145,7 +149,7 @@ private:
      * @return is the block under the crosshair?
      */
     [[nodiscard]]
-    bool isBlockLookedAt(glm::vec3 blockPos) const;
+    bool isBlockLookedAt(const glm::vec3 &blockPos) const;
 };
 
 #endif //VOXEL_CAMERA_H

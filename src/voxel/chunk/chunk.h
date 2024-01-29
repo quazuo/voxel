@@ -7,7 +7,6 @@
 #include "src/voxel/block.h"
 #include "glm/vec3.hpp"
 #include "glm/vec2.hpp"
-#include "src/utils/size.h"
 #include "src/utils/vec.h"
 #include "src/utils/cube-array.h"
 
@@ -33,16 +32,16 @@ private:
     size_t activeBlockCount = 0;
 
 public:
-    explicit Chunk(glm::vec3 p) : pos(p) {}
+    explicit Chunk(const glm::vec3 &p) : pos(p) {}
 
     [[nodiscard]]
     VecUtils::Vec3Discrete getPos() const { return pos; }
 
     [[nodiscard]]
-    EBlockType getBlock(int x, int y, int z) const { return blocks[x][y][z].blockType; }
+    EBlockType getBlock(const int x, const int y, const int z) const { return blocks[x][y][z].blockType; }
 
     [[nodiscard]]
-    EBlockType getBlock(VecUtils::Vec3Discrete v) const { return blocks[v.x][v.y][v.z].blockType; }
+    EBlockType getBlock(const VecUtils::Vec3Discrete &v) const { return blocks[v.x][v.y][v.z].blockType; }
 
     [[nodiscard]]
     bool isLoaded() const { return _isLoaded; }
@@ -54,7 +53,7 @@ public:
 
     void markDirty() { _isDirty = true; }
 
-    void updateBlock(VecUtils::Vec3Discrete block, EBlockType type);
+    void updateBlock(const VecUtils::Vec3Discrete &block, EBlockType type);
 
     void updateBlock(int x, int y, int z, EBlockType type);
 
@@ -85,7 +84,7 @@ private:
     /**
      * Adds a specific cube's face to this mesh.
      */
-    void createFace(glm::vec3 cubePos, EBlockFace face, EBlockType blockType);
+    void createFace(const glm::vec3 &cubePos, EBlockFace face, EBlockType blockType) const;
 };
 
 #endif //MYGE_CHUNK_H
