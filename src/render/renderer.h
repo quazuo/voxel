@@ -39,9 +39,12 @@ private:
 
     // OpenGL handles
     GLuint vertexArrayID{};
-    GLuint cubeShaderID{}, lineShaderID{}, textShaderID{};
+    GLuint cubeShaderID{}, skyboxShaderID{}, lineShaderID{}, textShaderID{};
     GLint mvpMatrixID{}, modelMatrixID{}, viewMatrixID{}, projectionMatrixID{};
     GLint lightID{};
+
+    // OpenGL buffers used for outline rendering
+    std::unique_ptr<GLArrayBuffer<glm::vec3>> skyboxVertices;
 
     // OpenGL buffers used for text rendering
     std::unique_ptr<GLArrayBuffer<glm::vec2>> textVertices, textUVs;
@@ -90,6 +93,8 @@ public:
 
     [[nodiscard]]
     bool isChunkInFrustum(const Chunk& chunk) const { return camera->isChunkInFrustum(chunk.getPos()); };
+
+    void renderSkybox();
 
     void renderChunk(const std::shared_ptr<ChunkMeshContext>& ctx);
 

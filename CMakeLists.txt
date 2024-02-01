@@ -35,11 +35,9 @@ add_definitions(
     -D_CRT_SECURE_NO_WARNINGS
 )
 
-
 #set(CMAKE_CXX_FLAGS "-Wall -Wextra -Werror -Wpedantic -Wcast-align          \
 #    -Wdouble-promotion -Wmissing-declarations -Wmissing-include-dirs        \
-#    -Wnon-virtual-dtor -Wredundant-decls -Wodr -Wunreachable-code -Wshadow  \
-#    -I/usr/local/include -L/usr/local/lib -lnoise")
+#    -Wnon-virtual-dtor -Wredundant-decls -Wodr -Wunreachable-code -Wshadow")
 
 file(GLOB voxel_SRC
     "src/*"
@@ -48,6 +46,7 @@ file(GLOB voxel_SRC
     "src/voxel/*"
     "src/voxel/chunk/*"
     "deps/noiseutils/*"
+    "deps/stb/*"
 )
 add_executable(voxel ${voxel_SRC})
 

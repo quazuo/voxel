@@ -17,17 +17,26 @@ class TextureManager {
     using TextureMap = std::map<std::pair<EBlockType, EBlockFace>, GLuint>;
     TextureMap blockTextures;
 
+    GLuint skyboxCubemap{};
+
     GLuint fontTexture{};
 
 public:
+    using BlockTexPathMapping = const std::map<EBlockType, FaceMapping<std::filesystem::path>>;
+
     /**
-     * Loads a texture at a given path and applies it to certain faces of a block type.
+     * Loads all given block textures at given paths and applies them to all faces of given block types.
      *
-     * @param blockType Type of block which should use the texture.
-     * @param faces Block faces which should use the texture.
-     * @param path Path to a file containing the texture.
+     * @param blockTexPathMappings Map containing paths to texture for each face of each block.
      */
-    void loadBlockTexture(EBlockType blockType, std::uint8_t faces, const std::filesystem::path& path);
+    void loadBlockTextures(const BlockTexPathMapping& blockTexPathMappings);
+
+    /**
+     * Loads a texture at a given path and applies it to the skybox.
+     *
+     * @param skyboxTexturePaths Paths to files containing the textures.
+     */
+    void loadSkyboxTextures(const FaceMapping<std::filesystem::path>& skyboxTexturePaths);
 
     /**
      * Loads a texture at a given path and applies it to all rendered text.
@@ -35,7 +44,7 @@ public:
      *
      * @param path Path to a file containing the texture.
      */
-    void loadFontTexture(const std::filesystem::path& path);
+    void loadFontTexture(const std::filesystem::path &path);
 
     /**
      * Binds all managed block textures so that they can be used by the provided shader.
@@ -43,6 +52,13 @@ public:
      * @param blockShaderID ID of the shader program which will use all the textures.
      */
     void bindBlockTextures(GLuint blockShaderID) const;
+
+    /**
+     * Binds all managed skybox textures so that they can be used by the provided shader.
+     *
+     * @param skyboxShaderID ID of the shader program which will use all the textures.
+     */
+    void bindSkyboxTextures(GLuint skyboxShaderID) const;
 
     /**
      * Binds the font texture so that it can be used by the provided shader.
@@ -62,12 +78,36 @@ public:
 
 private:
     /**
-     * Loads a texture inside a .DDS file.
+     * Loads a texture stored inside a given file.
      *
      * @param path Path to the file.
      * @return OpenGL handle to the newly loaded texture.
      */
-    static GLuint loadDDS(const std::filesystem::path& path);
+    static GLuint loadTexture(const std::filesystem::path& path);
+
+    /**
+     * Loads a cubemap texture stored inside a given file.
+     *
+     * @param skyboxTexturePaths Paths to texture files.
+     * @return OpenGL handle to the newly loaded cubemap texture.
+     */
+    static GLuint loadCubemapTexture(const FaceMapping<std::filesystem::path>& skyboxTexturePaths);
+
+    /**
+     * Loads a texture stored inside a given .DDS file.
+     *
+     * @param path Path to the file.
+     * @return OpenGL handle to the newly loaded texture.
+     */
+    static GLuint loadTextureDDS(const std::filesystem::path &path);
+
+    /**
+     * Loads a cubemap texture stored inside a given .DDS file.
+     *
+     * @param skyboxTexturePaths Paths to texture files.
+     * @return OpenGL handle to the newly loaded cubemap texture.
+     */
+    static GLuint loadCubemapDDS(const FaceMapping<std::filesystem::path>& skyboxTexturePaths);
 };
 
 #endif //VOXEL_TEXTURE_MANAGER_H

@@ -58,6 +58,7 @@ public:
         // rendering
         renderer->startRendering();
 
+        renderer->renderSkybox();
         chunkManager->renderChunks();
 
         if (doRenderChunkOutlines)
@@ -73,8 +74,9 @@ public:
         // following functions HAVE TO be called as the last thing, because while rendering overlays we clear
         // the z-buffer so that the text is on top of everything.
         // this is, of course, not desired for other rendered things.
-        if (doRenderDebugText)
+        if (doRenderDebugText) {
             renderDebugText(1 / deltaTime);
+        }
         renderer->renderHud();
 
         renderer->finishRendering();

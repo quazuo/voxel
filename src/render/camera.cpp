@@ -177,6 +177,10 @@ glm::mat4 Camera::getViewMatrix() const {
     return glm::lookAt(pos, pos + front, glm::vec3(0, 1, 0));
 }
 
+glm::mat4 Camera::getStaticViewMatrix() const {
+    return glm::lookAt(glm::vec3(0), front, glm::vec3(0, 1, 0));
+}
+
 glm::mat4 Camera::getProjectionMatrix() const {
     return glm::perspective(fieldOfView, aspectRatio, zNear, zFar);
 }

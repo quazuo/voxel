@@ -11,6 +11,52 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+// vertices of a the skybox cube.
+// might change this to be generated more intelligently... but it's good enough for now
+static std::vector<glm::vec3> skyboxVerticesList = {
+    {-1.0f,  1.0f, -1.0f},
+    {-1.0f, -1.0f, -1.0f},
+    { 1.0f, -1.0f, -1.0f},
+    { 1.0f, -1.0f, -1.0f},
+    { 1.0f,  1.0f, -1.0f},
+    {-1.0f,  1.0f, -1.0f},
+
+    {-1.0f, -1.0f,  1.0f},
+    {-1.0f, -1.0f, -1.0f},
+    {-1.0f,  1.0f, -1.0f},
+    {-1.0f,  1.0f, -1.0f},
+    {-1.0f,  1.0f,  1.0f},
+    {-1.0f, -1.0f,  1.0f},
+
+    { 1.0f, -1.0f, -1.0f},
+    { 1.0f, -1.0f,  1.0f},
+    { 1.0f,  1.0f,  1.0f},
+    { 1.0f,  1.0f,  1.0f},
+    { 1.0f,  1.0f, -1.0f},
+    { 1.0f, -1.0f, -1.0f},
+
+    {-1.0f, -1.0f,  1.0f},
+    {-1.0f,  1.0f,  1.0f},
+    { 1.0f,  1.0f,  1.0f},
+    { 1.0f,  1.0f,  1.0f},
+    { 1.0f, -1.0f,  1.0f},
+    {-1.0f, -1.0f,  1.0f},
+
+    {-1.0f,  1.0f, -1.0f},
+    { 1.0f,  1.0f, -1.0f},
+    { 1.0f,  1.0f,  1.0f},
+    { 1.0f,  1.0f,  1.0f},
+    {-1.0f,  1.0f,  1.0f},
+    {-1.0f,  1.0f, -1.0f},
+
+    {-1.0f, -1.0f, -1.0f},
+    {-1.0f, -1.0f,  1.0f},
+    { 1.0f, -1.0f, -1.0f},
+    { 1.0f, -1.0f, -1.0f},
+    {-1.0f, -1.0f,  1.0f},
+    { 1.0f, -1.0f,  1.0f}
+};
+
 OpenGLRenderer::OpenGLRenderer(const int windowWidth, const int windowHeight) {
     glfwWindowHint(GLFW_SAMPLES, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -67,6 +113,7 @@ OpenGLRenderer::OpenGLRenderer(const int windowWidth, const int windowHeight) {
 
     // load & compile shaders
     cubeShaderID = loadShaders("cube-shader.vert", "cube-shader.frag");
+    skyboxShaderID = loadShaders("skybox-shader.vert", "skybox-shader.frag");
     lineShaderID = loadShaders("line-shader.vert", "line-shader.frag");
     textShaderID = loadShaders("text-shader.vert", "text-shader.frag");
     glUseProgram(cubeShaderID);
@@ -81,6 +128,9 @@ OpenGLRenderer::OpenGLRenderer(const int windowWidth, const int windowHeight) {
 
     // Get a handle for our "LightPosition" uniform
     lightID = glGetUniformLocation(cubeShaderID, "LightPosition_worldspace");
+
+    skyboxVertices = std::make_unique<GLArrayBuffer<glm::vec3> >(0, 3);
+    skyboxVertices->write(skyboxVerticesList);
 
     // generate a buffer for line vertices and allocate it beforehand
     lineVertices = std::make_unique<GLArrayBuffer<glm::vec3> >(3, 3);
@@ -190,12 +240,31 @@ GLuint OpenGLRenderer::loadShaders(const std::filesystem::path &vertexShaderPath
 }
 
 void OpenGLRenderer::loadTextures() const {
+    using FacePathMapping = FaceMapping<std::filesystem::path>;
+
+    const std::map<EBlockType, FacePathMapping> blockTexturePathMappings {
+        {BlockType_Grass, FacePathMapping(
+            std::make_pair(ALL_SIDE_FACES, "assets/grass-side.png"),
+            std::make_pair(Top, "assets/grass-top.png"),
+            std::make_pair(Bottom, "assets/dirt.png")
+        )},
+        {BlockType_Dirt, FacePathMapping(
+            std::make_pair(ALL_FACES, "assets/dirt.png")
+        )},
+        {BlockType_Stone, FacePathMapping(
+            std::make_pair(ALL_FACES, "assets/stone.png")
+        )}
+    };
+
+    const FacePathMapping skyboxTexturePaths {
+        std::make_pair(ALL_SIDE_FACES, "assets/sky-side.png"),
+        std::make_pair(Top, "assets/sky-top.png"),
+        std::make_pair(Bottom, "assets/sky-bottom.png")
+    };
+
+    textureManager->loadBlockTextures(blockTexturePathMappings);
+    textureManager->loadSkyboxTextures(skyboxTexturePaths);
     textureManager->loadFontTexture("assets/font.dds");
-    textureManager->loadBlockTexture(EBlockType::BlockType_Grass, ALL_SIDE_FACES, "assets/grass-side.dds");
-    textureManager->loadBlockTexture(EBlockType::BlockType_Grass, EBlockFace::Top, "assets/grass-top.dds");
-    textureManager->loadBlockTexture(EBlockType::BlockType_Grass, EBlockFace::Bottom, "assets/dirt.dds");
-    textureManager->loadBlockTexture(EBlockType::BlockType_Dirt, ALL_FACES, "assets/dirt.dds");
-    textureManager->loadBlockTexture(EBlockType::BlockType_Stone, ALL_FACES, "assets/stone.dds");
 }
 
 void OpenGLRenderer::startRendering() {
@@ -210,6 +279,24 @@ void OpenGLRenderer::startRendering() {
     for (auto &[gid, vertices]: tempLineVertexGroups) {
         vertices.clear();
     }
+}
+
+void OpenGLRenderer::renderSkybox() {
+    glDepthMask(GL_FALSE);
+    glUseProgram(skyboxShaderID);
+
+    const glm::mat4 staticViewMatrix = camera->getStaticViewMatrix();
+    const auto viewMatrixID = glGetUniformLocation(skyboxShaderID, "V");
+    glUniformMatrix4fv(viewMatrixID, 1, GL_FALSE, &staticViewMatrix[0][0]);
+
+    const auto projectionMatrixID = glGetUniformLocation(skyboxShaderID, "P");
+    glUniformMatrix4fv(projectionMatrixID, 1, GL_FALSE, &projectionMatrix[0][0]);
+
+    textureManager->bindSkyboxTextures(skyboxShaderID);
+
+    skyboxVertices->enable();
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glDepthMask(GL_TRUE);
 }
 
 void OpenGLRenderer::renderChunk(const std::shared_ptr<ChunkMeshContext> &ctx) {

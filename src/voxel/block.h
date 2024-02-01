@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <stdexcept>
 #include <array>
+#include <map>
 #include "glm/vec3.hpp"
 
 enum EBlockFace : std::uint8_t {
@@ -14,6 +15,72 @@ enum EBlockFace : std::uint8_t {
     Top = 1 << 4,
     Bottom = 1 << 5,
     N_FACES = 6
+};
+
+static constexpr std::uint8_t ALL_FACES = Front | Back | Right | Left | Top | Bottom;
+static constexpr std::uint8_t ALL_SIDE_FACES = Front | Back | Right | Left;
+
+/**
+ * Utility class for various mappings between faces and other kinds of things.
+ * Made mostly as a wrapper over std::map, but saving a bit of memory when using
+ * same values across all faces or all side faces.
+ */
+template<typename T>
+class FaceMapping {
+    std::map<uint8_t, T> mapping;
+
+public:
+    template<typename ...Args>
+    FaceMapping(Args &&... args) : mapping({ args... }) {}
+
+    void insert(const uint8_t key, const T& value) {
+        switch (key) {
+            case Front:
+            case Back:
+            case Right:
+            case Left:
+            case Top:
+            case Bottom:
+            case ALL_FACES:
+            case ALL_SIDE_FACES:
+                break;
+            default:
+                throw std::runtime_error("invalid key value in FaceMapping::insert");
+        }
+
+        mapping.emplace(key, value);
+    }
+
+    [[nodiscard]]
+    bool contains(const uint8_t key) const {
+        return mapping.contains(key);
+    }
+
+    [[nodiscard]]
+    T get(const EBlockFace key) const {
+        if (key == N_FACES) {
+            throw std::runtime_error("invalid key value in FaceMapping::get");
+        }
+
+        if (mapping.contains(ALL_FACES)) {
+            return mapping.at(ALL_FACES);
+        }
+
+        switch (key) {
+            case Front:
+            case Back:
+            case Right:
+            case Left:
+                if (mapping.contains(ALL_SIDE_FACES)) {
+                    return mapping.at(ALL_SIDE_FACES);
+                }
+            case Top:
+            case Bottom:
+                return mapping.at(key);
+            default: // to silence warnings
+                throw std::runtime_error("invalid key value in FaceMapping::get");
+        }
+    }
 };
 
 static glm::vec3 getNormalFromFace(const EBlockFace face) {
@@ -50,9 +117,6 @@ static EBlockFace getFaceFromNormal(const glm::vec3& normal) {
         return Bottom;
     throw std::runtime_error("invalid normal in getFaceFromNormal()");
 }
-
-static constexpr std::uint8_t ALL_FACES = Front | Back | Right | Left | Top | Bottom;
-static constexpr std::uint8_t ALL_SIDE_FACES = Front | Back | Right | Left;
 
 // this is purposefully not an enum class, as we want to use the underlying numeric values
 // to also index into texture samplers inside the cube fragment shader

@@ -93,6 +93,9 @@ public:
     glm::mat4 getViewMatrix() const;
 
     [[nodiscard]]
+    glm::mat4 getStaticViewMatrix() const;
+
+    [[nodiscard]]
     glm::mat4 getProjectionMatrix() const;
 
     /**
