@@ -144,6 +144,7 @@ OpenGLRenderer::OpenGLRenderer(const int windowWidth, const int windowHeight) {
 }
 
 OpenGLRenderer::~OpenGLRenderer() {
+    glfwDestroyWindow(window);
     glfwTerminate();
 }
 

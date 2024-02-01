@@ -3,6 +3,7 @@
 #include "GL/glew.h"
 #include <GLFW/glfw3.h>
 
+#include "render/gui.h"
 #include "render/renderer.h"
 #include "voxel/chunk/chunk-manager.h"
 #include "utils/key-manager.h"
@@ -11,6 +12,8 @@
 class VEngine {
     std::shared_ptr<OpenGLRenderer> renderer;
     GLFWwindow *window = nullptr;
+
+    std::shared_ptr<GuiRenderer> guiRenderer;
 
     std::unique_ptr<ChunkManager> chunkManager;
 
@@ -34,6 +37,7 @@ public:
 
         renderer = std::make_shared<OpenGLRenderer>(1024, 768);
         window = renderer->getWindow();
+        guiRenderer = std::make_shared<GuiRenderer>(window);
         worldGen = std::make_shared<DefaultWorldGen>();
         chunkManager = std::make_unique<ChunkManager>(renderer, worldGen);
         bindKeyActions();
