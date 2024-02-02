@@ -27,6 +27,8 @@ class VEngine {
 
     bool doRenderChunkOutlines = false;
     bool doRenderDebugText = true;
+    bool doShowGui = false;
+    bool doLockCursor = true;
     bool doTick = true;
 
 public:
@@ -36,6 +38,8 @@ public:
         }
 
         renderer = std::make_shared<OpenGLRenderer>(1024, 768);
+        renderer->setIsCursorLocked(doLockCursor);
+
         window = renderer->getWindow();
         guiRenderer = std::make_shared<GuiRenderer>(window);
         worldGen = std::make_shared<DefaultWorldGen>();
@@ -78,10 +82,13 @@ public:
         // following functions HAVE TO be called as the last thing, because while rendering overlays we clear
         // the z-buffer so that the text is on top of everything.
         // this is, of course, not desired for other rendered things.
-        if (doRenderDebugText) {
-            renderDebugText(1 / deltaTime);
-        }
         renderer->renderHud();
+
+        if (doShowGui) {
+            guiRenderer->startRendering();
+            renderer->renderGuiSection();
+            guiRenderer->finishRendering();
+        }
 
         renderer->finishRendering();
     }
@@ -103,6 +110,11 @@ public:
             }
         });
 
+        keyManager.bindCallback(GLFW_KEY_GRAVE_ACCENT, EActivationType::PRESS_ONCE, [&](const float deltaTime) {
+            (void) deltaTime;
+            doShowGui = !doShowGui;
+        });
+
         keyManager.bindCallback(GLFW_KEY_F1, EActivationType::PRESS_ONCE, [&](const float deltaTime) {
             (void) deltaTime;
             doRenderChunkOutlines = !doRenderChunkOutlines;
@@ -110,7 +122,8 @@ public:
 
         keyManager.bindCallback(GLFW_KEY_F2, EActivationType::PRESS_ONCE, [&](const float deltaTime) {
             (void) deltaTime;
-            doRenderDebugText = !doRenderDebugText;
+            doLockCursor = !doLockCursor;
+            renderer->setIsCursorLocked(doLockCursor);
         });
 
         keyManager.bindCallback(GLFW_KEY_ESCAPE, EActivationType::PRESS_ONCE, [&](const float deltaTime) {

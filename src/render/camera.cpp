@@ -7,6 +7,7 @@
 #include "glm/geometric.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 #include "src/voxel/chunk/chunk.h"
+#include "gui.h"
 
 bool Plane::isChunkInFront(const VecUtils::Vec3Discrete &chunkPos) const {
     const glm::vec3 chunkAbsPos =
@@ -74,6 +75,53 @@ void Camera::updateRotation(const float dx, const float dy) {
     );
 }
 
+void Camera::renderGuiSection() {
+    ImDrawList *drawList = ImGui::GetWindowDrawList();
+    const ImGuiIO &io = ImGui::GetIO();
+
+    constexpr auto sectionFlags = ImGuiTreeNodeFlags_DefaultOpen;
+
+    if (ImGui::CollapsingHeader("Camera ", sectionFlags)) {
+        ImGui::Text("Position: (%.2f, %.2f, %.2f)", pos.x, pos.y, pos.z);
+        ImGui::Text("Rotation: (%.2f, %.2f)", rot.x, rot.y);
+        ImGui::Text("Axes:");
+
+        if (ImGui::BeginChild("Axes", ImVec2(50, 50))) {
+            drawList->AddRectFilled(
+                ImGui::GetWindowPos(),
+                ImGui::GetWindowPos() + ImVec2(50, 50),
+                IM_COL32(0, 0, 0, 255)
+            );
+
+            const ImVec2 offset = ImGui::GetWindowPos() + ImVec2(25, 25);
+            constexpr float scale = 20;
+            const glm::mat4 view = getStaticViewMatrix();
+            constexpr auto projectionX = glm::vec3(1, 0, 0);
+            constexpr auto projectionY = glm::vec3(0, 1, 0);
+
+            const glm::vec3 x = view * glm::vec4(1, 0, 0, 0);
+            const float tx1 = scale * glm::dot(projectionX, x);
+            const float tx2 = scale * glm::dot(projectionY, x);
+            drawList->AddLine(offset, offset + ImVec2(tx1, -tx2), IM_COL32(255, 0, 0, 255));
+
+            const glm::vec3 y = view * glm::vec4(0, 1, 0, 0);
+            const float ty1 = scale * glm::dot(projectionX, y);
+            const float ty2 = scale * glm::dot(projectionY, y);
+            drawList->AddLine(offset, offset + ImVec2(ty1, -ty2), IM_COL32(0, 255, 0, 255));
+
+            const glm::vec3 z = view * glm::vec4(0, 0, 1, 0);
+            const float tz1 = scale * glm::dot(projectionX, z);
+            const float tz2 = scale * glm::dot(projectionY, z);
+            drawList->AddLine(offset, offset + ImVec2(tz1, -tz2), IM_COL32(0, 0, 255, 255));
+        }
+        ImGui::EndChild();
+
+        ImGui::SliderFloat("Field of view", &fieldOfView, 20.0f, 160.0f, "%.0f");
+        ImGui::DragFloat("Rotation speed", &rotationSpeed, 1.0f, 0.0f, FLT_MAX, "%.0f");
+        ImGui::DragFloat("Movement speed", &movementSpeed, 1.0f, 0.0f, FLT_MAX, "%.0f");
+    }
+}
+
 void Camera::updateVecs() {
     front = {
         std::cos(rot.y) * std::sin(rot.x),
@@ -116,14 +164,33 @@ void Camera::bindMovementKeys() {
     });
 }
 
+void Camera::setIsCursorLocked(const bool b) {
+    isCursorLocked = b;
+
+    if (isCursorLocked) {
+        glm::vec<2, int> windowSize{};
+        glfwGetWindowSize(window, &windowSize.x, &windowSize.y);
+
+        glfwSetCursorPos(
+            window,
+            static_cast<double>(windowSize.x) / 2,
+            static_cast<double>(windowSize.y) / 2
+        );
+    }
+}
+
 void Camera::tickMouseMovement(const float deltaTime) {
+    if (!isCursorLocked) {
+        return;
+    }
+
     glm::vec<2, double> cursorPos{};
     glfwGetCursorPos(window, &cursorPos.x, &cursorPos.y);
 
     glm::vec<2, int> windowSize{};
     glfwGetWindowSize(window, &windowSize.x, &windowSize.y);
 
-    constexpr float mouseSpeed = 0.004f;
+    const float mouseSpeed = 0.002f * rotationSpeed;
     updateRotation(
         mouseSpeed * (static_cast<float>(windowSize.x) / 2.f - static_cast<float>(cursorPos.x)),
         mouseSpeed * (static_cast<float>(windowSize.y) / 2.f - static_cast<float>(cursorPos.y))
@@ -142,7 +209,7 @@ void Camera::updateAspectRatio() {
 }
 
 void Camera::updateFrustum() {
-    const float halfVSide = zFar * tanf(fieldOfView * 0.5f);
+    const float halfVSide = zFar * tanf(glm::radians(fieldOfView) * 0.5f);
     const float halfHSide = halfVSide * aspectRatio;
     const glm::vec3 frontMultNear = zNear * front;
     const glm::vec3 frontMultFar = zFar * front;
@@ -182,7 +249,7 @@ glm::mat4 Camera::getStaticViewMatrix() const {
 }
 
 glm::mat4 Camera::getProjectionMatrix() const {
-    return glm::perspective(fieldOfView, aspectRatio, zNear, zFar);
+    return glm::perspective(glm::radians(fieldOfView), aspectRatio, zNear, zFar);
 }
 
 std::vector<VecUtils::Vec3Discrete> Camera::getLookedAtBlocks() const {

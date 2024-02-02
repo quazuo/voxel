@@ -5,6 +5,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <ranges>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -181,52 +182,52 @@ GLuint OpenGLRenderer::loadShaders(const std::filesystem::path &vertexShaderPath
     std::string fragmentShaderCode = sstr.str();
     fragmentShaderStream.close();
 
-    GLint Result = GL_FALSE;
-    int InfoLogLength;
+    GLint result = GL_FALSE;
+    int infoLogLength;
 
-    // Compile vertex shader
+    // compile the vertex shader
     std::cout << "Compiling shader: " << vertexShaderPath << "\n";
     char const *vertexSourcePointer = vertexShaderCode.c_str();
     glShaderSource(vertexShaderID, 1, &vertexSourcePointer, nullptr);
     glCompileShader(vertexShaderID);
 
-    // Check vertex shader
-    glGetShaderiv(vertexShaderID, GL_COMPILE_STATUS, &Result);
-    glGetShaderiv(vertexShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
-    if (InfoLogLength > 0) {
-        std::vector<char> vertexShaderErrorMessage(InfoLogLength + 1);
-        glGetShaderInfoLog(vertexShaderID, InfoLogLength, nullptr, &vertexShaderErrorMessage[0]);
+    // check the vertex shader
+    glGetShaderiv(vertexShaderID, GL_COMPILE_STATUS, &result);
+    glGetShaderiv(vertexShaderID, GL_INFO_LOG_LENGTH, &infoLogLength);
+    if (infoLogLength > 0) {
+        std::vector<char> vertexShaderErrorMessage(infoLogLength + 1);
+        glGetShaderInfoLog(vertexShaderID, infoLogLength, nullptr, &vertexShaderErrorMessage[0]);
         throw std::runtime_error("vertex shader compilation failed: " + std::string(&vertexShaderErrorMessage[0]));
     }
 
-    // Compile fragment shader
+    // compile the fragment shader
     std::cout << "Compiling shader: " << fragmentShaderPath << "\n";
     char const *fragmentSourcePointer = fragmentShaderCode.c_str();
     glShaderSource(fragmentShaderID, 1, &fragmentSourcePointer, nullptr);
     glCompileShader(fragmentShaderID);
 
-    // Check fragment shader
-    glGetShaderiv(fragmentShaderID, GL_COMPILE_STATUS, &Result);
-    glGetShaderiv(fragmentShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
-    if (InfoLogLength > 0) {
-        std::vector<char> fragmentShaderErrorMessage(InfoLogLength + 1);
-        glGetShaderInfoLog(fragmentShaderID, InfoLogLength, nullptr, &fragmentShaderErrorMessage[0]);
+    // check the fragment shader
+    glGetShaderiv(fragmentShaderID, GL_COMPILE_STATUS, &result);
+    glGetShaderiv(fragmentShaderID, GL_INFO_LOG_LENGTH, &infoLogLength);
+    if (infoLogLength > 0) {
+        std::vector<char> fragmentShaderErrorMessage(infoLogLength + 1);
+        glGetShaderInfoLog(fragmentShaderID, infoLogLength, nullptr, &fragmentShaderErrorMessage[0]);
         throw std::runtime_error("fragment shader compilation failed: " + std::string(&fragmentShaderErrorMessage[0]));
     }
 
-    // Link the program
+    // link the program
     std::cout << "Linking program\n";
     GLuint shaderID = glCreateProgram();
     glAttachShader(shaderID, vertexShaderID);
     glAttachShader(shaderID, fragmentShaderID);
     glLinkProgram(shaderID);
 
-    // Check the program
-    glGetProgramiv(shaderID, GL_LINK_STATUS, &Result);
-    glGetProgramiv(shaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
-    if (InfoLogLength > 0) {
-        std::vector<char> ProgramErrorMessage(InfoLogLength + 1);
-        glGetProgramInfoLog(shaderID, InfoLogLength, nullptr, &ProgramErrorMessage[0]);
+    // check the program
+    glGetProgramiv(shaderID, GL_LINK_STATUS, &result);
+    glGetProgramiv(shaderID, GL_INFO_LOG_LENGTH, &infoLogLength);
+    if (infoLogLength > 0) {
+        std::vector<char> ProgramErrorMessage(infoLogLength + 1);
+        glGetProgramInfoLog(shaderID, infoLogLength, nullptr, &ProgramErrorMessage[0]);
         printf("%s\n", &ProgramErrorMessage[0]);
         throw std::runtime_error("shader linking failed: " + std::string(&ProgramErrorMessage[0]));
     }
@@ -277,9 +278,18 @@ void OpenGLRenderer::startRendering() {
     const glm::vec3 lightPos = camera->getPos();
     glUniform3f(lightID, lightPos.x, lightPos.y, lightPos.z);
 
-    for (auto &[gid, vertices]: tempLineVertexGroups) {
+    for (auto &vertices: tempLineVertexGroups | std::views::values) {
         vertices.clear();
     }
+}
+
+void OpenGLRenderer::setIsCursorLocked(const bool b) const {
+    camera->setIsCursorLocked(b);
+    glfwSetInputMode(window, GLFW_CURSOR, b ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
+}
+
+void OpenGLRenderer::renderGuiSection() const {
+    camera->renderGuiSection();
 }
 
 void OpenGLRenderer::renderSkybox() {

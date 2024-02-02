@@ -64,7 +64,7 @@ class Camera {
     Frustum frustum;
 
     float aspectRatio = 4.0f / 3.0f;
-    float fieldOfView = glm::radians(80.0f);
+    float fieldOfView = 80.0f;
     float zNear = 0.1f;
     float zFar = 500.0f;
 
@@ -74,6 +74,7 @@ class Camera {
 
     float rotationSpeed = 2.5f;
     float movementSpeed = 8.0f;
+    bool isCursorLocked = true;
 
     static constexpr int TARGET_DISTANCE = 5;
 
@@ -99,6 +100,13 @@ public:
     glm::mat4 getProjectionMatrix() const;
 
     /**
+     * Locks or unlocks the cursor. When the cursor is locked, it's confined to the center
+     * of the screen and camera rotates according to its movement. When it's unlocked, it's
+     * visible and free to move around the screen; most importantly able to use the GUI.
+     */
+    void setIsCursorLocked(bool b);
+
+    /**
      * Checks if the given chunk is at least partly contained within the camera's frustum.
      *
      * @param chunkPos Position of the chunk, given by the vertex with the lowest coordinates
@@ -115,6 +123,8 @@ public:
     std::vector<VecUtils::Vec3Discrete> getLookedAtBlocks() const;
 
     void updateRotation(float dx = 0.0f, float dy = 0.0f);
+
+    void renderGuiSection();
 
 private:
     /**

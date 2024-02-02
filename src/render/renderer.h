@@ -94,6 +94,15 @@ public:
     [[nodiscard]]
     bool isChunkInFrustum(const Chunk& chunk) const { return camera->isChunkInFrustum(chunk.getPos()); };
 
+    /**
+     * Locks or unlocks the cursor. When the cursor is locked, it's confined to the center
+     * of the screen and camera rotates according to its movement. When it's unlocked, it's
+     * visible and free to move around the screen; most importantly able to use the GUI.
+     */
+    void setIsCursorLocked(bool b) const;
+
+    void renderGuiSection() const;
+
     void renderSkybox();
 
     void renderChunk(const std::shared_ptr<ChunkMeshContext>& ctx);
