@@ -29,7 +29,6 @@ class VEngine {
     bool doRenderDebugText = true;
     bool doShowGui = false;
     bool doLockCursor = true;
-    bool doTick = true;
 
 public:
     void init() {
@@ -48,7 +47,7 @@ public:
     }
 
     void startTicking() {
-        while (doTick && !glfwWindowShouldClose(window)) {
+        while (!glfwWindowShouldClose(window)) {
             tick();
         }
     }
@@ -128,7 +127,7 @@ public:
 
         keyManager.bindCallback(GLFW_KEY_ESCAPE, EActivationType::PRESS_ONCE, [&](const float deltaTime) {
             (void) deltaTime;
-            doTick = false;
+            glfwSetWindowShouldClose(window, true);
         });
     }
 };
