@@ -42,6 +42,7 @@ GLArrayBuffer<T>::GLArrayBuffer(const GLuint index, const GLint count) : bufferI
     glBindBuffer(GL_ARRAY_BUFFER, this->bufferID);
     glVertexAttribPointer(bufferIndex, compCount, GL_FLOAT, GL_FALSE, 0, nullptr);
     glBufferData(GL_ARRAY_BUFFER, this->BASE_CAPACITY * sizeof(T), nullptr, GL_DYNAMIC_DRAW);
+    glEnableVertexAttribArray(bufferIndex);
 }
 
 template<typename T>

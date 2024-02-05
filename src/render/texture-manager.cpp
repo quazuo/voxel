@@ -57,10 +57,6 @@ void TextureManager::loadSkyboxTextures(const FaceMapping<std::filesystem::path>
     skyboxCubemap = loadCubemapTexture(skyboxTexturePaths);
 }
 
-void TextureManager::loadFontTexture(const std::filesystem::path &path) {
-    fontTexture = loadTextureDDS(path);
-}
-
 int TextureManager::getBlockSamplerID(const EBlockType blockType, const EBlockFace face) {
     static const std::map<EBlockFace, int> faceIdOffsets = {
         {Front, 0},
@@ -97,12 +93,6 @@ void TextureManager::bindSkyboxTextures(const GLuint skyboxShaderID) const {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxCubemap);
     glUniform1i(glGetUniformLocation(skyboxShaderID, "skyboxTexSampler"), 0);
-}
-
-void TextureManager::bindFontTexture(const GLuint textShaderID) const {
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, fontTexture);
-    glUniform1i(glGetUniformLocation(textShaderID, "texSampler"), 0);
 }
 
 GLuint TextureManager::getBlockTextureID(const EBlockType blockType, const EBlockFace face) const {

@@ -13,7 +13,7 @@
 #include "glm/ext/matrix_float4x4.hpp"
 #include "glm/trigonometric.hpp"
 #include "camera.h"
-#include "gl-buffer.h"
+#include "gl/gl-buffer.h"
 #include "mesh-context.h"
 
 /**
@@ -38,19 +38,12 @@ private:
     std::unique_ptr<Camera> camera;
 
     // OpenGL handles
-    GLuint vertexArrayID{};
-    GLuint cubeShaderID{}, skyboxShaderID{}, lineShaderID{}, textShaderID{};
+    GLuint cubeShaderID{}, skyboxShaderID{}, lineShaderID{};
     GLint mvpMatrixID{}, modelMatrixID{}, viewMatrixID{}, projectionMatrixID{};
-    GLint lightID{};
 
-    // OpenGL buffers used for outline rendering
-    std::unique_ptr<GLArrayBuffer<glm::vec3>> skyboxVertices;
+    std::unique_ptr<BasicVertexArray> skyboxVao;
 
-    // OpenGL buffers used for text rendering
-    std::unique_ptr<GLArrayBuffer<glm::vec2>> textVertices, textUVs;
-
-    // OpenGL buffers used for outline rendering
-    std::unique_ptr<GLArrayBuffer<glm::vec3>> lineVertices;
+    std::unique_ptr<BasicVertexArray> outlinesVao;
 
     std::map<LineType, glm::vec3> vertexGroupColors = {
             {CHUNK_OUTLINE,          {1, 1, 0}},
@@ -121,16 +114,6 @@ public:
      * @param blockPos The block's position, given by its vertex with the lowest coordinates.
      */
     void addTargetedBlockOutline(const glm::vec3 &blockPos);
-
-    /**
-     * Renders a specified string of text at given coordinates.
-     *
-     * @param text The text to be rendered.
-     * @param x X coordinates of the down-left corner of the text box.
-     * @param y Y coordinates of the down-left corner of the text box.
-     * @param fontSize The size of the text.
-     */
-    void renderText(const std::string& text, float x, float y, float fontSize) const;
 
     /**
      * Renders the HUD, containing mostly text.

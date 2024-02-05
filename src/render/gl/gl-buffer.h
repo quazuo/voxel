@@ -6,16 +6,13 @@
 #include <vector>
 
 /**
- * Abstraction over the OpenGL buffer, making it easier to manage by hiding all the OpenGL API calls.
+ * Abstraction over an OpenGL buffer, making it easier to manage by hiding all the OpenGL API calls.
  * This is an abstract class that only defines some core functionalities, like writing and enabling the buffer.
  *
  * @tparam T type of elements stored in the buffer.
  */
 template<typename T>
 class GLBuffer {
-public:
-    virtual ~GLBuffer();
-
 protected:
     /// The buffers always store `BASE_CAPACITY * 2^N` elements for some `N` depending on how many elements
     /// are being stored at the moment.
@@ -25,6 +22,8 @@ protected:
     GLuint bufferID {};
 
 public:
+    virtual ~GLBuffer();
+
     /**
      * Writes the given data to the buffer, possibly reallocating it to contain all the data.
      *

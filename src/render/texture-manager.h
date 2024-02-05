@@ -9,17 +9,12 @@
 /**
  * Class managing all the textures used by the renderer.
  * This currently includes only textures for blocks as well as for text.
- *
- * TODO: fontTexture as well as text support as a whole will be removed
- * TODO: when ImGUI will be incorporated into the project.
  */
 class TextureManager {
     using TextureMap = std::map<std::pair<EBlockType, EBlockFace>, GLuint>;
     TextureMap blockTextures;
 
     GLuint skyboxCubemap{};
-
-    GLuint fontTexture{};
 
 public:
     using BlockTexPathMapping = const std::map<EBlockType, FaceMapping<std::filesystem::path>>;
@@ -39,14 +34,6 @@ public:
     void loadSkyboxTextures(const FaceMapping<std::filesystem::path>& skyboxTexturePaths);
 
     /**
-     * Loads a texture at a given path and applies it to all rendered text.
-     * TODO: this will be removed when ImGUI will be incorporated into the project.
-     *
-     * @param path Path to a file containing the texture.
-     */
-    void loadFontTexture(const std::filesystem::path &path);
-
-    /**
      * Binds all managed block textures so that they can be used by the provided shader.
      *
      * @param blockShaderID ID of the shader program which will use all the textures.
@@ -60,21 +47,11 @@ public:
      */
     void bindSkyboxTextures(GLuint skyboxShaderID) const;
 
-    /**
-     * Binds the font texture so that it can be used by the provided shader.
-     *
-     * @param textShaderID ID of the shader program which will use the font texture.
-     */
-    void bindFontTexture(GLuint textShaderID) const;
-
     [[nodiscard]]
     GLuint getBlockTextureID(EBlockType blockType, EBlockFace face) const;
 
     [[nodiscard]]
     static int getBlockSamplerID(EBlockType blockType, EBlockFace face);
-
-    [[nodiscard]]
-    GLuint getFontTextureID() const { return fontTexture; }
 
 private:
     /**

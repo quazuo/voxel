@@ -2,12 +2,7 @@
 
 #include <iostream>
 
-ChunkMeshContext::ChunkMeshContext() :
-    vertices(std::make_unique<GLArrayBuffer<glm::vec3>>(0, 3)),
-    normals(std::make_unique<GLArrayBuffer<glm::vec3>>(2, 3)),
-    uvs(std::make_unique<GLArrayBuffer<glm::vec2>>(1, 2)),
-    texIDs(std::make_unique<GLArrayBuffer<int>>(3, 1)),
-    indices(std::make_unique<GLElementBuffer>()) {}
+ChunkMeshContext::ChunkMeshContext() : vao(std::make_unique<ChunkVertexArray>()) {}
 
 void ChunkMeshContext::clear() {
     quads = {};
@@ -60,26 +55,12 @@ void ChunkMeshContext::writeToBuffers() const {
         throw std::runtime_error("tried to call writeToBuffers() without prior indexing");
     }
 
-    vertices->write(indexedData->vertices);
-    uvs->write(indexedData->uvs);
-    normals->write(indexedData->normals);
-    texIDs->write(indexedData->texIDs);
-    indices->write(indexedData->indices);
+    vao->writeToBuffers(*indexedData);
 }
 
 void ChunkMeshContext::drawElements() const {
-    vertices->enable();
-    uvs->enable();
-    normals->enable();
-    texIDs->enable();
-
-    indices->enable();
+    vao->enable();
     glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indexedData->indices.size()), GL_UNSIGNED_SHORT, nullptr);
-
-    vertices->disable();
-    uvs->disable();
-    normals->disable();
-    texIDs->disable();
 }
 
 void ChunkMeshContext::triangulateQuads() {

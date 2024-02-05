@@ -23,7 +23,7 @@ uniform vec3 LightPosition_worldspace;
     if (texID == 6 * (n) + 2) return texture(texSampler[6 * (n) + 2], UV).rgb; \
     if (texID == 6 * (n) + 3) return texture(texSampler[6 * (n) + 3], UV).rgb; \
     if (texID == 6 * (n) + 4) return texture(texSampler[6 * (n) + 4], UV).rgb; \
-    if (texID == 6 * (n) + 5) return texture(texSampler[6 * (n) + 5], UV).rgb; \
+    if (texID == 6 * (n) + 5) return texture(texSampler[6 * (n) + 5], UV).rgb;
 
 vec3 getTexSample(int id) {
     DEF_TEX_SAMPLER_ID(0)

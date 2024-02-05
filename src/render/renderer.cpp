@@ -15,47 +15,47 @@
 // vertices of a the skybox cube.
 // might change this to be generated more intelligently... but it's good enough for now
 static std::vector<glm::vec3> skyboxVerticesList = {
-    {-1.0f,  1.0f, -1.0f},
+    {-1.0f, 1.0f, -1.0f},
     {-1.0f, -1.0f, -1.0f},
-    { 1.0f, -1.0f, -1.0f},
-    { 1.0f, -1.0f, -1.0f},
-    { 1.0f,  1.0f, -1.0f},
-    {-1.0f,  1.0f, -1.0f},
+    {1.0f, -1.0f, -1.0f},
+    {1.0f, -1.0f, -1.0f},
+    {1.0f, 1.0f, -1.0f},
+    {-1.0f, 1.0f, -1.0f},
 
-    {-1.0f, -1.0f,  1.0f},
+    {-1.0f, -1.0f, 1.0f},
     {-1.0f, -1.0f, -1.0f},
-    {-1.0f,  1.0f, -1.0f},
-    {-1.0f,  1.0f, -1.0f},
-    {-1.0f,  1.0f,  1.0f},
-    {-1.0f, -1.0f,  1.0f},
+    {-1.0f, 1.0f, -1.0f},
+    {-1.0f, 1.0f, -1.0f},
+    {-1.0f, 1.0f, 1.0f},
+    {-1.0f, -1.0f, 1.0f},
 
-    { 1.0f, -1.0f, -1.0f},
-    { 1.0f, -1.0f,  1.0f},
-    { 1.0f,  1.0f,  1.0f},
-    { 1.0f,  1.0f,  1.0f},
-    { 1.0f,  1.0f, -1.0f},
-    { 1.0f, -1.0f, -1.0f},
+    {1.0f, -1.0f, -1.0f},
+    {1.0f, -1.0f, 1.0f},
+    {1.0f, 1.0f, 1.0f},
+    {1.0f, 1.0f, 1.0f},
+    {1.0f, 1.0f, -1.0f},
+    {1.0f, -1.0f, -1.0f},
 
-    {-1.0f, -1.0f,  1.0f},
-    {-1.0f,  1.0f,  1.0f},
-    { 1.0f,  1.0f,  1.0f},
-    { 1.0f,  1.0f,  1.0f},
-    { 1.0f, -1.0f,  1.0f},
-    {-1.0f, -1.0f,  1.0f},
+    {-1.0f, -1.0f, 1.0f},
+    {-1.0f, 1.0f, 1.0f},
+    {1.0f, 1.0f, 1.0f},
+    {1.0f, 1.0f, 1.0f},
+    {1.0f, -1.0f, 1.0f},
+    {-1.0f, -1.0f, 1.0f},
 
-    {-1.0f,  1.0f, -1.0f},
-    { 1.0f,  1.0f, -1.0f},
-    { 1.0f,  1.0f,  1.0f},
-    { 1.0f,  1.0f,  1.0f},
-    {-1.0f,  1.0f,  1.0f},
-    {-1.0f,  1.0f, -1.0f},
+    {-1.0f, 1.0f, -1.0f},
+    {1.0f, 1.0f, -1.0f},
+    {1.0f, 1.0f, 1.0f},
+    {1.0f, 1.0f, 1.0f},
+    {-1.0f, 1.0f, 1.0f},
+    {-1.0f, 1.0f, -1.0f},
 
     {-1.0f, -1.0f, -1.0f},
-    {-1.0f, -1.0f,  1.0f},
-    { 1.0f, -1.0f, -1.0f},
-    { 1.0f, -1.0f, -1.0f},
-    {-1.0f, -1.0f,  1.0f},
-    { 1.0f, -1.0f,  1.0f}
+    {-1.0f, -1.0f, 1.0f},
+    {1.0f, -1.0f, -1.0f},
+    {1.0f, -1.0f, -1.0f},
+    {-1.0f, -1.0f, 1.0f},
+    {1.0f, -1.0f, 1.0f}
 };
 
 OpenGLRenderer::OpenGLRenderer(const int windowWidth, const int windowHeight) {
@@ -92,7 +92,6 @@ OpenGLRenderer::OpenGLRenderer(const int windowWidth, const int windowHeight) {
 
     glfwPollEvents();
 
-    // Dark blue background
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
     // Enable depth test
@@ -109,14 +108,10 @@ OpenGLRenderer::OpenGLRenderer(const int windowWidth, const int windowHeight) {
     glfwSetWindowRefreshCallback(window, windowRefreshCallback);
     glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 
-    glGenVertexArrays(1, &vertexArrayID);
-    glBindVertexArray(vertexArrayID);
-
     // load & compile shaders
-    cubeShaderID = loadShaders("cube-shader.vert", "cube-shader.frag");
-    skyboxShaderID = loadShaders("skybox-shader.vert", "skybox-shader.frag");
-    lineShaderID = loadShaders("line-shader.vert", "line-shader.frag");
-    textShaderID = loadShaders("text-shader.vert", "text-shader.frag");
+    cubeShaderID = loadShaders("shaders/cube-shader.vert", "shaders/cube-shader.frag");
+    skyboxShaderID = loadShaders("shaders/skybox-shader.vert", "shaders/skybox-shader.frag");
+    lineShaderID = loadShaders("shaders/line-shader.vert", "shaders/line-shader.frag");
     glUseProgram(cubeShaderID);
 
     // Get a handle for our "MVP" uniform
@@ -127,18 +122,10 @@ OpenGLRenderer::OpenGLRenderer(const int windowWidth, const int windowHeight) {
 
     loadTextures();
 
-    // Get a handle for our "LightPosition" uniform
-    lightID = glGetUniformLocation(cubeShaderID, "LightPosition_worldspace");
+    skyboxVao = std::make_unique<BasicVertexArray>();
+    skyboxVao->writeToBuffers(skyboxVerticesList);
 
-    skyboxVertices = std::make_unique<GLArrayBuffer<glm::vec3> >(0, 3);
-    skyboxVertices->write(skyboxVerticesList);
-
-    // generate a buffer for line vertices and allocate it beforehand
-    lineVertices = std::make_unique<GLArrayBuffer<glm::vec3> >(3, 3);
-
-    // generate buffers for hud text
-    textVertices = std::make_unique<GLArrayBuffer<glm::vec2> >(0, 2);
-    textUVs = std::make_unique<GLArrayBuffer<glm::vec2> >(1, 2);
+    outlinesVao = std::make_unique<BasicVertexArray>();
 
     // init peripheral structures
     camera = std::make_unique<Camera>(window);
@@ -244,21 +231,27 @@ GLuint OpenGLRenderer::loadShaders(const std::filesystem::path &vertexShaderPath
 void OpenGLRenderer::loadTextures() const {
     using FacePathMapping = FaceMapping<std::filesystem::path>;
 
-    const std::map<EBlockType, FacePathMapping> blockTexturePathMappings {
-        {BlockType_Grass, FacePathMapping(
-            std::make_pair(ALL_SIDE_FACES, "assets/grass-side.png"),
-            std::make_pair(Top, "assets/grass-top.png"),
-            std::make_pair(Bottom, "assets/dirt.png")
-        )},
-        {BlockType_Dirt, FacePathMapping(
-            std::make_pair(ALL_FACES, "assets/dirt.png")
-        )},
-        {BlockType_Stone, FacePathMapping(
-            std::make_pair(ALL_FACES, "assets/stone.png")
-        )}
+    const std::map<EBlockType, FacePathMapping> blockTexturePathMappings{
+        {
+            BlockType_Grass, FacePathMapping(
+                std::make_pair(ALL_SIDE_FACES, "assets/grass-side.png"),
+                std::make_pair(Top, "assets/grass-top.png"),
+                std::make_pair(Bottom, "assets/dirt.png")
+            )
+        },
+        {
+            BlockType_Dirt, FacePathMapping(
+                std::make_pair(ALL_FACES, "assets/dirt.png")
+            )
+        },
+        {
+            BlockType_Stone, FacePathMapping(
+                std::make_pair(ALL_FACES, "assets/stone.png")
+            )
+        }
     };
 
-    const FacePathMapping skyboxTexturePaths {
+    const FacePathMapping skyboxTexturePaths{
         std::make_pair(ALL_SIDE_FACES, "assets/sky-side.png"),
         std::make_pair(Top, "assets/sky-top.png"),
         std::make_pair(Bottom, "assets/sky-bottom.png")
@@ -266,7 +259,6 @@ void OpenGLRenderer::loadTextures() const {
 
     textureManager->loadBlockTextures(blockTexturePathMappings);
     textureManager->loadSkyboxTextures(skyboxTexturePaths);
-    textureManager->loadFontTexture("assets/font.dds");
 }
 
 void OpenGLRenderer::startRendering() {
@@ -274,9 +266,6 @@ void OpenGLRenderer::startRendering() {
 
     viewMatrix = camera->getViewMatrix();
     projectionMatrix = camera->getProjectionMatrix();
-
-    const glm::vec3 lightPos = camera->getPos();
-    glUniform3f(lightID, lightPos.x, lightPos.y, lightPos.z);
 
     for (auto &vertices: tempLineVertexGroups | std::views::values) {
         vertices.clear();
@@ -305,7 +294,7 @@ void OpenGLRenderer::renderSkybox() {
 
     textureManager->bindSkyboxTextures(skyboxShaderID);
 
-    skyboxVertices->enable();
+    skyboxVao->enable();
     glDrawArrays(GL_TRIANGLES, 0, 36);
     glDepthMask(GL_TRUE);
 }
@@ -338,7 +327,7 @@ void OpenGLRenderer::renderOutlines() {
     glUseProgram(lineShaderID);
 
     for (const auto &[gid, vertices]: tempLineVertexGroups) {
-        lineVertices->write(vertices);
+        outlinesVao->writeToBuffers(vertices);
 
         const GLint mvpID = glGetUniformLocation(lineShaderID, "MVP");
         glUniformMatrix4fv(mvpID, 1, GL_FALSE, &mvpMatrix[0][0]);
@@ -347,9 +336,8 @@ void OpenGLRenderer::renderOutlines() {
         const glm::vec3 color = vertexGroupColors.at(gid);
         glUniform3f(colorID, color.r, color.g, color.b);
 
-        lineVertices->enable();
+        outlinesVao->enable();
         glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(vertices.size()));
-        lineVertices->disable();
     }
 
     glUseProgram(cubeShaderID);
@@ -405,69 +393,6 @@ auto OpenGLRenderer::addTargetedBlockOutline(const glm::vec3 &blockPos) -> void 
     addCubeOutline(minVec, Block::RENDER_SIZE, SELECTED_BLOCK_OUTLINE);
 }
 
-void OpenGLRenderer::renderText(const std::string &text, const float x, const float y, const float fontSize) const {
-    std::vector<glm::vec2> vertices;
-    std::vector<glm::vec2> uvs;
-    constexpr float widthMult = 0.7f;
-    constexpr float uvOffset = 1.0f / 16 * (1.0f - widthMult) / 2;
-
-    for (size_t i = 0; i < text.size(); i++) {
-        const auto vertexUpLeft = glm::vec2(x + i * fontSize * widthMult, y + fontSize);
-        const auto vertexUpRight = glm::vec2(x + (i + 1) * fontSize * widthMult, y + fontSize);
-        const auto vertexDownRight = glm::vec2(x + (i + 1) * fontSize * widthMult, y);
-        const auto vertexDownLeft = glm::vec2(x + i * fontSize * widthMult, y);
-
-        vertices.push_back(vertexUpLeft);
-        vertices.push_back(vertexDownLeft);
-        vertices.push_back(vertexUpRight);
-
-        vertices.push_back(vertexDownRight);
-        vertices.push_back(vertexUpRight);
-        vertices.push_back(vertexDownLeft);
-
-        const char character = text[i];
-        const glm::vec2 uv = {
-            static_cast<float>(character % 16) / 16,
-            static_cast<float>(character / 16) / 16
-        };
-
-        const auto uvUpLeft = glm::vec2(uv.x + uvOffset, uv.y);
-        const auto uvUpRight = glm::vec2(uv.x + 1.0f / 16.0f - uvOffset, uv.y);
-        const auto uvDownRight = glm::vec2(uv.x + 1.0f / 16.0f - uvOffset, uv.y + 1.0f / 16.0f);
-        const auto uvDownLeft = glm::vec2(uv.x + uvOffset, uv.y + 1.0f / 16.0f);
-
-        uvs.push_back(uvUpLeft);
-        uvs.push_back(uvDownLeft);
-        uvs.push_back(uvUpRight);
-
-        uvs.push_back(uvDownRight);
-        uvs.push_back(uvUpRight);
-        uvs.push_back(uvDownLeft);
-    }
-
-    glUseProgram(textShaderID);
-    textureManager->bindFontTexture(textShaderID);
-
-    textVertices->write(vertices);
-    textUVs->write(uvs);
-
-    textVertices->enable();
-    textUVs->enable();
-
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glClear(GL_DEPTH_BUFFER_BIT);
-
-    glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(vertices.size()));
-
-    glDisable(GL_BLEND);
-
-    glDisableVertexAttribArray(0);
-    glDisableVertexAttribArray(1);
-
-    glUseProgram(cubeShaderID);
-}
-
 void OpenGLRenderer::renderHud() const {
     constexpr float crosshairLength = 0.02;
     std::vector<glm::vec3> vertices;
@@ -489,7 +414,7 @@ void OpenGLRenderer::renderHud() const {
     glClear(GL_DEPTH_BUFFER_BIT);
     glUseProgram(lineShaderID);
 
-    lineVertices->write(vertices);
+    outlinesVao->writeToBuffers(vertices);
 
     constexpr auto mvpMatrix = glm::mat4(1.0f);
     const GLint mvpID = glGetUniformLocation(lineShaderID, "MVP");
@@ -499,9 +424,8 @@ void OpenGLRenderer::renderHud() const {
     constexpr glm::vec3 color = {1, 1, 1};
     glUniform3f(colorID, color.r, color.g, color.b);
 
-    lineVertices->enable();
+    outlinesVao->enable();
     glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(vertices.size()));
-    lineVertices->disable();
 
     glUseProgram(cubeShaderID);
 }

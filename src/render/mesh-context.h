@@ -8,7 +8,7 @@
 
 #include "GL/glew.h"
 #include "src/voxel/chunk/chunk.h"
-#include "gl-buffer.h"
+#include "gl/gl-vao.h"
 
 /**
  * Structure holding all data describing a vertex.
@@ -53,13 +53,9 @@ class ChunkMeshContext {
 
     std::vector<Quad> quads{};
     std::vector<Triangle> triangles{};
-
     std::optional<IndexedMeshData> indexedData;
 
-    std::unique_ptr<GLArrayBuffer<glm::vec3>> vertices, normals;
-    std::unique_ptr<GLArrayBuffer<glm::vec2>> uvs;
-    std::unique_ptr<GLArrayBuffer<int>> texIDs;
-    std::unique_ptr<GLElementBuffer> indices;
+    std::unique_ptr<ChunkVertexArray> vao;
 
 public:
     glm::vec3 modelTranslate{};

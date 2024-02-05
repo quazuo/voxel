@@ -26,7 +26,6 @@ class VEngine {
     float lastTime = 0.f;
 
     bool doRenderChunkOutlines = false;
-    bool doRenderDebugText = true;
     bool doShowGui = false;
     bool doLockCursor = true;
 
@@ -68,8 +67,9 @@ public:
         renderer->renderSkybox();
         chunkManager->renderChunks();
 
-        if (doRenderChunkOutlines)
+        if (doRenderChunkOutlines) {
             chunkManager->renderChunkOutlines();
+        }
 
         targetedBlockPos = chunkManager->getTargetedBlock(renderer->getLookedAtBlocks());
         if (targetedBlockPos) {
@@ -79,24 +79,18 @@ public:
         renderer->renderOutlines();
 
         // following functions HAVE TO be called as the last thing, because while rendering overlays we clear
-        // the z-buffer so that the text is on top of everything.
+        // the z-buffer so that the gui is on top of everything.
         // this is, of course, not desired for other rendered things.
         renderer->renderHud();
 
         if (doShowGui) {
             guiRenderer->startRendering();
+            renderGuiSection(deltaTime);
             renderer->renderGuiSection();
             guiRenderer->finishRendering();
         }
 
         renderer->finishRendering();
-    }
-
-    void renderDebugText(const float fps) const {
-        constexpr float fontSize = 16;
-        constexpr float yOffset = fontSize;
-        renderer->renderText("pos: " + VecUtils::toString(renderer->getCameraPos()), 0, 0, fontSize);
-        renderer->renderText("fps: " + std::to_string(fps), 0, yOffset, fontSize);
     }
 
     void bindKeyActions() {
@@ -129,6 +123,19 @@ public:
             (void) deltaTime;
             glfwSetWindowShouldClose(window, true);
         });
+    }
+
+    static void renderGuiSection(const float deltaTime) {
+        static float fps = 1 / deltaTime;
+
+        constexpr float smoothing = 0.95f;
+        fps = fps * smoothing + (1 / deltaTime) * (1.0f - smoothing);
+
+        constexpr auto sectionFlags = ImGuiTreeNodeFlags_DefaultOpen;
+
+        if (ImGui::CollapsingHeader("Engine ", sectionFlags)) {
+            ImGui::Text("FPS: %.2f", fps);
+        }
     }
 };
 

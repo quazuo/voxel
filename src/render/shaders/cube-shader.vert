@@ -20,7 +20,6 @@ uniform mat4 MVP;
 uniform mat4 M;
 uniform mat4 V;
 uniform mat4 P;
-uniform vec3 LightPosition_worldspace;
 
 float rand(vec3 co) {
     return fract(sin(dot(co.xyz, vec3(12.9898, 78.233, 54.321))) * 43758.5453);
@@ -39,8 +38,8 @@ void main() {
     EyeDirection_cameraspace = vec3(0, 0, 0) - vertexPosition_cameraspace;
 
     // Vector that goes from the vertex to the light, in camera space. M is ommited because it's identity.
-    vec3 LightPosition_cameraspace = (V * vec4(LightPosition_worldspace, 1)).xyz;
-    LightDirection_cameraspace = LightPosition_cameraspace + EyeDirection_cameraspace;
+//    vec3 LightPosition_cameraspace = (V * vec4(LightPosition_worldspace, 1)).xyz;
+//    LightDirection_cameraspace = LightPosition_cameraspace + EyeDirection_cameraspace;
 
     // Normal of the the vertex, in camera space
     // Only correct if ModelMatrix does not scale the model! Use its inverse transpose if not.
