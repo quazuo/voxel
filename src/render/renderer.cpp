@@ -13,6 +13,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "gui.h"
+#include "gl/gl-shader.h"
 
 // vertices of a the skybox cube.
 // might change this to be generated more intelligently... but it's good enough for now
@@ -142,7 +143,7 @@ void OpenGLRenderer::tick(const float deltaTime) const {
 void OpenGLRenderer::loadTextures() const {
     using FacePathMapping = FaceMapping<std::filesystem::path>;
 
-    const std::map<EBlockType, FacePathMapping> blockTexturePathMappings{
+    const std::unordered_map<EBlockType, FacePathMapping> blockTexturePathMappings{
         {
             BlockType_Grass, FacePathMapping(
                 std::make_pair(ALL_SIDE_FACES, "assets/grass-side.png"),
@@ -197,7 +198,7 @@ void OpenGLRenderer::renderGuiSection() {
     if (ImGui::CollapsingHeader("Renderer ", sectionFlags)) {
         ImGui::Text("Light: ");
         ImGui::SameLine();
-        ImGui::PushItemWidth(80.0f);
+        ImGui::PushItemWidth(50.0f);
         ImGui::DragFloat("X", &skybox.lightDirection.x, 0.01f, -1.0f, 1.0f, "%.2f");
         ImGui::SameLine();
         ImGui::DragFloat("Y", &skybox.lightDirection.y, 0.01f, -1.0f, 1.0f, "%.2f");
@@ -234,7 +235,7 @@ void OpenGLRenderer::renderChunk(const std::shared_ptr<ChunkMeshContext> &ctx) c
         ctx->isFreshlyUpdated = false;
     }
 
-    const glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), ctx->modelTranslate);
+    const glm::mat4 modelMatrix = glm::translate(glm::identity<glm::mat4>(), ctx->modelTranslate);
     const glm::mat4 mvpMatrix = projectionMatrix * viewMatrix * modelMatrix;
 
     cubeShader->setUniform("M", modelMatrix);
@@ -246,7 +247,7 @@ void OpenGLRenderer::renderChunk(const std::shared_ptr<ChunkMeshContext> &ctx) c
 }
 
 void OpenGLRenderer::renderOutlines() {
-    constexpr auto modelMatrix = glm::mat4(1.0f);
+    constexpr auto modelMatrix = glm::identity<glm::mat4>();
     const glm::mat4 mvpMatrix = projectionMatrix * viewMatrix * modelMatrix;
 
     lineShader->enable();
@@ -338,9 +339,7 @@ void OpenGLRenderer::renderHud() const {
 
     outlinesVao->writeToBuffers(vertices);
 
-    constexpr auto mvpMatrix = glm::mat4(1.0f);
-
-    lineShader->setUniform("MVP", mvpMatrix);
+    lineShader->setUniform("MVP", glm::identity<glm::mat4>());
     lineShader->setUniform("color", {1, 1, 1});
 
     outlinesVao->enable();

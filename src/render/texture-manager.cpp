@@ -18,8 +18,7 @@ static constexpr std::array blockFaces = {
 };
 
 void TextureManager::loadBlockTextures(const BlockTexPathMapping &blockTexPathMappings) {
-    for (const auto& [block, faceTexPathMapping]: blockTexPathMappings) {
-
+    for (const auto &[block, faceTexPathMapping]: blockTexPathMappings) {
         // if all faces are textured the same, just load one texture and share it
         if (faceTexPathMapping.contains(ALL_FACES)) {
             const auto texID = loadTexture(faceTexPathMapping.get(Front)); // just take whatever face
@@ -53,21 +52,31 @@ void TextureManager::loadBlockTextures(const BlockTexPathMapping &blockTexPathMa
     }
 }
 
-void TextureManager::loadSkyboxTextures(const FaceMapping<std::filesystem::path>& skyboxTexturePaths) {
+void TextureManager::loadSkyboxTextures(const FaceMapping<std::filesystem::path> &skyboxTexturePaths) {
     skyboxCubemap = loadCubemapTexture(skyboxTexturePaths);
 }
 
-int TextureManager::getBlockSamplerID(const EBlockType blockType, const EBlockFace face) {
-    static const std::map<EBlockFace, int> faceIdOffsets = {
-        {Front, 0},
-        {Back, 1},
-        {Right, 2},
-        {Left, 3},
-        {Top, 4},
-        {Bottom, 5}
-    };
+static int getFaceIdOffset(const EBlockFace face) {
+    switch (face) {
+        case Front:
+            return 0;
+        case Back:
+            return 1;
+        case Right:
+            return 2;
+        case Left:
+            return 3;
+        case Top:
+            return 4;
+        case Bottom:
+            return 5;
+        default:
+            throw std::runtime_error("invalid switch branch in getFaceIdOffset");
+    }
+}
 
-    return static_cast<int>(EBlockFace::N_FACES) * (blockType - 1) + faceIdOffsets.at(face);
+int TextureManager::getBlockSamplerID(const EBlockType blockType, const EBlockFace face) {
+    return static_cast<int>(EBlockFace::N_FACES) * (blockType - 1) + getFaceIdOffset(face);
 }
 
 void TextureManager::bindBlockTextures(const GLuint blockShaderID) const {
@@ -110,7 +119,7 @@ struct TextureData {
     unsigned char *data;
 };
 
-static TextureData readTexture(const std::filesystem::path& path) {
+static TextureData readTexture(const std::filesystem::path &path) {
     int width, height, nrChannels;
     unsigned char *data = stbi_load(path.string().c_str(), &width, &height, &nrChannels, 0);
 
@@ -121,7 +130,7 @@ static TextureData readTexture(const std::filesystem::path& path) {
     return {width, height, nrChannels, data};
 }
 
-GLuint TextureManager::loadTexture(const std::filesystem::path& path) {
+GLuint TextureManager::loadTexture(const std::filesystem::path &path) {
     const auto &[width, height, nrChannels, data] = readTexture(path);
 
     unsigned int texID;
@@ -138,25 +147,35 @@ GLuint TextureManager::loadTexture(const std::filesystem::path& path) {
     return texID;
 }
 
-static const std::map<EBlockFace, int> cubemapSides = {
-    {Front, GL_TEXTURE_CUBE_MAP_NEGATIVE_Z},
-    {Back, GL_TEXTURE_CUBE_MAP_POSITIVE_Z},
-    {Right, GL_TEXTURE_CUBE_MAP_POSITIVE_X},
-    {Left, GL_TEXTURE_CUBE_MAP_NEGATIVE_X},
-    {Top, GL_TEXTURE_CUBE_MAP_POSITIVE_Y},
-    {Bottom, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y}
-};
+static int getCubemapSide(const EBlockFace face) {
+    switch (face) {
+        case Front:
+            return GL_TEXTURE_CUBE_MAP_NEGATIVE_Z;
+        case Back:
+            return GL_TEXTURE_CUBE_MAP_POSITIVE_Z;
+        case Right:
+            return GL_TEXTURE_CUBE_MAP_POSITIVE_X;
+        case Left:
+            return GL_TEXTURE_CUBE_MAP_NEGATIVE_X;
+        case Top:
+            return GL_TEXTURE_CUBE_MAP_POSITIVE_Y;
+        case Bottom:
+            return GL_TEXTURE_CUBE_MAP_NEGATIVE_Y;
+        default:
+            throw std::runtime_error("invalid switch branch in getCubemapSide");
+    }
+}
 
-GLuint TextureManager::loadCubemapTexture(const FaceMapping<std::filesystem::path>& skyboxTexturePaths) {
+GLuint TextureManager::loadCubemapTexture(const FaceMapping<std::filesystem::path> &skyboxTexturePaths) {
     unsigned int texID;
     glGenTextures(1, &texID);
     glBindTexture(GL_TEXTURE_CUBE_MAP, texID);
 
-    for (const auto face : blockFaces) {
+    for (const auto face: blockFaces) {
         const auto path = skyboxTexturePaths.get(face);
         const auto &[width, height, nrChannels, data] = readTexture(path);
 
-        glTexImage2D(cubemapSides.at(face), 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glTexImage2D(getCubemapSide(face), 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
         stbi_image_free(data);
     }
 
@@ -271,13 +290,13 @@ GLuint TextureManager::loadTextureDDS(const std::filesystem::path &path) {
     return textureID;
 }
 
-GLuint TextureManager::loadCubemapDDS(const FaceMapping<std::filesystem::path>& skyboxTexturePaths) {
+GLuint TextureManager::loadCubemapDDS(const FaceMapping<std::filesystem::path> &skyboxTexturePaths) {
     GLuint textureID;
     glGenTextures(1, &textureID);
     glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-    for (const auto face : blockFaces) {
+    for (const auto face: blockFaces) {
         const auto path = skyboxTexturePaths.get(face);
         const auto [height, width, linearSize, mipMapCount, format, buffer] = readDDS(path);
         const unsigned int blockSize = (format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT) ? 8 : 16;
@@ -288,7 +307,7 @@ GLuint TextureManager::loadCubemapDDS(const FaceMapping<std::filesystem::path>& 
         for (unsigned int level = 0; level < mipMapCount && (w || h); level++) {
             const unsigned int size = ((w + 3) / 4) * ((h + 3) / 4) * blockSize;
             glCompressedTexImage2D(
-                cubemapSides.at(face),
+                getCubemapSide(face),
                 static_cast<GLint>(level),
                 format,
                 static_cast<GLsizei>(w),

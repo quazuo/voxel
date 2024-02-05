@@ -113,7 +113,7 @@ void Chunk::createCube(const int x, const int y, const int z) {
 }
 
 void Chunk::createFace(const glm::vec3 &cubePos, const EBlockFace face, const EBlockType blockType) const {
-    static const std::map<EBlockFace, glm::vec3> faceNormals = {
+    static const std::unordered_map<EBlockFace, glm::vec3> faceNormals = {
         {Front,  {0.0,  0.0,  1.0}},
         {Back,   {0.0,  0.0,  -1.0}},
         {Right,  {1.0,  0.0,  0.0}},

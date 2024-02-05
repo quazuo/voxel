@@ -14,7 +14,7 @@
 #include "glm/trigonometric.hpp"
 #include "camera.h"
 #include "mesh-context.h"
-#include "gl/shader.h"
+#include "gl/gl-shader.h"
 
 /**
  * The main renderer of the program. There should only be one instance of this class, as it
@@ -46,12 +46,12 @@ private:
 
     std::unique_ptr<BasicVertexArray> outlinesVao;
 
-    std::map<LineType, glm::vec3> vertexGroupColors = {
+    std::unordered_map<LineType, glm::vec3> vertexGroupColors = {
             {CHUNK_OUTLINE,          {1, 1, 0}},
             {EMPTY_CHUNK_OUTLINE,    {1, 0, 0}},
             {SELECTED_BLOCK_OUTLINE, {0, 1, 1}},
     };
-    std::map<LineType, std::vector<glm::vec3>> tempLineVertexGroups;
+    std::unordered_map<LineType, std::vector<glm::vec3>> tempLineVertexGroups;
 
     // cached view and projection matrices for the current render tick
     // model matrix can't be cached because it's different for each chunk

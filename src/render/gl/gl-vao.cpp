@@ -8,8 +8,7 @@ GLVertexArray::GLVertexArray() {
 }
 
 GLVertexArray::~GLVertexArray() {
-    const GLuint objects[1] = { objectID };
-    glDeleteVertexArrays(1, objects);
+    glDeleteVertexArrays(1, &objectID);
 }
 
 void GLVertexArray::enable() {

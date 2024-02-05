@@ -4,6 +4,7 @@
 #include "GL/glew.h"
 #include "src/voxel/block/block.h"
 #include <map>
+#include <unordered_map>
 #include <filesystem>
 
 /**
@@ -17,7 +18,7 @@ class TextureManager {
     GLuint skyboxCubemap{};
 
 public:
-    using BlockTexPathMapping = const std::map<EBlockType, FaceMapping<std::filesystem::path>>;
+    using BlockTexPathMapping = const std::unordered_map<EBlockType, FaceMapping<std::filesystem::path>>;
 
     /**
      * Loads all given block textures at given paths and applies them to all faces of given block types.

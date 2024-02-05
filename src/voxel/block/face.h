@@ -3,7 +3,7 @@
 
 #include <cstdint>
 #include <stdexcept>
-#include <map>
+#include <unordered_map>
 #include "glm/vec3.hpp"
 
 enum EBlockFace : std::uint8_t {
@@ -21,12 +21,12 @@ static constexpr std::uint8_t ALL_SIDE_FACES = Front | Back | Right | Left;
 
 /**
  * Utility class for various mappings between faces and other kinds of things.
- * Made mostly as a wrapper over std::map, but saving a bit of memory when using
+ * Made mostly as a wrapper over std::unordered_map, but saving a bit of memory when using
  * same values across all faces or all side faces.
  */
 template<typename T>
 class FaceMapping {
-    std::map<uint8_t, T> mapping;
+    std::unordered_map<uint8_t, T> mapping;
 
 public:
     template<typename ...Args>

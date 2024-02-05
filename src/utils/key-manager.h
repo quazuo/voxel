@@ -24,14 +24,14 @@ class KeyManager {
     struct GLFWwindow *window = nullptr;
 
     using KeyCallbackInfo = std::pair<EActivationType, EKeyCallback>;
-    std::map<EKey, KeyCallbackInfo> callbackMap;
+    std::unordered_map<EKey, KeyCallbackInfo> callbackMap;
 
     enum class KeyState {
         PRESSED,
         RELEASED
     };
 
-    std::map<EKey, KeyState> keyStateMap;
+    std::unordered_map<EKey, KeyState> keyStateMap;
 
 public:
     KeyManager() = default;

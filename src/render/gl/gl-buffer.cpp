@@ -4,8 +4,7 @@
 
 template<typename T>
 GLBuffer<T>::~GLBuffer() {
-    const GLuint buffers[1] = { bufferID };
-    glDeleteBuffers(1, buffers);
+    glDeleteBuffers(1, &bufferID);
 }
 
 template<typename T>
