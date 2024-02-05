@@ -52,7 +52,8 @@ set(IMGUI_IMPL_SRCS
 )
 
 set_source_files_properties(
-        ${IMGUI_SRCS} ${IMGUI_IMPL_SRCS}
+        ${IMGUI_SRCS}
+        ${IMGUI_IMPL_SRCS}
         PROPERTIES COMPILE_FLAGS "-w"
 )
 

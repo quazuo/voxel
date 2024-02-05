@@ -13,8 +13,8 @@
 #include "glm/ext/matrix_float4x4.hpp"
 #include "glm/trigonometric.hpp"
 #include "camera.h"
-#include "gl/gl-buffer.h"
 #include "mesh-context.h"
+#include "gl/shader.h"
 
 /**
  * The main renderer of the program. There should only be one instance of this class, as it
@@ -37,11 +37,12 @@ private:
 
     std::unique_ptr<Camera> camera;
 
-    // OpenGL handles
-    GLuint cubeShaderID{}, skyboxShaderID{}, lineShaderID{};
-    GLint mvpMatrixID{}, modelMatrixID{}, viewMatrixID{}, projectionMatrixID{};
+    std::unique_ptr<GLShader> cubeShader, skyboxShader, lineShader;
 
-    std::unique_ptr<BasicVertexArray> skyboxVao;
+    struct Skybox {
+        std::unique_ptr<BasicVertexArray> vao;
+        glm::vec3 lightDirection = { 0.2, 0.3, 0.4 };
+    } skybox;
 
     std::unique_ptr<BasicVertexArray> outlinesVao;
 
@@ -94,11 +95,11 @@ public:
      */
     void setIsCursorLocked(bool b) const;
 
-    void renderGuiSection() const;
+    void renderGuiSection();
 
-    void renderSkybox();
+    void renderSkybox() const;
 
-    void renderChunk(const std::shared_ptr<ChunkMeshContext>& ctx);
+    void renderChunk(const std::shared_ptr<ChunkMeshContext>& ctx) const;
 
     /**
      * Adds a given chunk's outline to the list of lines that will be rendered later.
@@ -135,9 +136,6 @@ private:
      * @param gid The type of outline that should be used.
      */
     void addCubeOutline(const glm::vec3 &minVec, float sideLength, LineType gid);
-
-    static GLuint loadShaders(const std::filesystem::path &vertexShaderPath,
-                              const std::filesystem::path &fragmentShaderPath);
 
     void loadTextures() const;
 

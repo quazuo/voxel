@@ -12,6 +12,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "gui.h"
+
 // vertices of a the skybox cube.
 // might change this to be generated more intelligently... but it's good enough for now
 static std::vector<glm::vec3> skyboxVerticesList = {
@@ -62,8 +64,11 @@ OpenGLRenderer::OpenGLRenderer(const int windowWidth, const int windowHeight) {
     glfwWindowHint(GLFW_SAMPLES, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make macOS happy; should not be needed
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+#ifdef __APPLE__
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
 
     // Open a window and create its OpenGL context
     window = glfwCreateWindow(windowWidth, windowHeight, "0x22's Voxel Engine", nullptr, nullptr);
@@ -109,21 +114,15 @@ OpenGLRenderer::OpenGLRenderer(const int windowWidth, const int windowHeight) {
     glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 
     // load & compile shaders
-    cubeShaderID = loadShaders("shaders/cube-shader.vert", "shaders/cube-shader.frag");
-    skyboxShaderID = loadShaders("shaders/skybox-shader.vert", "shaders/skybox-shader.frag");
-    lineShaderID = loadShaders("shaders/line-shader.vert", "shaders/line-shader.frag");
-    glUseProgram(cubeShaderID);
-
-    // Get a handle for our "MVP" uniform
-    mvpMatrixID = glGetUniformLocation(cubeShaderID, "MVP");
-    modelMatrixID = glGetUniformLocation(cubeShaderID, "M");
-    viewMatrixID = glGetUniformLocation(cubeShaderID, "V");
-    projectionMatrixID = glGetUniformLocation(cubeShaderID, "P");
+    cubeShader = std::make_unique<GLShader>("shaders/cube-shader.vert", "shaders/cube-shader.frag");
+    skyboxShader = std::make_unique<GLShader>("shaders/skybox-shader.vert", "shaders/skybox-shader.frag");
+    lineShader = std::make_unique<GLShader>("shaders/line-shader.vert", "shaders/line-shader.frag");
+    cubeShader->enable();
 
     loadTextures();
 
-    skyboxVao = std::make_unique<BasicVertexArray>();
-    skyboxVao->writeToBuffers(skyboxVerticesList);
+    skybox.vao = std::make_unique<BasicVertexArray>();
+    skybox.vao->writeToBuffers(skyboxVerticesList);
 
     outlinesVao = std::make_unique<BasicVertexArray>();
 
@@ -138,94 +137,6 @@ OpenGLRenderer::~OpenGLRenderer() {
 
 void OpenGLRenderer::tick(const float deltaTime) const {
     camera->tick(deltaTime);
-}
-
-GLuint OpenGLRenderer::loadShaders(const std::filesystem::path &vertexShaderPath,
-                                   const std::filesystem::path &fragmentShaderPath) {
-    // Create the shaders
-    GLuint vertexShaderID = glCreateShader(GL_VERTEX_SHADER);
-    GLuint fragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
-
-    // Read the vertex Shader code from the file
-    std::ifstream vertexShaderStream(vertexShaderPath, std::ios::in);
-    if (!vertexShaderStream.is_open()) {
-        throw std::runtime_error("Impossible to open vertex shader file");
-    }
-
-    std::stringstream sstr;
-    sstr << vertexShaderStream.rdbuf();
-    std::string vertexShaderCode = sstr.str();
-    vertexShaderStream.close();
-
-    // Read the fragment Shader code from the file
-    std::ifstream fragmentShaderStream(fragmentShaderPath, std::ios::in);
-    if (!fragmentShaderStream.is_open()) {
-        throw std::runtime_error("Impossible to open fragment shader file");
-    }
-
-    sstr.clear();
-    sstr.str(std::string());
-    sstr << fragmentShaderStream.rdbuf();
-    std::string fragmentShaderCode = sstr.str();
-    fragmentShaderStream.close();
-
-    GLint result = GL_FALSE;
-    int infoLogLength;
-
-    // compile the vertex shader
-    std::cout << "Compiling shader: " << vertexShaderPath << "\n";
-    char const *vertexSourcePointer = vertexShaderCode.c_str();
-    glShaderSource(vertexShaderID, 1, &vertexSourcePointer, nullptr);
-    glCompileShader(vertexShaderID);
-
-    // check the vertex shader
-    glGetShaderiv(vertexShaderID, GL_COMPILE_STATUS, &result);
-    glGetShaderiv(vertexShaderID, GL_INFO_LOG_LENGTH, &infoLogLength);
-    if (infoLogLength > 0) {
-        std::vector<char> vertexShaderErrorMessage(infoLogLength + 1);
-        glGetShaderInfoLog(vertexShaderID, infoLogLength, nullptr, &vertexShaderErrorMessage[0]);
-        throw std::runtime_error("vertex shader compilation failed: " + std::string(&vertexShaderErrorMessage[0]));
-    }
-
-    // compile the fragment shader
-    std::cout << "Compiling shader: " << fragmentShaderPath << "\n";
-    char const *fragmentSourcePointer = fragmentShaderCode.c_str();
-    glShaderSource(fragmentShaderID, 1, &fragmentSourcePointer, nullptr);
-    glCompileShader(fragmentShaderID);
-
-    // check the fragment shader
-    glGetShaderiv(fragmentShaderID, GL_COMPILE_STATUS, &result);
-    glGetShaderiv(fragmentShaderID, GL_INFO_LOG_LENGTH, &infoLogLength);
-    if (infoLogLength > 0) {
-        std::vector<char> fragmentShaderErrorMessage(infoLogLength + 1);
-        glGetShaderInfoLog(fragmentShaderID, infoLogLength, nullptr, &fragmentShaderErrorMessage[0]);
-        throw std::runtime_error("fragment shader compilation failed: " + std::string(&fragmentShaderErrorMessage[0]));
-    }
-
-    // link the program
-    std::cout << "Linking program\n";
-    GLuint shaderID = glCreateProgram();
-    glAttachShader(shaderID, vertexShaderID);
-    glAttachShader(shaderID, fragmentShaderID);
-    glLinkProgram(shaderID);
-
-    // check the program
-    glGetProgramiv(shaderID, GL_LINK_STATUS, &result);
-    glGetProgramiv(shaderID, GL_INFO_LOG_LENGTH, &infoLogLength);
-    if (infoLogLength > 0) {
-        std::vector<char> ProgramErrorMessage(infoLogLength + 1);
-        glGetProgramInfoLog(shaderID, infoLogLength, nullptr, &ProgramErrorMessage[0]);
-        printf("%s\n", &ProgramErrorMessage[0]);
-        throw std::runtime_error("shader linking failed: " + std::string(&ProgramErrorMessage[0]));
-    }
-
-    glDetachShader(shaderID, vertexShaderID);
-    glDetachShader(shaderID, fragmentShaderID);
-
-    glDeleteShader(vertexShaderID);
-    glDeleteShader(fragmentShaderID);
-
-    return shaderID;
 }
 
 void OpenGLRenderer::loadTextures() const {
@@ -267,6 +178,9 @@ void OpenGLRenderer::startRendering() {
     viewMatrix = camera->getViewMatrix();
     projectionMatrix = camera->getProjectionMatrix();
 
+    cubeShader->enable();
+    cubeShader->setUniform("LightDirection_worldspace", skybox.lightDirection);
+
     for (auto &vertices: tempLineVertexGroups | std::views::values) {
         vertices.clear();
     }
@@ -277,31 +191,42 @@ void OpenGLRenderer::setIsCursorLocked(const bool b) const {
     glfwSetInputMode(window, GLFW_CURSOR, b ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
 }
 
-void OpenGLRenderer::renderGuiSection() const {
+void OpenGLRenderer::renderGuiSection() {
+    constexpr auto sectionFlags = ImGuiTreeNodeFlags_DefaultOpen;
+
+    if (ImGui::CollapsingHeader("Renderer ", sectionFlags)) {
+        ImGui::Text("Light: ");
+        ImGui::SameLine();
+        ImGui::PushItemWidth(80.0f);
+        ImGui::DragFloat("X", &skybox.lightDirection.x, 0.01f, -1.0f, 1.0f, "%.2f");
+        ImGui::SameLine();
+        ImGui::DragFloat("Y", &skybox.lightDirection.y, 0.01f, -1.0f, 1.0f, "%.2f");
+        ImGui::SameLine();
+        ImGui::DragFloat("Z", &skybox.lightDirection.z, 0.01f, -1.0f, 1.0f, "%.2f");
+        ImGui::PopItemWidth();
+    }
+
     camera->renderGuiSection();
 }
 
-void OpenGLRenderer::renderSkybox() {
+void OpenGLRenderer::renderSkybox() const {
     glDepthMask(GL_FALSE);
-    glUseProgram(skyboxShaderID);
+    skyboxShader->enable();
 
-    const glm::mat4 staticViewMatrix = camera->getStaticViewMatrix();
-    const auto viewMatrixID = glGetUniformLocation(skyboxShaderID, "V");
-    glUniformMatrix4fv(viewMatrixID, 1, GL_FALSE, &staticViewMatrix[0][0]);
+    skyboxShader->setUniform("V", camera->getStaticViewMatrix());
+    skyboxShader->setUniform("P", projectionMatrix);
+    skyboxShader->setUniform("LightDirection_worldspace", skybox.lightDirection);
 
-    const auto projectionMatrixID = glGetUniformLocation(skyboxShaderID, "P");
-    glUniformMatrix4fv(projectionMatrixID, 1, GL_FALSE, &projectionMatrix[0][0]);
+    textureManager->bindSkyboxTextures(skyboxShader->getID());
 
-    textureManager->bindSkyboxTextures(skyboxShaderID);
-
-    skyboxVao->enable();
+    skybox.vao->enable();
     glDrawArrays(GL_TRIANGLES, 0, 36);
     glDepthMask(GL_TRUE);
 }
 
-void OpenGLRenderer::renderChunk(const std::shared_ptr<ChunkMeshContext> &ctx) {
-    glUseProgram(cubeShaderID);
-    textureManager->bindBlockTextures(cubeShaderID);
+void OpenGLRenderer::renderChunk(const std::shared_ptr<ChunkMeshContext> &ctx) const {
+    cubeShader->enable();
+    textureManager->bindBlockTextures(cubeShader->getID());
 
     // update buffers if needed
     if (ctx->isFreshlyUpdated) {
@@ -309,13 +234,13 @@ void OpenGLRenderer::renderChunk(const std::shared_ptr<ChunkMeshContext> &ctx) {
         ctx->isFreshlyUpdated = false;
     }
 
-    glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), ctx->modelTranslate);
-    glm::mat4 mvpMatrix = projectionMatrix * viewMatrix * modelMatrix;
+    const glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), ctx->modelTranslate);
+    const glm::mat4 mvpMatrix = projectionMatrix * viewMatrix * modelMatrix;
 
-    glUniformMatrix4fv(mvpMatrixID, 1, GL_FALSE, &mvpMatrix[0][0]);
-    glUniformMatrix4fv(modelMatrixID, 1, GL_FALSE, &modelMatrix[0][0]);
-    glUniformMatrix4fv(viewMatrixID, 1, GL_FALSE, &viewMatrix[0][0]);
-    glUniformMatrix4fv(projectionMatrixID, 1, GL_FALSE, &projectionMatrix[0][0]);
+    cubeShader->setUniform("M", modelMatrix);
+    cubeShader->setUniform("V", viewMatrix);
+    // cubeShader->setUniform("P", projectionMatrix);
+    cubeShader->setUniform("MVP", mvpMatrix);
 
     ctx->drawElements();
 }
@@ -324,23 +249,19 @@ void OpenGLRenderer::renderOutlines() {
     constexpr auto modelMatrix = glm::mat4(1.0f);
     const glm::mat4 mvpMatrix = projectionMatrix * viewMatrix * modelMatrix;
 
-    glUseProgram(lineShaderID);
+    lineShader->enable();
 
     for (const auto &[gid, vertices]: tempLineVertexGroups) {
         outlinesVao->writeToBuffers(vertices);
 
-        const GLint mvpID = glGetUniformLocation(lineShaderID, "MVP");
-        glUniformMatrix4fv(mvpID, 1, GL_FALSE, &mvpMatrix[0][0]);
-
-        const GLint colorID = glGetUniformLocation(lineShaderID, "color");
-        const glm::vec3 color = vertexGroupColors.at(gid);
-        glUniform3f(colorID, color.r, color.g, color.b);
+        lineShader->setUniform("MVP", mvpMatrix);
+        lineShader->setUniform("color", vertexGroupColors.at(gid));
 
         outlinesVao->enable();
         glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(vertices.size()));
     }
 
-    glUseProgram(cubeShaderID);
+    cubeShader->enable();
 }
 
 void OpenGLRenderer::addCubeOutline(const glm::vec3 &minVec, const float sideLength, const LineType gid) {
@@ -412,22 +333,20 @@ void OpenGLRenderer::renderHud() const {
     vertices.push_back(bottom * static_cast<float>(windowSize.x) / static_cast<float>(windowSize.y));
 
     glClear(GL_DEPTH_BUFFER_BIT);
-    glUseProgram(lineShaderID);
+
+    lineShader->enable();
 
     outlinesVao->writeToBuffers(vertices);
 
     constexpr auto mvpMatrix = glm::mat4(1.0f);
-    const GLint mvpID = glGetUniformLocation(lineShaderID, "MVP");
-    glUniformMatrix4fv(mvpID, 1, GL_FALSE, &mvpMatrix[0][0]);
 
-    const GLint colorID = glGetUniformLocation(lineShaderID, "color");
-    constexpr glm::vec3 color = {1, 1, 1};
-    glUniform3f(colorID, color.r, color.g, color.b);
+    lineShader->setUniform("MVP", mvpMatrix);
+    lineShader->setUniform("color", {1, 1, 1});
 
     outlinesVao->enable();
     glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(vertices.size()));
 
-    glUseProgram(cubeShaderID);
+    cubeShader->enable();
 }
 
 void OpenGLRenderer::finishRendering() const {

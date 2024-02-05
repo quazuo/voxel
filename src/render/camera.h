@@ -4,12 +4,10 @@
 #include "glm/vec2.hpp"
 #include "glm/vec3.hpp"
 #include "glm/matrix.hpp"
-#include "glm/trigonometric.hpp"
 #include "glm/geometric.hpp"
 #include "src/utils/vec.h"
 #include "src/utils/key-manager.h"
 #include <vector>
-#include <memory>
 
 /**
  * this represents a plane, represented by its normal vector and distance to the origin (0, 0, 0).

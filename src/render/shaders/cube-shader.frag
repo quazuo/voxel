@@ -1,21 +1,17 @@
 #version 330 core
 
-// Interpolated values from the vertex shaders
 in vec2 UV;
 flat in int texID;
 in vec3 Position_worldspace;
 in vec3 Normal_modelspace;
 in vec3 Normal_cameraspace;
 in vec3 EyeDirection_cameraspace;
-in vec3 LightDirection_cameraspace;
 
-// Output data
 out vec4 color;
 
-// Values that stay constant for the whole mesh.
+uniform vec3 LightDirection_worldspace;
 uniform sampler2D texSampler[24];
 uniform mat4 MV;
-uniform vec3 LightPosition_worldspace;
 
 #define DEF_TEX_SAMPLER_ID(n) \
     if (texID == 6 * (n)) return texture(texSampler[6 * (n)], UV).rgb; \
@@ -45,7 +41,7 @@ void main() {
     // Normal of the computed fragment, in camera space
     vec3 n = normalize(Normal_modelspace);
     // Direction of the light (from the fragment to the light)
-    vec3 l = normalize(vec3(0.2, 0.3, 0.4));
+    vec3 l = normalize(LightDirection_worldspace);
     // Cosine of the angle between the normal and the light direction,
     // clamped above 0
     //  - light is at the vertical of the triangle -> 1
@@ -64,12 +60,12 @@ void main() {
     float cosAlpha = clamp(dot(E, R), 0, 1);
 
     vec3 opaqueColor =
-    // Ambient : simulates indirect lighting
-    MaterialAmbientColor +
-    // Diffuse : "color" of the object
-    MaterialDiffuseColor * LightColor * LightPower * cosTheta +
-    // Specular : reflective highlight, like a mirror
-    MaterialSpecularColor * LightColor * LightPower * pow(cosAlpha, 5);
+        // Ambient : simulates indirect lighting
+        MaterialAmbientColor +
+        // Diffuse : "color" of the object
+        MaterialDiffuseColor * LightColor * LightPower * cosTheta +
+        // Specular : reflective highlight, like a mirror
+        MaterialSpecularColor * LightColor * LightPower * pow(cosAlpha, 5);
 
     color = vec4(opaqueColor, 1.0);
 }

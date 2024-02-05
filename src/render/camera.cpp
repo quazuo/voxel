@@ -1,11 +1,13 @@
 #include "camera.h"
 
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
 #include <algorithm>
 #include <vector>
+
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
 #include "glm/geometric.hpp"
 #include <glm/gtc/matrix_transform.hpp>
+
 #include "src/voxel/chunk/chunk.h"
 #include "gui.h"
 
@@ -77,7 +79,6 @@ void Camera::updateRotation(const float dx, const float dy) {
 
 void Camera::renderGuiSection() {
     ImDrawList *drawList = ImGui::GetWindowDrawList();
-    const ImGuiIO &io = ImGui::GetIO();
 
     constexpr auto sectionFlags = ImGuiTreeNodeFlags_DefaultOpen;
 
@@ -180,9 +181,7 @@ void Camera::setIsCursorLocked(const bool b) {
 }
 
 void Camera::tickMouseMovement(const float deltaTime) {
-    if (!isCursorLocked) {
-        return;
-    }
+    if (!isCursorLocked) return;
 
     glm::vec<2, double> cursorPos{};
     glfwGetCursorPos(window, &cursorPos.x, &cursorPos.y);
