@@ -1,7 +1,7 @@
 #ifndef VOXEL_WORLD_GEN_H
 #define VOXEL_WORLD_GEN_H
 
-#include "block.h"
+#include "block/block.h"
 #include "deps/noiseutils/noiseutils.h"
 #include "src/utils/vec.h"
 

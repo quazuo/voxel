@@ -2,7 +2,7 @@
 #define VOXEL_TEXTURE_MANAGER_H
 
 #include "GL/glew.h"
-#include "src/voxel/block.h"
+#include "src/voxel/block/block.h"
 #include <map>
 #include <filesystem>
 

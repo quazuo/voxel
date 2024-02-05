@@ -157,7 +157,6 @@ void ChunkManager::loadNearChunks(const VecUtils::Vec3Discrete &currChunkPos) {
     }
 }
 
-
 void ChunkManager::updateLoadList() {
     int nChunksLoaded = 0;
 

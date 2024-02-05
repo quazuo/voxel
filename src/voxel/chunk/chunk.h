@@ -4,7 +4,7 @@
 #include <array>
 #include <memory>
 #include <utility>
-#include "src/voxel/block.h"
+#include "src/voxel/block/block.h"
 #include "glm/vec3.hpp"
 #include "glm/vec2.hpp"
 #include "src/utils/vec.h"

@@ -62,6 +62,7 @@ file(GLOB voxel_SRCS
         "src/render/*"
         "src/render/gl/*"
         "src/voxel/*"
+        "src/voxel/block/*"
         "src/voxel/chunk/*"
         "deps/noiseutils/*"
         "deps/stb/*"
