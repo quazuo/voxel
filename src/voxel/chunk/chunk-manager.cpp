@@ -84,7 +84,7 @@ void ChunkManager::renderGuiSection() {
 
 void ChunkManager::updateChunkSlots() {
     const glm::vec3 currPos = renderer->getCameraPos();
-    const VecUtils::Vec3Discrete currChunkPos = VecUtils::floor(currPos / static_cast<float>(Chunk::CHUNK_SIZE));
+    const glm::ivec3 currChunkPos = VecUtils::floor(currPos / static_cast<float>(Chunk::CHUNK_SIZE));
 
     // if we didn't cross a chunk boundary, then there's nothing to do
     if (currChunkPos == lastOccupiedChunkPos)
@@ -127,7 +127,7 @@ void ChunkManager::loadNearChunks() {
     for (auto &slot: chunkSlots) {
         if (!slot.isBound()) continue;
 
-        const VecUtils::Vec3Discrete relPos = slot.chunk->getPos() - lastOccupiedChunkPos;
+        const glm::ivec3 relPos = slot.chunk->getPos() - lastOccupiedChunkPos;
 
         // relPos components shifted so that they are non-negative
         const size_t x = relPos.x + renderDistance;
@@ -148,7 +148,7 @@ void ChunkManager::loadNearChunks() {
         if (isLoaded) return;
 
         // chunk at `newChunkPos` is unloaded but should be -- we'll load it
-        const glm::vec3 newChunkPos = lastOccupiedChunkPos + VecUtils::Vec3Discrete(x, y, z) - renderDistance;
+        const glm::vec3 newChunkPos = lastOccupiedChunkPos + glm::ivec3(x, y, z) - renderDistance;
         const auto newChunk = std::make_shared<Chunk>(newChunkPos);
         loadableChunks.push_back(newChunk);
 
@@ -206,12 +206,12 @@ void ChunkManager::updateRenderList() {
 }
 
 std::optional<glm::vec3>
-ChunkManager::getTargetedBlock(const std::vector<VecUtils::Vec3Discrete> &lookedAtBlocks) const {
+ChunkManager::getTargetedBlock(const std::vector<glm::ivec3> &lookedAtBlocks) const {
     for (auto &block: lookedAtBlocks) {
         const ChunkPtr chunk = getOwningChunk(block);
         if (!chunk) continue;
 
-        const VecUtils::Vec3Discrete relativeBlockPos = block - chunk->getPos() * Chunk::CHUNK_SIZE;
+        const glm::ivec3 relativeBlockPos = block - chunk->getPos() * Chunk::CHUNK_SIZE;
         const EBlockType blockType = chunk->getBlock(relativeBlockPos);
 
         if (blockType != BlockType_None) {
@@ -222,11 +222,11 @@ ChunkManager::getTargetedBlock(const std::vector<VecUtils::Vec3Discrete> &looked
     return {};
 }
 
-void ChunkManager::updateBlock(const VecUtils::Vec3Discrete &block, const EBlockType type) const {
+void ChunkManager::updateBlock(const glm::ivec3 &block, const EBlockType type) const {
     const ChunkPtr chunk = getOwningChunk(block);
     if (!chunk) return;
 
-    const VecUtils::Vec3Discrete relativeBlockPos = block - chunk->getPos() * Chunk::CHUNK_SIZE;
+    const glm::ivec3 relativeBlockPos = block - chunk->getPos() * Chunk::CHUNK_SIZE;
     chunk->updateBlock(relativeBlockPos, type);
 }
 
@@ -239,8 +239,8 @@ void ChunkManager::setRenderDistance(const int newRenderDistance) {
     // todo - copy already loaded closest chunks into this new list
 }
 
-ChunkManager::ChunkPtr ChunkManager::getOwningChunk(const VecUtils::Vec3Discrete &block) const {
-    const VecUtils::Vec3Discrete owningChunkPos =
+ChunkManager::ChunkPtr ChunkManager::getOwningChunk(const glm::ivec3 &block) const {
+    const glm::ivec3 owningChunkPos =
             VecUtils::floor(static_cast<glm::vec3>(block) * (1.0f / Chunk::CHUNK_SIZE));
 
     const auto it = std::ranges::find_if(chunkSlots, [&](const ChunkSlot &slot) {

@@ -6,6 +6,7 @@
 #include <glm/vec3.hpp>
 
 #include "gl-buffer.h"
+#include "src/utils/vec.h"
 
 struct IndexedMeshData;
 
@@ -33,7 +34,9 @@ public:
  * relevant for rendering a single chunk's mesh in one VAO.
  */
 class ChunkVertexArray final : public GLVertexArray {
-    std::unique_ptr<GLArrayBuffer<glm::vec3>> vertices, normals;
+    // std::unique_ptr<GLArrayBuffer<glm::uint32>> packedVertices;
+    std::unique_ptr<GLArrayBuffer<glm::ivec3>> vertices;
+    std::unique_ptr<GLArrayBuffer<glm::vec3>> normals;
     std::unique_ptr<GLArrayBuffer<glm::vec2>> uvs;
     std::unique_ptr<GLArrayBuffer<int>> texIDs;
     std::unique_ptr<GLElementBuffer> indices;

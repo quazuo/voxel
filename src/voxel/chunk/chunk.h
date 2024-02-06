@@ -20,7 +20,7 @@ public:
 
 private:
     // coordinates of the block with the lowest coordinates
-    VecUtils::Vec3Discrete pos{};
+    glm::ivec3 pos{};
 
     std::shared_ptr<class ChunkMeshContext> meshContext;
     bool isMesh = false;
@@ -35,13 +35,13 @@ public:
     explicit Chunk(const glm::vec3 &p) : pos(p) {}
 
     [[nodiscard]]
-    VecUtils::Vec3Discrete getPos() const { return pos; }
+    glm::ivec3 getPos() const { return pos; }
 
     [[nodiscard]]
     EBlockType getBlock(const int x, const int y, const int z) const { return blocks[x][y][z].blockType; }
 
     [[nodiscard]]
-    EBlockType getBlock(const VecUtils::Vec3Discrete &v) const { return blocks[v.x][v.y][v.z].blockType; }
+    EBlockType getBlock(const glm::ivec3 &v) const { return blocks[v.x][v.y][v.z].blockType; }
 
     [[nodiscard]]
     bool isLoaded() const { return _isLoaded; }
@@ -53,7 +53,7 @@ public:
 
     void markDirty() { _isDirty = true; }
 
-    void updateBlock(const VecUtils::Vec3Discrete &block, EBlockType type);
+    void updateBlock(const glm::ivec3 &block, EBlockType type);
 
     void updateBlock(int x, int y, int z, EBlockType type);
 
@@ -84,7 +84,7 @@ private:
     /**
      * Adds a specific cube's face to this mesh.
      */
-    void createFace(const glm::vec3 &cubePos, EBlockFace face, EBlockType blockType) const;
+    void createFace(const glm::ivec3 &cubePos, EBlockFace face, EBlockType blockType) const;
 };
 
 #endif //MYGE_CHUNK_H

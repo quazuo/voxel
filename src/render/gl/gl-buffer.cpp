@@ -84,11 +84,13 @@ void GLElementBuffer::enable() {
 
 // template specializations
 
+template class GLBuffer<glm::ivec3>;
 template class GLBuffer<glm::vec3>;
 template class GLBuffer<glm::vec2>;
 template class GLBuffer<unsigned short>;
 template class GLBuffer<int>;
 
+template class GLArrayBuffer<glm::ivec3>;
 template class GLArrayBuffer<glm::vec3>;
 template class GLArrayBuffer<glm::vec2>;
 template class GLArrayBuffer<int>;

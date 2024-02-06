@@ -13,23 +13,22 @@
 /**
  * Structure holding all data describing a vertex.
  */
-struct PackedVertex {
-    glm::vec3 position;
+struct Vertex {
+    glm::ivec3 position;
     glm::vec2 uv;
     glm::vec3 normal;
     int texSamplerID;
 
-    bool operator<(const PackedVertex other) const {
-        return memcmp(this, &other, sizeof(PackedVertex)) > 0;
+    bool operator<(const Vertex other) const {
+        return memcmp(this, &other, sizeof(Vertex)) > 0;
     }
 };
-
 
 /**
  * Structure holding all data describing a mesh after indexing has been performed on it.
  */
 struct IndexedMeshData {
-    std::vector<glm::vec3> vertices;
+    std::vector<glm::ivec3> vertices;
     std::vector<glm::vec2> uvs;
     std::vector<glm::vec3> normals;
     std::vector<int> texIDs;
@@ -48,8 +47,8 @@ struct IndexedMeshData {
  * Class holding information about the state of a chunk's mesh we're creating and/or rendering.
  */
 class ChunkMeshContext {
-    using Quad = std::pair<PackedVertex, PackedVertex>;
-    using Triangle = std::tuple<PackedVertex, PackedVertex, PackedVertex>;
+    using Quad = std::pair<Vertex, Vertex>;
+    using Triangle = std::tuple<Vertex, Vertex, Vertex>;
 
     std::vector<Quad> quads{};
     std::vector<Triangle> triangles{};
@@ -76,13 +75,13 @@ public:
      * @param min Vertex with the lowest coordinates in the quad.
      * @param max Vertex with the highest coordinates in the quad.
      */
-    void addQuad(const PackedVertex &min, const PackedVertex &max);
+    void addQuad(const Vertex &min, const Vertex &max);
 
     /**
      * Adds a new triangle to this mesh, described by its vertices.
      */
     [[maybe_unused]]
-    void addTriangle(const PackedVertex &vertex1, const PackedVertex &vertex2, const PackedVertex &vertex3);
+    void addTriangle(const Vertex &vertex1, const Vertex &vertex2, const Vertex &vertex3);
 
     /**
      * Splits all quads in this mesh into triangles.

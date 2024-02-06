@@ -83,7 +83,7 @@ public:
     glm::vec3 getCameraPos() const { return camera->getPos(); }
 
     [[nodiscard]]
-    std::vector<VecUtils::Vec3Discrete> getLookedAtBlocks() const { return camera->getLookedAtBlocks(); }
+    std::vector<glm::ivec3> getLookedAtBlocks() const { return camera->getLookedAtBlocks(); }
 
     [[nodiscard]]
     bool isChunkInFrustum(const Chunk& chunk) const { return camera->isChunkInFrustum(chunk.getPos()); };

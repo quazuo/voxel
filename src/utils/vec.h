@@ -10,9 +10,7 @@
  * Collection of various utils for handling GLM vectors.
  */
 namespace VecUtils {
-    using Vec3Discrete = glm::vec<3, int>;
-
-    int sum(const Vec3Discrete &v);
+    int sum(const glm::ivec3 &v);
 
     std::string toString(const glm::vec3 &vec);
 

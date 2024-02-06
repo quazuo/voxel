@@ -36,7 +36,7 @@ public:
      * @return Is the chunk in front of the plane?
      */
     [[nodiscard]]
-    bool isChunkInFront(const VecUtils::Vec3Discrete &chunkPos) const;
+    bool isChunkInFront(const glm::ivec3 &chunkPos) const;
 };
 
 /**
@@ -55,7 +55,7 @@ struct Frustum {
      * @return Is the chunk inside the frustum?
      */
     [[nodiscard]]
-    bool isChunkContained(const VecUtils::Vec3Discrete &chunkPos) const;
+    bool isChunkContained(const glm::ivec3 &chunkPos) const;
 };
 
 class Camera {
@@ -111,14 +111,14 @@ public:
      * @return Is the chunk inside the frustum?
      */
     [[nodiscard]]
-    bool isChunkInFrustum(const VecUtils::Vec3Discrete& chunkPos) const { return frustum.isChunkContained(chunkPos); }
+    bool isChunkInFrustum(const glm::ivec3& chunkPos) const { return frustum.isChunkContained(chunkPos); }
 
     /**
      * @return Vector containing positions of blocks which are under the camera's crosshair, no further from
      * the camera than the `TARGET_DISTANCE` constant (by Manhattan distance).
      */
     [[nodiscard]]
-    std::vector<VecUtils::Vec3Discrete> getLookedAtBlocks() const;
+    std::vector<glm::ivec3> getLookedAtBlocks() const;
 
     void updateRotation(float dx = 0.0f, float dy = 0.0f);
 

@@ -10,17 +10,17 @@ void ChunkMeshContext::clear() {
     indexedData = {};
 }
 
-void ChunkMeshContext::addQuad(const PackedVertex &min, const PackedVertex &max) {
+void ChunkMeshContext::addQuad(const Vertex &min, const Vertex &max) {
     quads.emplace_back(min, max);
 }
 
-void ChunkMeshContext::addTriangle(const PackedVertex &vertex1, const PackedVertex &vertex2,
-                                   const PackedVertex &vertex3) {
+void ChunkMeshContext::addTriangle(const Vertex &vertex1, const Vertex &vertex2,
+                                   const Vertex &vertex3) {
     triangles.emplace_back(vertex1, vertex2, vertex3);
 }
 
-static void indexVertex(const PackedVertex &vertex, IndexedMeshData &data,
-                        std::map<PackedVertex, unsigned short> &vertexToOutIndex) {
+static void indexVertex(const Vertex &vertex, IndexedMeshData &data,
+                        std::map<Vertex, unsigned short> &vertexToOutIndex) {
     const auto it = vertexToOutIndex.find(vertex);
 
     if (it != vertexToOutIndex.end()) {
@@ -41,7 +41,7 @@ static void indexVertex(const PackedVertex &vertex, IndexedMeshData &data,
 
 void ChunkMeshContext::makeIndexed() {
     indexedData = IndexedMeshData();
-    std::map<PackedVertex, unsigned short> vertexToOutIndex;
+    std::map<Vertex, unsigned short> vertexToOutIndex;
 
     for (const auto &[v1, v2, v3]: triangles) {
         indexVertex(v1, *indexedData, vertexToOutIndex);
@@ -65,14 +65,14 @@ void ChunkMeshContext::drawElements() const {
 
 void ChunkMeshContext::triangulateQuads() {
     for (auto &[v1, v2]: quads) {
-        PackedVertex v3 = {
+        Vertex v3 = {
             .position = {},
             .uv = {v2.uv.x, v1.uv.y},
             .normal = v1.normal,
             .texSamplerID = v1.texSamplerID,
         };
 
-        PackedVertex v4 = {
+        Vertex v4 = {
             .position = {},
             .uv = {v1.uv.x, v2.uv.y},
             .normal = v1.normal,
@@ -109,7 +109,7 @@ void ChunkMeshContext::mergeQuads() {
 
     for (auto &[v1, v2]: quads) {
         const EBlockFace face = getFaceFromNormal(v1.normal);
-        const VecUtils::Vec3Discrete coords = v1.position - Block::getFaceCorners(face).first;
+        const glm::ivec3 coords = v1.position - Block::getFaceCorners(face).first;
 
         if (face == Front) {
             front[coords] = v1.texSamplerID;
@@ -157,28 +157,28 @@ ChunkMeshContext::mergeQuadMap(CubeArray<short, Chunk::CHUNK_SIZE> &quadMap, con
     std::vector<Quad> newQuads;
 
     const auto merge = [&](size_t x, size_t y, size_t z) {
-        const VecUtils::Vec3Discrete firstAxis = normal.x == 0
+        const glm::ivec3 firstAxis = normal.x == 0
                                                  ? glm::vec3(1, 0, 0)
                                                  : glm::vec3(0, 1, 0);
-        const VecUtils::Vec3Discrete secondAxis = normal.z == 0
+        const glm::ivec3 secondAxis = normal.z == 0
                                                   ? glm::vec3(0, 0, 1)
                                                   : glm::vec3(0, 1, 0);
 
         // first, stride along the first axis and determine the "width" of the merged rectangle
-        VecUtils::Vec3Discrete firstStride = {x, y, z};
+        glm::ivec3 firstStride = {x, y, z};
         bool isInRange = true;
         while (isInRange && quadMap[firstStride] == quadMap[x][y][z]) {
             firstStride += firstAxis;
             isInRange = VecUtils::all(firstStride, [](const float f) { return f < Chunk::CHUNK_SIZE; });
         }
 
-        const int width = VecUtils::sum(firstStride - VecUtils::Vec3Discrete(x, y, z));
+        const int width = VecUtils::sum(firstStride - glm::ivec3(x, y, z));
 
         // second, stride along the second axis and determine the "height" of the merged rectangle
-        VecUtils::Vec3Discrete secondStride = {x, y, z};
+        glm::ivec3 secondStride = {x, y, z};
         isInRange = true;
         while (isInRange) {
-            VecUtils::Vec3Discrete subStride = secondStride;
+            glm::ivec3 subStride = secondStride;
             bool isRowMatching = true;
 
             for (int i = 0; i < width; i++) {
@@ -197,10 +197,10 @@ ChunkMeshContext::mergeQuadMap(CubeArray<short, Chunk::CHUNK_SIZE> &quadMap, con
             isInRange = VecUtils::all(secondStride, [](const float f) { return f < Chunk::CHUNK_SIZE; });
         }
 
-        const int height = VecUtils::sum(secondStride - VecUtils::Vec3Discrete(x, y, z));
+        const int height = VecUtils::sum(secondStride - glm::ivec3(x, y, z));
 
-        VecUtils::Vec3Discrete v1 = {x, y, z};
-        VecUtils::Vec3Discrete v2 = v1 + firstAxis * (width - 1) + secondAxis * (height - 1);
+        glm::ivec3 v1 = {x, y, z};
+        glm::ivec3 v2 = v1 + firstAxis * (width - 1) + secondAxis * (height - 1);
 
         const auto face = getFaceFromNormal(normal);
         const auto [bottomLeft, topRight] = Block::getFaceCorners(face);
@@ -215,13 +215,13 @@ ChunkMeshContext::mergeQuadMap(CubeArray<short, Chunk::CHUNK_SIZE> &quadMap, con
 
         Quad q = {
             {
-                .position = glm::vec3(v1) + bottomLeft,
+                .position = v1 + bottomLeft,
                 .uv = glm::vec2(0, 1) * static_cast<float>(face == Left || face == Right ? width : height),
                 .normal = normal,
                 .texSamplerID = quadMap[x][y][z]
             },
             {
-                .position = glm::vec3(v2) + topRight,
+                .position = v2 + topRight,
                 .uv = glm::vec2(1, 0) * static_cast<float>(face == Left || face == Right ? height : width),
                 .normal = normal,
                 .texSamplerID = quadMap[x][y][z]

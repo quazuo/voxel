@@ -1,7 +1,7 @@
 #include <sstream>
 #include "vec.h"
 
-int VecUtils::sum(const Vec3Discrete &v) {
+int VecUtils::sum(const glm::ivec3 &v) {
     return v.x + v.y + v.z;
 }
 

@@ -11,7 +11,7 @@
 #include "src/voxel/chunk/chunk.h"
 #include "gui.h"
 
-bool Plane::isChunkInFront(const VecUtils::Vec3Discrete &chunkPos) const {
+bool Plane::isChunkInFront(const glm::ivec3 &chunkPos) const {
     const glm::vec3 chunkAbsPos =
         static_cast<glm::vec3>(chunkPos) * static_cast<float>(Chunk::CHUNK_SIZE) / Block::RENDER_SIZE;
     const glm::vec3 chunkMinPoint = chunkAbsPos - glm::vec3(Block::RENDER_SIZE / 2);
@@ -27,7 +27,7 @@ bool Plane::isChunkInFront(const VecUtils::Vec3Discrete &chunkPos) const {
     return -projectionRadius <= signedDistance;
 }
 
-bool Frustum::isChunkContained(const VecUtils::Vec3Discrete &chunkPos) const {
+bool Frustum::isChunkContained(const glm::ivec3 &chunkPos) const {
     return near.isChunkInFront(chunkPos) &&
            far.isChunkInFront(chunkPos) &&
            top.isChunkInFront(chunkPos) &&
@@ -251,13 +251,13 @@ glm::mat4 Camera::getProjectionMatrix() const {
     return glm::perspective(glm::radians(fieldOfView), aspectRatio, zNear, zFar);
 }
 
-std::vector<VecUtils::Vec3Discrete> Camera::getLookedAtBlocks() const {
-    std::vector<VecUtils::Vec3Discrete> result;
+std::vector<glm::ivec3> Camera::getLookedAtBlocks() const {
+    std::vector<glm::ivec3> result;
 
     for (int x = -TARGET_DISTANCE; x <= TARGET_DISTANCE; x++) {
         for (int y = -TARGET_DISTANCE; y <= TARGET_DISTANCE; y++) {
             for (int z = -TARGET_DISTANCE; z <= TARGET_DISTANCE; z++) {
-                const VecUtils::Vec3Discrete blockPos = VecUtils::floor(pos + glm::vec3(x, y, z));
+                const glm::ivec3 blockPos = VecUtils::floor(pos + glm::vec3(x, y, z));
 
                 if (isBlockLookedAt(blockPos)) {
                     result.push_back(blockPos);
@@ -275,7 +275,7 @@ std::vector<VecUtils::Vec3Discrete> Camera::getLookedAtBlocks() const {
 
 bool Camera::isBlockLookedAt(const glm::vec3 &blockPos) const {
     float tmin = -INFINITY, tmax = INFINITY;
-    const glm::vec3 blockMin = blockPos - Block::RENDER_SIZE / 2;
+    const glm::vec3 blockMin = blockPos;
     const glm::vec3 blockMax = blockMin + Block::RENDER_SIZE;
 
     if (glm::dot(blockPos - pos, front) < 0) {

@@ -50,7 +50,7 @@ class ChunkManager {
     std::vector<ChunkSlot> chunkSlots;
 
     // optional because we want to specially handle the si
-    VecUtils::Vec3Discrete lastOccupiedChunkPos = {0, 0, 0};
+    glm::ivec3 lastOccupiedChunkPos = {0, 0, 0};
 
     std::shared_ptr<OpenGLRenderer> renderer;
     std::shared_ptr<class WorldGen> worldGen;
@@ -83,7 +83,7 @@ public:
      * @return If any, the coordinates of the requested block.
      */
     [[nodiscard]]
-    std::optional<glm::vec3> getTargetedBlock(const std::vector<VecUtils::Vec3Discrete> &lookedAtBlocks) const;
+    std::optional<glm::vec3> getTargetedBlock(const std::vector<glm::ivec3> &lookedAtBlocks) const;
 
     /**
      * Updates a specific block at absolute coordinates to be a set type.
@@ -91,7 +91,7 @@ public:
      * @param block The block's coordinates.
      * @param type Type of which the block should now be.
      */
-    void updateBlock(const VecUtils::Vec3Discrete &block, EBlockType type) const;
+    void updateBlock(const glm::ivec3 &block, EBlockType type) const;
 
     /**
      * Updates the render distance.
@@ -107,7 +107,7 @@ private:
      * @return Pointer to the owning chunk.
      */
     [[nodiscard]]
-    ChunkPtr getOwningChunk(const VecUtils::Vec3Discrete &block) const;
+    ChunkPtr getOwningChunk(const glm::ivec3 &block) const;
 
     /**
      * Checks if any chunks should be loaded or unloaded, and does so if that's the case.

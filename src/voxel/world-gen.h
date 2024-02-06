@@ -11,17 +11,17 @@ public:
 
     virtual EBlockType getBlockTypeAt(int x, int y, int z) = 0;
 
-    virtual void setChunkGenCtx(VecUtils::Vec3Discrete chunkPos) = 0;
+    virtual void setChunkGenCtx(glm::ivec3 chunkPos) = 0;
 };
 
 class DefaultWorldGen : public WorldGen {
     noiseutils::NoiseMap heightMap;
-    VecUtils::Vec3Discrete chunkPos{};
+    glm::ivec3 chunkPos{};
 
 public:
     EBlockType getBlockTypeAt(int x, int y, int z) override;
 
-    void setChunkGenCtx(VecUtils::Vec3Discrete cPos) override;
+    void setChunkGenCtx(glm::ivec3 cPos) override;
 };
 
 #endif //VOXEL_WORLD_GEN_H

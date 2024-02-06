@@ -1,6 +1,6 @@
 #version 330 core
 
-layout(location = 0) in vec3 vertexPosition_modelspace;
+layout(location = 0) in ivec3 vertexPosition_modelspace;
 layout(location = 1) in vec2 vertexUV;
 layout(location = 2) in vec3 vertexNormal_modelspace;
 layout(location = 3) in int textureID;

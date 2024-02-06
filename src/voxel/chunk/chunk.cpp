@@ -21,7 +21,7 @@ void Chunk::unload() {
     _isLoaded = false;
 }
 
-void Chunk::updateBlock(const VecUtils::Vec3Discrete &block, const EBlockType type) {
+void Chunk::updateBlock(const glm::ivec3 &block, const EBlockType type) {
     updateBlock(block.x, block.y, block.z, type);
 }
 
@@ -75,16 +75,7 @@ void Chunk::createMesh() {
 }
 
 void Chunk::createCube(const int x, const int y, const int z) {
-    const glm::vec3 cubeIndexPos = {x, y, z};
-    const glm::vec3 cubePos = cubeIndexPos * Block::RENDER_SIZE;
-
-    // these points are indexed as mentioned in the header file.
-    constexpr size_t N_POINTS = 8;
-    std::array<glm::vec3, N_POINTS> points = {};
-    for (size_t i = 0; i < N_POINTS; i++) {
-        points[i] = cubePos + Block::vertexOffsets[i];
-    }
-
+    const glm::ivec3 cubePos = { x, y, z };
     const EBlockType blockType = blocks[x][y][z].blockType;
 
     if (z == CHUNK_SIZE - 1 || blocks[x][y][z + 1].isNone()) {
@@ -112,23 +103,24 @@ void Chunk::createCube(const int x, const int y, const int z) {
     }
 }
 
-void Chunk::createFace(const glm::vec3 &cubePos, const EBlockFace face, const EBlockType blockType) const {
+void Chunk::createFace(const glm::ivec3 &cubePos, const EBlockFace face, const EBlockType blockType) const {
     static const std::unordered_map<EBlockFace, glm::vec3> faceNormals = {
-        {Front,  {0.0,  0.0,  1.0}},
-        {Back,   {0.0,  0.0,  -1.0}},
-        {Right,  {1.0,  0.0,  0.0}},
-        {Left,   {-1.0, 0.0,  0.0}},
-        {Top,    {0.0,  1.0,  0.0}},
-        {Bottom, {0.0,  -1.0, 0.0}}
+        {Front, {0, 0, 1}},
+        {Back, {0, 0, -1}},
+        {Right, {1, 0, 0}},
+        {Left, {-1, 0, 0}},
+        {Top, {0, 1, 0}},
+        {Bottom, {0, -1, 0}}
     };
 
     const auto [bottomLeft, topRight] = Block::getFaceCorners(face);
-    const glm::vec3 minPos = cubePos + bottomLeft;
-    const glm::vec3 maxPos = cubePos + topRight;
+    const glm::ivec3 minPos = cubePos + bottomLeft;
+    const glm::ivec3 maxPos = cubePos + topRight;
 
-    const PackedVertex packedMin = {minPos, {0, 1.0}, faceNormals.at(face),
-                                    TextureManager::getBlockSamplerID(blockType, face)};
-    const PackedVertex packedMax = {maxPos, {1.0, 0}, faceNormals.at(face),
-                                    TextureManager::getBlockSamplerID(blockType, face)};
-    meshContext->addQuad(packedMin, packedMax);
+    const glm::vec3 normal = faceNormals.at(face);
+    const int samplerID = TextureManager::getBlockSamplerID(blockType, face);
+
+    const Vertex min { minPos, {0, 1}, normal, samplerID };
+    const Vertex max { maxPos, {1, 0}, normal, samplerID };
+    meshContext->addQuad(min, max);
 }

@@ -7,6 +7,7 @@
 #include <map>
 #include "glm/vec3.hpp"
 #include "face.h"
+#include "src/utils/vec.h"
 
 // this is purposefully not an enum class, as we want to use the underlying numeric values
 // to also index into texture samplers inside the cube fragment shader
@@ -45,22 +46,23 @@ public:
         0--------1
         where the front face is the 0-1-2-3 one.
     */
-    static constexpr std::array<glm::vec3, 8> vertexOffsets = {
+    static constexpr std::array<glm::ivec3, 8> vertexOffsets = {
         {
-            Block::RENDER_SIZE * glm::vec3(-0.5, -0.5, 0.5),  // 0
-            Block::RENDER_SIZE * glm::vec3(0.5, -0.5, 0.5),   // 1
-            Block::RENDER_SIZE * glm::vec3(0.5, 0.5, 0.5),    // 2
-            Block::RENDER_SIZE * glm::vec3(-0.5, 0.5, 0.5),   // 3
-            Block::RENDER_SIZE * glm::vec3(0.5, -0.5, -0.5),  // 4
-            Block::RENDER_SIZE * glm::vec3(-0.5, -0.5, -0.5), // 5
-            Block::RENDER_SIZE * glm::vec3(-0.5, 0.5, -0.5),  // 6
-            Block::RENDER_SIZE * glm::vec3(0.5, 0.5, -0.5)    // 7
+            { 0, 0, 1 }, // 0
+            { 1, 0, 1 }, // 1
+            { 1, 1, 1 }, // 2
+            { 0, 1, 1 }, // 3
+            { 1, 0, 0 }, // 4
+            { 0, 0, 0 }, // 5
+            { 0, 1, 0 }, // 6
+            { 1, 1, 0 }, // 7
         }
     };
 
     Block() = default;
 
-    explicit Block(const EBlockType type) : blockType(type) {}
+    explicit Block(const EBlockType type) : blockType(type) {
+    }
 
     [[nodiscard]]
     bool isNone() const { return blockType == EBlockType::BlockType_None; }
@@ -71,7 +73,7 @@ public:
      * This does not return vertices with lowest and highest coordinates respectively,
      * but it considers them "as the face is looked at by an observer" if that makes sense.
      */
-    static std::pair<glm::vec3, glm::vec3> getFaceCorners(const EBlockFace face) {
+    static std::pair<glm::ivec3, glm::ivec3> getFaceCorners(const EBlockFace face) {
         switch (face) {
             case Front:
                 return {vertexOffsets[0], vertexOffsets[2]};

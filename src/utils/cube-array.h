@@ -31,11 +31,11 @@ public:
         return arr[n];
     }
 
-    const T& operator[](const VecUtils::Vec3Discrete& vec) const {
+    const T& operator[](const glm::ivec3& vec) const {
         return arr[vec.x][vec.y][vec.z];
     }
 
-    T& operator[](const VecUtils::Vec3Discrete& vec) {
+    T& operator[](const glm::ivec3& vec) {
         return arr[vec.x][vec.y][vec.z];
     }
 
@@ -91,11 +91,11 @@ public:
         return arr[n];
     }
 
-    const T& operator[](const VecUtils::Vec3Discrete& vec) const {
+    const T& operator[](const glm::ivec3& vec) const {
         return arr[vec.x][vec.y][vec.z];
     }
 
-    T& operator[](const VecUtils::Vec3Discrete& vec) {
+    T& operator[](const glm::ivec3& vec) {
         return arr[vec.x][vec.y][vec.z];
     }
 

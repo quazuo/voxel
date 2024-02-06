@@ -18,7 +18,7 @@ EBlockType DefaultWorldGen::getBlockTypeAt(const int x, const int y, const int z
     return BlockType_Dirt;
 }
 
-void DefaultWorldGen::setChunkGenCtx(const VecUtils::Vec3Discrete cPos) {
+void DefaultWorldGen::setChunkGenCtx(const glm::ivec3 cPos) {
     chunkPos = cPos;
     heightMap = {};
 
