@@ -12,10 +12,8 @@
 #include "gui.h"
 
 bool Plane::isChunkInFront(const glm::ivec3 &chunkPos) const {
-    const glm::vec3 chunkAbsPos =
-        static_cast<glm::vec3>(chunkPos) * static_cast<float>(Chunk::CHUNK_SIZE) / Block::RENDER_SIZE;
-    const glm::vec3 chunkMinPoint = chunkAbsPos - glm::vec3(Block::RENDER_SIZE / 2);
-    constexpr float chunkAbsSize = Chunk::CHUNK_SIZE * Block::RENDER_SIZE;
+    const glm::vec3 chunkMinPoint = static_cast<glm::vec3>(chunkPos) * static_cast<float>(Chunk::CHUNK_SIZE);
+    constexpr float chunkAbsSize = Chunk::CHUNK_SIZE;
     const glm::vec3 chunkCenter = chunkMinPoint + glm::vec3(chunkAbsSize / 2);
 
     const float projectionRadius = (chunkAbsSize / 2) * std::abs(normal.x) +
@@ -273,12 +271,12 @@ std::vector<glm::ivec3> Camera::getLookedAtBlocks() const {
     return result;
 }
 
-bool Camera::isBlockLookedAt(const glm::vec3 &blockPos) const {
+bool Camera::isBlockLookedAt(const glm::ivec3 &blockPos) const {
     float tmin = -INFINITY, tmax = INFINITY;
     const glm::vec3 blockMin = blockPos;
     const glm::vec3 blockMax = blockMin + Block::RENDER_SIZE;
 
-    if (glm::dot(blockPos - pos, front) < 0) {
+    if (glm::dot(glm::vec3(blockPos) - pos, front) < 0) {
         return false;
     }
 

@@ -305,11 +305,11 @@ void OpenGLRenderer::addCubeOutline(const glm::vec3 &minVec, const float sideLen
     }
 }
 
-void OpenGLRenderer::addChunkOutline(const glm::vec3 &chunkPos, const LineType gid) {
+void OpenGLRenderer::addChunkOutline(const glm::ivec3 &chunkPos, const LineType gid) {
     addCubeOutline(chunkPos, Chunk::CHUNK_SIZE * Block::RENDER_SIZE, gid);
 }
 
-auto OpenGLRenderer::addTargetedBlockOutline(const glm::vec3 &blockPos) -> void {
+auto OpenGLRenderer::addTargetedBlockOutline(const glm::ivec3 &blockPos) -> void {
     addCubeOutline(blockPos, Block::RENDER_SIZE, SELECTED_BLOCK_OUTLINE);
 }
 

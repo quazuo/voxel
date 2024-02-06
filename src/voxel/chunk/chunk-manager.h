@@ -83,7 +83,7 @@ public:
      * @return If any, the coordinates of the requested block.
      */
     [[nodiscard]]
-    std::optional<glm::vec3> getTargetedBlock(const std::vector<glm::ivec3> &lookedAtBlocks) const;
+    std::optional<glm::ivec3> getTargetedBlock(const std::vector<glm::ivec3> &lookedAtBlocks) const;
 
     /**
      * Updates a specific block at absolute coordinates to be a set type.

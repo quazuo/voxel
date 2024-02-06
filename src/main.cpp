@@ -21,7 +21,7 @@ class VEngine {
 
     KeyManager keyManager;
 
-    std::optional<glm::vec3> targetedBlockPos{};
+    std::optional<glm::ivec3> targetedBlockPos{};
 
     float lastTime = 0.f;
 

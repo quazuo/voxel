@@ -32,7 +32,7 @@ private:
     size_t activeBlockCount = 0;
 
 public:
-    explicit Chunk(const glm::vec3 &p) : pos(p) {}
+    explicit Chunk(const glm::ivec3 &p) : pos(p) {}
 
     [[nodiscard]]
     glm::ivec3 getPos() const { return pos; }

@@ -107,14 +107,14 @@ public:
      * @param chunkPos The chunk's position, given by its vertex with the lowest coordinates.
      * @param gid Outline type that should be used.
      */
-    void addChunkOutline(const glm::vec3 &chunkPos, LineType gid);
+    void addChunkOutline(const glm::ivec3 &chunkPos, LineType gid);
 
     /**
      * Adds a given block's outline to the list of lines that will be rendered later.
      *
      * @param blockPos The block's position, given by its vertex with the lowest coordinates.
      */
-    void addTargetedBlockOutline(const glm::vec3 &blockPos);
+    void addTargetedBlockOutline(const glm::ivec3 &blockPos);
 
     /**
      * Renders the HUD, containing mostly text.

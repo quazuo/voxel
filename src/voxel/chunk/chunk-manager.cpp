@@ -31,7 +31,7 @@ ChunkManager::ChunkManager(std::shared_ptr<OpenGLRenderer> r, std::shared_ptr<Wo
     for (int x = -renderDistance; x <= renderDistance; x++) {
         for (int y = -renderDistance; y <= renderDistance; y++) {
             for (int z = -renderDistance; z <= renderDistance; z++) {
-                const auto newChunk = std::make_shared<Chunk>(glm::vec3(x, y, z));
+                const auto newChunk = std::make_shared<Chunk>(glm::ivec3(x, y, z));
 
                 loadableChunks.push_back(newChunk);
 
@@ -100,7 +100,7 @@ void ChunkManager::unloadFarChunks() {
     for (auto &slot: chunkSlots) {
         if (!slot.isBound()) continue;
 
-        const glm::vec3 chunkPosDist = VecUtils::abs(slot.chunk->getPos() - lastOccupiedChunkPos);
+        const glm::ivec3 chunkPosDist = VecUtils::abs(slot.chunk->getPos() - lastOccupiedChunkPos);
         const bool isOutsideRenderDistance = VecUtils::any(
             chunkPosDist,
             [&](const float x) { return x > static_cast<float>(renderDistance + gracePeriodWidth); }
@@ -148,7 +148,7 @@ void ChunkManager::loadNearChunks() {
         if (isLoaded) return;
 
         // chunk at `newChunkPos` is unloaded but should be -- we'll load it
-        const glm::vec3 newChunkPos = lastOccupiedChunkPos + glm::ivec3(x, y, z) - renderDistance;
+        const glm::ivec3 newChunkPos = lastOccupiedChunkPos + glm::ivec3(x, y, z) - renderDistance;
         const auto newChunk = std::make_shared<Chunk>(newChunkPos);
         loadableChunks.push_back(newChunk);
 
@@ -205,7 +205,7 @@ void ChunkManager::updateRenderList() {
     }
 }
 
-std::optional<glm::vec3>
+std::optional<glm::ivec3>
 ChunkManager::getTargetedBlock(const std::vector<glm::ivec3> &lookedAtBlocks) const {
     for (auto &block: lookedAtBlocks) {
         const ChunkPtr chunk = getOwningChunk(block);

@@ -160,7 +160,7 @@ private:
      * @return is the block under the crosshair?
      */
     [[nodiscard]]
-    bool isBlockLookedAt(const glm::vec3 &blockPos) const;
+    bool isBlockLookedAt(const glm::ivec3 &blockPos) const;
 };
 
 #endif //VOXEL_CAMERA_H
