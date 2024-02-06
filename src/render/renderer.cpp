@@ -251,11 +251,11 @@ void OpenGLRenderer::renderOutlines() {
     const glm::mat4 mvpMatrix = projectionMatrix * viewMatrix * modelMatrix;
 
     lineShader->enable();
+    lineShader->setUniform("MVP", mvpMatrix);
 
     for (const auto &[gid, vertices]: tempLineVertexGroups) {
         outlinesVao->writeToBuffers(vertices);
 
-        lineShader->setUniform("MVP", mvpMatrix);
         lineShader->setUniform("color", vertexGroupColors.at(gid));
 
         outlinesVao->enable();
