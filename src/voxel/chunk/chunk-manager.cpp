@@ -1,9 +1,8 @@
 #include <utility>
+
 #include "chunk-manager.h"
-
-#include <iostream>
-
 #include "src/render/renderer.h"
+#include "src/render/gui.h"
 
 void ChunkManager::ChunkSlot::bind(std::shared_ptr<Chunk> c) {
     if (isBound())
@@ -24,11 +23,14 @@ void ChunkManager::ChunkSlot::unbind() {
 
 ChunkManager::ChunkManager(std::shared_ptr<OpenGLRenderer> r, std::shared_ptr<WorldGen> wg)
     : renderer(std::move(r)), worldGen(std::move(wg)) {
+    const size_t visibleAreaWidth = 2 * renderDistance + gracePeriodWidth + 1;
+    chunkSlots = std::vector<ChunkSlot>(SizeUtils::pow(visibleAreaWidth, 3));
+
     auto slotIter = chunkSlots.begin();
 
-    for (int x = -RENDER_DISTANCE; x <= RENDER_DISTANCE; x++) {
-        for (int y = -RENDER_DISTANCE; y <= RENDER_DISTANCE; y++) {
-            for (int z = -RENDER_DISTANCE; z <= RENDER_DISTANCE; z++) {
+    for (int x = -renderDistance; x <= renderDistance; x++) {
+        for (int y = -renderDistance; y <= renderDistance; y++) {
+            for (int z = -renderDistance; z <= renderDistance; z++) {
                 const auto newChunk = std::make_shared<Chunk>(glm::vec3(x, y, z));
 
                 loadableChunks.push_back(newChunk);
@@ -38,6 +40,8 @@ ChunkManager::ChunkManager(std::shared_ptr<OpenGLRenderer> r, std::shared_ptr<Wo
             }
         }
     }
+
+    sortLoadList();
 }
 
 void ChunkManager::renderChunks() const {
@@ -66,6 +70,18 @@ void ChunkManager::tick() {
     updateRenderList();
 }
 
+void ChunkManager::renderGuiSection() {
+    constexpr auto sectionFlags = ImGuiTreeNodeFlags_DefaultOpen;
+
+    if (ImGui::CollapsingHeader("ChunkManager ", sectionFlags)) {
+        ImGui::Text("Render distance: %d ", renderDistance);
+        ImGui::SameLine();
+        if (ImGui::ArrowButton("##left", ImGuiDir_Left)) { setRenderDistance(std::max(renderDistance - 1, 1)); }
+        ImGui::SameLine();
+        if (ImGui::ArrowButton("##right", ImGuiDir_Right)) { setRenderDistance(renderDistance + 1); }
+    }
+}
+
 void ChunkManager::updateChunkSlots() {
     const glm::vec3 currPos = renderer->getCameraPos();
     const VecUtils::Vec3Discrete currChunkPos = VecUtils::floor(currPos / static_cast<float>(Chunk::CHUNK_SIZE));
@@ -76,18 +92,18 @@ void ChunkManager::updateChunkSlots() {
 
     lastOccupiedChunkPos = currChunkPos;
 
-    unloadFarChunks(currChunkPos);
-    loadNearChunks(currChunkPos);
+    unloadFarChunks();
+    loadNearChunks();
 }
 
-void ChunkManager::unloadFarChunks(const VecUtils::Vec3Discrete &currChunkPos) {
+void ChunkManager::unloadFarChunks() {
     for (auto &slot: chunkSlots) {
         if (!slot.isBound()) continue;
 
-        const glm::vec3 chunkPosDist = VecUtils::abs(slot.chunk->getPos() - currChunkPos);
+        const glm::vec3 chunkPosDist = VecUtils::abs(slot.chunk->getPos() - lastOccupiedChunkPos);
         const bool isOutsideRenderDistance = VecUtils::any(
             chunkPosDist,
-            [](const float x) { return x > RENDER_DISTANCE + GRACE_PERIOD_WIDTH; }
+            [&](const float x) { return x > static_cast<float>(renderDistance + gracePeriodWidth); }
         );
 
         if (isOutsideRenderDistance) {
@@ -97,26 +113,26 @@ void ChunkManager::unloadFarChunks(const VecUtils::Vec3Discrete &currChunkPos) {
 
     erase_if(loadableChunks, [&](const ChunkPtr &chunk) {
         return VecUtils::any(
-            VecUtils::abs(chunk->getPos() - currChunkPos),
-            [](const float x) { return x > RENDER_DISTANCE + GRACE_PERIOD_WIDTH; }
+            VecUtils::abs(chunk->getPos() - lastOccupiedChunkPos),
+            [&](const float x) { return x > static_cast<float>(renderDistance + gracePeriodWidth); }
         );
     });
 }
 
-void ChunkManager::loadNearChunks(const VecUtils::Vec3Discrete &currChunkPos) {
-    constexpr size_t newChunkLoadCubeWidth = 2 * RENDER_DISTANCE + 1;
-    CubeArray<bool, newChunkLoadCubeWidth> loadedChunksMap{};
+void ChunkManager::loadNearChunks() {
+    const size_t newChunkLoadCubeWidth = 2 * renderDistance + 1;
+    CubeVector<uint8_t> loadedChunksMap{newChunkLoadCubeWidth}; // uint8_t instead of bool because vector<bool> sucks
 
     // check which positions, relative to ours, are occupied by loaded chunks
     for (auto &slot: chunkSlots) {
         if (!slot.isBound()) continue;
 
-        const VecUtils::Vec3Discrete relPos = slot.chunk->getPos() - currChunkPos;
+        const VecUtils::Vec3Discrete relPos = slot.chunk->getPos() - lastOccupiedChunkPos;
 
         // relPos components shifted so that they are non-negative
-        const size_t x = relPos.x + RENDER_DISTANCE;
-        const size_t y = relPos.y + RENDER_DISTANCE;
-        const size_t z = relPos.z + RENDER_DISTANCE;
+        const size_t x = relPos.x + renderDistance;
+        const size_t y = relPos.y + renderDistance;
+        const size_t z = relPos.z + renderDistance;
 
         // we're interested only in positions within render distance -- we don't care about chunks that are
         // still loaded only because they're in the grace period
@@ -128,11 +144,11 @@ void ChunkManager::loadNearChunks(const VecUtils::Vec3Discrete &currChunkPos) {
     // use the previously gathered information to load missing chunks to free slots
     auto slotIt = chunkSlots.begin();
 
-    loadedChunksMap.forEach([&](const size_t x, const size_t y, const size_t z, const bool &isLoaded) {
+    loadedChunksMap.forEach([&](const size_t x, const size_t y, const size_t z, const uint8_t &isLoaded) {
         if (isLoaded) return;
 
         // chunk at `newChunkPos` is unloaded but should be -- we'll load it
-        const glm::vec3 newChunkPos = currChunkPos + VecUtils::Vec3Discrete(x, y, z) - RENDER_DISTANCE;
+        const glm::vec3 newChunkPos = lastOccupiedChunkPos + VecUtils::Vec3Discrete(x, y, z) - renderDistance;
         const auto newChunk = std::make_shared<Chunk>(newChunkPos);
         loadableChunks.push_back(newChunk);
 
@@ -143,18 +159,21 @@ void ChunkManager::loadNearChunks(const VecUtils::Vec3Discrete &currChunkPos) {
 
         slotIt->bind(newChunk);
     });
+
+    sortLoadList();
 }
 
-void ChunkManager::updateLoadList() {
-    int nChunksLoaded = 0;
-
-    // sort the chunks we will load so that the chunks closest to the camera get loaded first
+void ChunkManager::sortLoadList() {
     const glm::vec3 cameraPos = renderer->getCameraPos();
-    std::ranges::sort(loadableChunks, [&](const ChunkPtr& a, const ChunkPtr& b) {
+    std::ranges::sort(loadableChunks, [&](const ChunkPtr &a, const ChunkPtr &b) {
         const auto aDist = glm::length(cameraPos - static_cast<glm::vec3>(a->getPos() * Chunk::CHUNK_SIZE));
         const auto bDist = glm::length(cameraPos - static_cast<glm::vec3>(b->getPos() * Chunk::CHUNK_SIZE));
         return aDist < bDist;
     });
+}
+
+void ChunkManager::updateLoadList() {
+    int nChunksLoaded = 0;
 
     for (const ChunkPtr &chunk: loadableChunks) {
         if (!chunk->isLoaded()) {
@@ -209,6 +228,15 @@ void ChunkManager::updateBlock(const VecUtils::Vec3Discrete &block, const EBlock
 
     const VecUtils::Vec3Discrete relativeBlockPos = block - chunk->getPos() * Chunk::CHUNK_SIZE;
     chunk->updateBlock(relativeBlockPos, type);
+}
+
+void ChunkManager::setRenderDistance(const int newRenderDistance) {
+    renderDistance = newRenderDistance;
+    const size_t visibleAreaWidth = 2 * renderDistance + gracePeriodWidth + 1;
+    chunkSlots = std::vector<ChunkSlot>(SizeUtils::pow(visibleAreaWidth, 3));
+    loadNearChunks();
+
+    // todo - copy already loaded closest chunks into this new list
 }
 
 ChunkManager::ChunkPtr ChunkManager::getOwningChunk(const VecUtils::Vec3Discrete &block) const {

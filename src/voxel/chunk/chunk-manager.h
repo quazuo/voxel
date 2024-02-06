@@ -34,19 +34,22 @@ class ChunkManager {
     std::vector<ChunkPtr> visibleChunks;
 
     // how many chunks around the camera should always be loaded
-    static constexpr int RENDER_DISTANCE = 3;
+    int renderDistance = 10;
 
     /*
      * this prevents jittering around a chunk's border to cause chunks to be repeatedly loaded and unloaded.
      * basically, chunks get unloaded only if they are `RENDER_DISTANCE + GRACE_PERIOD_WIDTH` chunks away from
      * the camera.
      */
-    static constexpr int GRACE_PERIOD_WIDTH = 1;
+    int gracePeriodWidth = 1;
 
-    static constexpr int VISIBLE_AREA_WIDTH = 2 * RENDER_DISTANCE + 1 + GRACE_PERIOD_WIDTH;
+    /*
+     * list of slots in which currently loaded (or only loadable) chunks may reside.
+     * this should always be of size `2 * renderDistance + gracePeriodWidth + 1`.
+     */
+    std::vector<ChunkSlot> chunkSlots;
 
-    std::array<ChunkSlot, SizeUtils::pow(VISIBLE_AREA_WIDTH, 3)> chunkSlots;
-
+    // optional because we want to specially handle the si
     VecUtils::Vec3Discrete lastOccupiedChunkPos = {0, 0, 0};
 
     std::shared_ptr<OpenGLRenderer> renderer;
@@ -59,6 +62,8 @@ public:
     explicit ChunkManager(std::shared_ptr<OpenGLRenderer> r, std::shared_ptr<WorldGen> wg);
 
     void tick();
+
+    void renderGuiSection();
 
     /**
      * Renders all the currently visible chunks. Whether a chunk is visible or not
@@ -88,6 +93,12 @@ public:
      */
     void updateBlock(const VecUtils::Vec3Discrete &block, EBlockType type) const;
 
+    /**
+     * Updates the render distance.
+     * This clears all loaded chunks and as a consequence needs them to be reloaded later.
+     */
+    void setRenderDistance(int newRenderDistance);
+
 private:
     /**
      * Finds which chunk a given block belongs to.
@@ -106,19 +117,18 @@ private:
     /**
      * Unloads all chunks that are at least `RENDER_DISTANCE + GRACE_PERIOD_WIDTH` chunks' worth of distance
      * away from the camera's position.
-     *
-     * @param currChunkPos Position of the chunk the camera currently resides in,
-     * given by the position of the chunk's vertex with the lowest coordinates.
      */
-    void unloadFarChunks(const VecUtils::Vec3Discrete &currChunkPos);
+    void unloadFarChunks();
 
     /**
      * Loads all chunks that are within `RENDER_DISTANCE` chunks' worth of distance from the camera's position.
-     *
-     * @param currChunkPos Position of the chunk the camera currently resides in,
-     * given by the position of the chunk's vertex with the lowest coordinates.
      */
-    void loadNearChunks(const VecUtils::Vec3Discrete &currChunkPos);
+    void loadNearChunks();
+
+    /**
+     * Sorts the loadable so that the chunks closest to the camera get loaded first.
+     */
+    void sortLoadList();
 
     /**
      * Takes up to `MAX_CHUNKS_SERVE_PER_PRAME` chunks from the `loadableChunks` list and loads them.

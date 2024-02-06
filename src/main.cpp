@@ -86,6 +86,7 @@ public:
         if (doShowGui) {
             guiRenderer->startRendering();
             renderGuiSection(deltaTime);
+            chunkManager->renderGuiSection();
             renderer->renderGuiSection();
             guiRenderer->finishRendering();
         }
