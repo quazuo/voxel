@@ -10,6 +10,7 @@
 #include "src/utils/vec.h"
 #include "src/utils/cube-array.h"
 
+class TextureManager;
 /**
  * A chunk groups up nearby blocks into cubes of `CHUNK_SIZE` width.
  * It's used primarily as an optimization tool, as managing singular blocks is very ineffective.
@@ -32,7 +33,8 @@ private:
     size_t activeBlockCount = 0;
 
 public:
-    explicit Chunk(const glm::ivec3 &p) : pos(p) {}
+    explicit Chunk(const glm::ivec3 &p) : pos(p) {
+    }
 
     [[nodiscard]]
     glm::ivec3 getPos() const { return pos; }
@@ -60,7 +62,7 @@ public:
     /**
      * Uses a provided world generation module to generate the contents of this chunk.
      */
-    void generate(const std::shared_ptr<class WorldGen>& worldGen);
+    void generate(const std::shared_ptr<class WorldGen> &worldGen);
 
     /**
      * Unloads this chunk from memory, letting the ChunkManager free a ChunkSlot in which this chunk resides.
@@ -73,18 +75,21 @@ private:
     /**
      * Creates a new mesh for this chunk. This requires the mesh context to be bound beforehand.
      * This does nothing if there weren't any changes to this chunk since it was last loaded.
+     *
+     * @param textureManager Reference to the texture manager, so that we can deduce which texture each block uses.
      */
-    void createMesh();
+    void createMesh(const TextureManager &textureManager);
 
     /**
      * Adds a specific cube at coordinates [x, y, z] relative to the chunk's `pos` coordinates.
      */
-    void createCube(int x, int y, int z);
+    void createCube(int x, int y, int z, const TextureManager &textureManager);
 
     /**
      * Adds a specific cube's face to this mesh.
      */
-    void createFace(const glm::ivec3 &cubePos, EBlockFace face, EBlockType blockType) const;
+    void createFace(const glm::ivec3 &cubePos, EBlockFace face, EBlockType blockType,
+                    const TextureManager &textureManager) const;
 };
 
 #endif //MYGE_CHUNK_H

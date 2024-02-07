@@ -75,12 +75,13 @@ static int getFaceIdOffset(const EBlockFace face) {
     }
 }
 
-int TextureManager::getBlockSamplerID(const EBlockType blockType, const EBlockFace face) {
-    return static_cast<int>(EBlockFace::N_FACES) * (blockType - 1) + getFaceIdOffset(face);
+int TextureManager::getBlockSamplerID(const EBlockType blockType, const EBlockFace face) const {
+    const GLuint texID = blockTextures.at({blockType, face});
+    return textureUnits.at(texID);
 }
 
 void TextureManager::bindBlockTextures(const GLuint blockShaderID) const {
-    std::vector<GLint> handles(blockTextures.size());
+    std::vector<GLint> handles(nextFreeUnit);
 
     for (auto &[key, id]: blockTextures) {
         auto &[type, face] = key;
@@ -131,6 +132,10 @@ static TextureData readTexture(const std::filesystem::path &path) {
 }
 
 GLuint TextureManager::loadTexture(const std::filesystem::path &path) {
+    if (loadedTextures.contains(path.string())) {
+        return loadedTextures.at(path.string());
+    }
+
     const auto &[width, height, nrChannels, data] = readTexture(path);
 
     unsigned int texID;
@@ -144,6 +149,10 @@ GLuint TextureManager::loadTexture(const std::filesystem::path &path) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     stbi_image_free(data);
+
+    loadedTextures.emplace(path.string(), texID);
+    textureUnits.emplace(texID, nextFreeUnit++);
+
     return texID;
 }
 

@@ -10,22 +10,18 @@ in vec3 EyeDirection_cameraspace;
 out vec4 color;
 
 uniform vec3 LightDirection_worldspace;
-uniform sampler2D texSampler[24];
+uniform sampler2D texSampler[4];
 uniform mat4 MV;
 
 #define DEF_TEX_SAMPLER_ID(n) \
-    if (texID == 6 * (n)) return texture(texSampler[6 * (n)], UV).rgb; \
-    if (texID == 6 * (n) + 1) return texture(texSampler[6 * (n) + 1], UV).rgb; \
-    if (texID == 6 * (n) + 2) return texture(texSampler[6 * (n) + 2], UV).rgb; \
-    if (texID == 6 * (n) + 3) return texture(texSampler[6 * (n) + 3], UV).rgb; \
-    if (texID == 6 * (n) + 4) return texture(texSampler[6 * (n) + 4], UV).rgb; \
-    if (texID == 6 * (n) + 5) return texture(texSampler[6 * (n) + 5], UV).rgb;
+    if (texID == (n)) return texture(texSampler[(n)], UV).rgb;
 
 vec3 getTexSample(int id) {
+    // there's 4 textures currently
     DEF_TEX_SAMPLER_ID(0)
-    DEF_TEX_SAMPLER_ID(1)  // grass
-    DEF_TEX_SAMPLER_ID(2)  // dirt
-    DEF_TEX_SAMPLER_ID(3)  // stone
+    DEF_TEX_SAMPLER_ID(1)
+    DEF_TEX_SAMPLER_ID(2)
+    DEF_TEX_SAMPLER_ID(3)
     return vec3(0);
 }
 
@@ -35,7 +31,6 @@ void main() {
 
     vec3 MaterialDiffuseColor = getTexSample(texID);
     vec3 MaterialAmbientColor = vec3(0.3) * MaterialDiffuseColor;
-    vec3 MaterialSpecularColor = vec3(0);
 
     vec3 n = normalize(Normal_modelspace);
     vec3 l = normalize(LightDirection_worldspace);
@@ -47,8 +42,7 @@ void main() {
 
     vec3 opaqueColor =
         MaterialAmbientColor +
-        MaterialDiffuseColor * LightColor * LightPower * cosTheta +
-        MaterialSpecularColor * LightColor * LightPower * pow(cosAlpha, 5);
+        MaterialDiffuseColor * LightColor * LightPower * cosTheta;
 
     color = vec4(opaqueColor, 1.0);
 }

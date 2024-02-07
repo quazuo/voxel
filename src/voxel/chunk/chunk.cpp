@@ -45,7 +45,7 @@ void Chunk::render(const std::shared_ptr<OpenGLRenderer> &renderer) {
         return;
 
     if (_isDirty) {
-        createMesh();
+        createMesh(renderer->getTextureManager());
         _isDirty = false;
     }
 
@@ -54,7 +54,7 @@ void Chunk::render(const std::shared_ptr<OpenGLRenderer> &renderer) {
     }
 }
 
-void Chunk::createMesh() {
+void Chunk::createMesh(const TextureManager &textureManager) {
     if (!meshContext) {
         throw std::runtime_error("tried to call createMesh() with no bound meshContext");
     }
@@ -64,7 +64,7 @@ void Chunk::createMesh() {
 
     blocks.forEach([&](const int x, const int y, const int z, const Block &b) {
         if (b.isNone()) return;
-        createCube(x, y, z);
+        createCube(x, y, z, textureManager);
     });
 
     meshContext->mergeQuads();
@@ -74,36 +74,37 @@ void Chunk::createMesh() {
     isMesh = true;
 }
 
-void Chunk::createCube(const int x, const int y, const int z) {
-    const glm::ivec3 cubePos = { x, y, z };
+void Chunk::createCube(const int x, const int y, const int z, const TextureManager &textureManager) {
+    const glm::ivec3 cubePos = {x, y, z};
     const EBlockType blockType = blocks[x][y][z].blockType;
 
     if (z == CHUNK_SIZE - 1 || blocks[x][y][z + 1].isNone()) {
-        createFace(cubePos, Front, blockType);
+        createFace(cubePos, Front, blockType, textureManager);
     }
 
     if (z == 0 || blocks[x][y][z - 1].isNone()) {
-        createFace(cubePos, Back, blockType);
+        createFace(cubePos, Back, blockType, textureManager);
     }
 
     if (x == CHUNK_SIZE - 1 || blocks[x + 1][y][z].isNone()) {
-        createFace(cubePos, Right, blockType);
+        createFace(cubePos, Right, blockType, textureManager);
     }
 
     if (x == 0 || blocks[x - 1][y][z].isNone()) {
-        createFace(cubePos, Left, blockType);
+        createFace(cubePos, Left, blockType, textureManager);
     }
 
     if (y == CHUNK_SIZE - 1 || blocks[x][y + 1][z].isNone()) {
-        createFace(cubePos, Top, blockType);
+        createFace(cubePos, Top, blockType, textureManager);
     }
 
     if (y == 0 || blocks[x][y - 1][z].isNone()) {
-        createFace(cubePos, Bottom, blockType);
+        createFace(cubePos, Bottom, blockType, textureManager);
     }
 }
 
-void Chunk::createFace(const glm::ivec3 &cubePos, const EBlockFace face, const EBlockType blockType) const {
+void Chunk::createFace(const glm::ivec3 &cubePos, const EBlockFace face, const EBlockType blockType,
+                       const TextureManager &textureManager) const {
     static const std::unordered_map<EBlockFace, glm::vec3> faceNormals = {
         {Front, {0, 0, 1}},
         {Back, {0, 0, -1}},
@@ -118,9 +119,9 @@ void Chunk::createFace(const glm::ivec3 &cubePos, const EBlockFace face, const E
     const glm::ivec3 maxPos = cubePos + topRight;
 
     const glm::vec3 normal = faceNormals.at(face);
-    const int samplerID = TextureManager::getBlockSamplerID(blockType, face);
+    const int samplerID = textureManager.getBlockSamplerID(blockType, face);
 
-    const Vertex min { minPos, {0, 1}, normal, samplerID };
-    const Vertex max { maxPos, {1, 0}, normal, samplerID };
+    const Vertex min{minPos, {0, 1}, normal, samplerID};
+    const Vertex max{maxPos, {1, 0}, normal, samplerID};
     meshContext->addQuad(min, max);
 }

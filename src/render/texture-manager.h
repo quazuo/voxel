@@ -12,8 +12,12 @@
  * This currently includes only textures for blocks as well as for text.
  */
 class TextureManager {
-    using TextureMap = std::map<std::pair<EBlockType, EBlockFace>, GLuint>;
-    TextureMap blockTextures;
+    std::unordered_map<std::string, GLuint> loadedTextures;
+
+    std::unordered_map<GLuint, int> textureUnits;
+    int nextFreeUnit = 0;
+
+    std::map<std::pair<EBlockType, EBlockFace>, GLuint> blockTextures;
 
     GLuint skyboxCubemap{};
 
@@ -52,7 +56,7 @@ public:
     GLuint getBlockTextureID(EBlockType blockType, EBlockFace face) const;
 
     [[nodiscard]]
-    static int getBlockSamplerID(EBlockType blockType, EBlockFace face);
+    int getBlockSamplerID(EBlockType blockType, EBlockFace face) const;
 
 private:
     /**
@@ -61,7 +65,7 @@ private:
      * @param path Path to the file.
      * @return OpenGL handle to the newly loaded texture.
      */
-    static GLuint loadTexture(const std::filesystem::path& path);
+    GLuint loadTexture(const std::filesystem::path& path);
 
     /**
      * Loads a cubemap texture stored inside a given file.

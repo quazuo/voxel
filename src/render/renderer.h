@@ -80,13 +80,16 @@ public:
     GLFWwindow *getWindow() const { return window; }
 
     [[nodiscard]]
+    const TextureManager& getTextureManager() const { return *textureManager; }
+
+    [[nodiscard]]
     glm::vec3 getCameraPos() const { return camera->getPos(); }
 
     [[nodiscard]]
     std::vector<glm::ivec3> getLookedAtBlocks() const { return camera->getLookedAtBlocks(); }
 
     [[nodiscard]]
-    bool isChunkInFrustum(const Chunk& chunk) const { return camera->isChunkInFrustum(chunk.getPos()); };
+    bool isChunkInFrustum(const Chunk& chunk) const { return camera->isChunkInFrustum(chunk.getPos()); }
 
     /**
      * Locks or unlocks the cursor. When the cursor is locked, it's confined to the center
