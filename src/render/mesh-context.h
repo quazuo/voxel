@@ -15,7 +15,7 @@
  */
 struct Vertex {
     glm::ivec3 position;
-    glm::vec2 uv;
+    glm::ivec2 uv;
     glm::vec3 normal;
     int texSamplerID;
 
@@ -29,7 +29,7 @@ struct Vertex {
  */
 struct IndexedMeshData {
     std::vector<glm::ivec3> vertices;
-    std::vector<glm::vec2> uvs;
+    std::vector<glm::ivec2> uvs;
     std::vector<glm::vec3> normals;
     std::vector<int> texIDs;
 

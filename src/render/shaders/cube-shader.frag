@@ -26,6 +26,7 @@ vec3 getTexSample(int id) {
     DEF_TEX_SAMPLER_ID(1)  // grass
     DEF_TEX_SAMPLER_ID(2)  // dirt
     DEF_TEX_SAMPLER_ID(3)  // stone
+    return vec3(0);
 }
 
 void main() {

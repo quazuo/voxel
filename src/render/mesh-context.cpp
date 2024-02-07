@@ -102,7 +102,7 @@ void ChunkMeshContext::triangulateQuads() {
 
 void ChunkMeshContext::mergeQuads() {
     /*
-     * front[x][y][z] == -1 iff there's no quad facing the {0, 0, 1} normal at these coords,
+     * `front[x][y][z] == -1` iff there's no quad facing the [0, 0, 1] normal at [x, y, z] coords,
      * a non-zero value is the ID of the texture used by the quad. other ones work analogically.
      */
     CubeArray<short, Chunk::CHUNK_SIZE> front{-1}, back{-1}, right{-1}, left{-1}, top{-1}, bottom{-1};
@@ -216,13 +216,13 @@ ChunkMeshContext::mergeQuadMap(CubeArray<short, Chunk::CHUNK_SIZE> &quadMap, con
         Quad q = {
             {
                 .position = v1 + bottomLeft,
-                .uv = glm::vec2(0, 1) * static_cast<float>(face == Left || face == Right ? width : height),
+                .uv = glm::ivec2(0, 1) * (face == Left || face == Right ? width : height),
                 .normal = normal,
                 .texSamplerID = quadMap[x][y][z]
             },
             {
                 .position = v2 + topRight,
-                .uv = glm::vec2(1, 0) * static_cast<float>(face == Left || face == Right ? height : width),
+                .uv = glm::ivec2(1, 0) * (face == Left || face == Right ? height : width),
                 .normal = normal,
                 .texSamplerID = quadMap[x][y][z]
             }

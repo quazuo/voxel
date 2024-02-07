@@ -16,30 +16,53 @@ void GLVertexArray::enable() {
 }
 
 ChunkVertexArray::ChunkVertexArray() :
-    // packedVertices(std::make_unique<GLArrayBuffer<glm::uint32>>(0, 1)),
-    vertices(std::make_unique<GLArrayBuffer<glm::ivec3>>(0, 3)),
-    normals(std::make_unique<GLArrayBuffer<glm::vec3>>(2, 3)),
-    uvs(std::make_unique<GLArrayBuffer<glm::vec2>>(1, 2)),
-    texIDs(std::make_unique<GLArrayBuffer<int>>(3, 1)),
+    packedVertices(std::make_unique<GLArrayBuffer<glm::uint32>>(0, 1)),
+    texIDs(std::make_unique<GLArrayBuffer<int>>(1, 1)),
     indices(std::make_unique<GLElementBuffer>()) {
     glBindVertexArray(0);
+}
+
+static glm::uint32 getFaceIndex(const EBlockFace face) {
+    switch (face) {
+        case Front:
+            return 0;
+        case Back:
+            return 1;
+        case Right:
+            return 2;
+        case Left:
+            return 3;
+        case Top:
+            return 4;
+        case Bottom:
+            return 5;
+        case N_FACES:
+            throw std::runtime_error("invalid switch branch in ChunkVertexArray::writeToBuffers");
+    }
 }
 
 void ChunkVertexArray::writeToBuffers(const IndexedMeshData &data) const {
     glBindVertexArray(objectID);
 
-    // std::vector<glm::uint32> packedVerticesData;
-    //
-    // for (size_t i = 0; i < data.vertices.size(); i++) {
-    //     glm::uint32 packedVertex = 0;
-    //     packedVertex |= ...
-    // }
-    //
-    // packedVertices->write(packedVerticesData);
+    std::vector<glm::uint32> packedVerticesData;
 
-    vertices->write(data.vertices);
-    uvs->write(data.uvs);
-    normals->write(data.normals);
+    for (size_t i = 0; i < data.vertices.size(); i++) {
+        glm::uint32 packedVertex = 0;
+
+        packedVertex |= (static_cast<glm::uint32>(data.vertices[i].x) & 0x1F) << 27;
+        packedVertex |= (static_cast<glm::uint32>(data.vertices[i].y) & 0x1F) << 22;
+        packedVertex |= (static_cast<glm::uint32>(data.vertices[i].z) & 0x1F) << 17;
+
+        const glm::uint32 faceIndex = getFaceIndex(getFaceFromNormal(data.normals[i]));
+        packedVertex |= (faceIndex & 0x7) << 14;
+
+        packedVertex |= (static_cast<glm::uint32>(data.uvs[i].x) & 0x1F) << 9;
+        packedVertex |= (static_cast<glm::uint32>(data.uvs[i].y) & 0x1F) << 4;
+
+        packedVerticesData.push_back(packedVertex);
+    }
+
+    packedVertices->write(packedVerticesData);
     texIDs->write(data.texIDs);
     indices->write(data.indices);
 }
