@@ -15,18 +15,25 @@ void KeyManager::tick(const float deltaTime) {
     }
 }
 
+static bool isPressed(GLFWwindow* window, const EKey key) {
+    return glfwGetKey(window, key) == GLFW_PRESS || glfwGetMouseButton(window, key) == GLFW_PRESS;
+}
+
+static bool isReleased(GLFWwindow* window, const EKey key) {
+    return glfwGetKey(window, key) == GLFW_RELEASE || glfwGetMouseButton(window, key) == GLFW_RELEASE;
+}
 
 bool KeyManager::checkKey(const EKey key, const EActivationType type) {
     if (type == EActivationType::PRESS_ANY) {
-        return glfwGetKey(window, key) == GLFW_PRESS;
+        return isPressed(window, key);
     }
 
     if (type == EActivationType::RELEASE_ONCE) {
-        return glfwGetKey(window, key) == GLFW_RELEASE;
+        return isReleased(window, key);
     }
 
     if (type == EActivationType::PRESS_ONCE) {
-        if (glfwGetKey(window, key) == GLFW_PRESS) {
+        if (isPressed(window, key)) {
             const bool isOk = keyStateMap[key] == KeyState::RELEASED;
             keyStateMap[key] = KeyState::PRESSED;
             return isOk;

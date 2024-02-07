@@ -29,14 +29,12 @@ void GuiRenderer::startRendering() {
 
     ImGuiIO &io = ImGui::GetIO();
 
-    ImGui::ShowDemoWindow();
+    // ImGui::ShowDemoWindow();
 
     constexpr ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar
                                        | ImGuiWindowFlags_NoCollapse
                                        | ImGuiWindowFlags_NoSavedSettings;
 
-    // const ImGuiViewport *viewport = ImGui::GetMainViewport();
-    // ImGui::SetNextWindowPos(viewport->WorkPos);
     ImGui::SetNextWindowSize(ImVec2(0, 0));
     ImGui::Begin("test", nullptr, flags);
 }

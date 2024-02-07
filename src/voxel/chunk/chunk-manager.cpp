@@ -101,7 +101,7 @@ void ChunkManager::unloadFarChunks() {
         if (!slot.isBound()) continue;
 
         const glm::ivec3 chunkPosDist = VecUtils::abs(slot.chunk->getPos() - lastOccupiedChunkPos);
-        const bool isOutsideRenderDistance = VecUtils::any(
+        const bool isOutsideRenderDistance = VecUtils::any<float>(
             chunkPosDist,
             [&](const float x) { return x > static_cast<float>(renderDistance + gracePeriodWidth); }
         );
@@ -112,7 +112,7 @@ void ChunkManager::unloadFarChunks() {
     }
 
     erase_if(loadableChunks, [&](const ChunkPtr &chunk) {
-        return VecUtils::any(
+        return VecUtils::any<float>(
             VecUtils::abs(chunk->getPos() - lastOccupiedChunkPos),
             [&](const float x) { return x > static_cast<float>(renderDistance + gracePeriodWidth); }
         );

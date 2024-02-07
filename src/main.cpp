@@ -40,7 +40,7 @@ public:
 
         window = renderer->getWindow();
         guiRenderer = std::make_shared<GuiRenderer>(window);
-        worldGen = std::make_shared<DefaultWorldGen>();
+        worldGen = std::make_shared<WorldGen>();
         chunkManager = std::make_unique<ChunkManager>(renderer, worldGen);
         bindKeyActions();
     }
@@ -97,9 +97,9 @@ public:
     void bindKeyActions() {
         keyManager.bindWindow(window);
 
-        keyManager.bindCallback(GLFW_KEY_Q, EActivationType::PRESS_ONCE, [&](const float deltaTime) {
+        keyManager.bindCallback(GLFW_MOUSE_BUTTON_LEFT, EActivationType::PRESS_ONCE, [&](const float deltaTime) {
             (void) deltaTime;
-            if (targetedBlockPos) {
+            if (targetedBlockPos && doLockCursor) {
                 chunkManager->updateBlock(*targetedBlockPos, EBlockType::BlockType_None);
             }
         });

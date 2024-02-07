@@ -8,10 +8,11 @@ void Chunk::generate(const std::shared_ptr<WorldGen> &worldGen) {
     worldGen->setChunkGenCtx(pos);
 
     blocks.forEach([&](const int x, const int y, const int z, Block &b) {
-        b.blockType = worldGen->getBlockTypeAt(x, y, z);
+        b.blockType = worldGen->getBlockTypeAt({x, y, z});
 
-        if (blocks[x][y][z].blockType != BlockType_None)
+        if (!b.isNone()) {
             activeBlockCount++;
+        }
     });
 
     _isLoaded = true;

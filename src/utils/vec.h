@@ -7,19 +7,40 @@
 #include "glm/geometric.hpp"
 
 /**
- * Collection of various utils for handling GLM vectors.
+ * Collection of various utils for handling GLM 3-dimensional vectors.
  */
 namespace VecUtils {
     int sum(const glm::ivec3 &v);
 
-    std::string toString(const glm::vec3 &vec);
+    template<typename T>
+    std::string toString(const glm::vec<3, T> &vec) {
+        std::stringstream ss;
+        ss << "(" << vec.x << ", " << vec.y << ", " << vec.z << ")";
+        return ss.str();
+    }
 
-    using VecPredicate = std::function<bool(float)>;
-    bool all(const glm::vec3 &vec, const VecPredicate& pred);
-    bool any(const glm::vec3 &vec, const VecPredicate& pred);
+    template<typename T>
+    using VecPredicate = std::function<bool(T)>;
+    template<typename T>
+    using VecFunctor = std::function<T(T)>;
 
-    using VecFunctor = std::function<float(float)>;
-    glm::vec3 map(glm::vec3 vec, const VecFunctor& f);
+    template<typename T>
+    bool all(const glm::vec<3, T> &vec, const VecPredicate<T>& pred) {
+        return pred(vec.x) && pred(vec.y) && pred(vec.z);
+    }
+
+    template<typename T>
+    bool any(const glm::vec<3, T> &vec, const VecPredicate<T>& pred) {
+        return pred(vec.x) || pred(vec.y) || pred(vec.z);
+    }
+
+    template<typename T>
+    glm::vec<3, T> map(glm::vec<3, T> vec, const VecFunctor<T>& f) {
+        vec.x = f(vec.x);
+        vec.y = f(vec.y);
+        vec.z = f(vec.z);
+        return vec;
+    }
 
     glm::vec3 floor(const glm::vec3 &vec);
 

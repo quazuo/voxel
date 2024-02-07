@@ -1,10 +1,11 @@
 #include "world-gen.h"
 #include "src/voxel/chunk/chunk.h"
 
-EBlockType DefaultWorldGen::getBlockTypeAt(const int x, const int y, const int z) {
-    const float height = heightMap.GetValue(x, z) * Chunk::CHUNK_SIZE;
+EBlockType WorldGen::getBlockTypeAt(const glm::ivec3& blockPos) const {
+    constexpr float stretch = 2.5f;
+    const float height = heightMap.GetValue(blockPos.x, blockPos.z) * Chunk::CHUNK_SIZE * stretch;
     const int threshold = static_cast<int>(height);
-    const int absY = chunkPos.y * Chunk::CHUNK_SIZE + y;
+    const int absY = chunkPos->y * Chunk::CHUNK_SIZE + blockPos.y;
 
     if (absY > threshold)
         return BlockType_None;
@@ -18,7 +19,7 @@ EBlockType DefaultWorldGen::getBlockTypeAt(const int x, const int y, const int z
     return BlockType_Dirt;
 }
 
-void DefaultWorldGen::setChunkGenCtx(const glm::ivec3 cPos) {
+void WorldGen::setChunkGenCtx(const glm::ivec3 &cPos) {
     chunkPos = cPos;
     heightMap = {};
 
@@ -28,12 +29,12 @@ void DefaultWorldGen::setChunkGenCtx(const glm::ivec3 cPos) {
     heightMapBuilder.SetSourceModule(noiseModule);
     heightMapBuilder.SetDestNoiseMap(heightMap);
     heightMapBuilder.SetDestSize(Chunk::CHUNK_SIZE, Chunk::CHUNK_SIZE);
-    constexpr double stretchFactor = 0.1;
+    constexpr double stretch = 0.1;
     heightMapBuilder.SetBounds(
-        stretchFactor * static_cast<double>(cPos.x),
-        stretchFactor * static_cast<double>(cPos.x + 1),
-        stretchFactor * static_cast<double>(cPos.z),
-        stretchFactor * static_cast<double>(cPos.z + 1)
+        stretch * static_cast<double>(cPos.x),
+        stretch * static_cast<double>(cPos.x + 1),
+        stretch * static_cast<double>(cPos.z),
+        stretch * static_cast<double>(cPos.z + 1)
     );
     heightMapBuilder.Build();
 }

@@ -169,7 +169,7 @@ ChunkMeshContext::mergeQuadMap(CubeArray<short, Chunk::CHUNK_SIZE> &quadMap, con
         bool isInRange = true;
         while (isInRange && quadMap[firstStride] == quadMap[x][y][z]) {
             firstStride += firstAxis;
-            isInRange = VecUtils::all(firstStride, [](const float f) { return f < Chunk::CHUNK_SIZE; });
+            isInRange = VecUtils::all<float>(firstStride, [](const float f) { return f < Chunk::CHUNK_SIZE; });
         }
 
         const int width = VecUtils::sum(firstStride - glm::ivec3(x, y, z));
@@ -194,7 +194,7 @@ ChunkMeshContext::mergeQuadMap(CubeArray<short, Chunk::CHUNK_SIZE> &quadMap, con
                 break;
 
             secondStride += secondAxis;
-            isInRange = VecUtils::all(secondStride, [](const float f) { return f < Chunk::CHUNK_SIZE; });
+            isInRange = VecUtils::all<float>(secondStride, [](const float f) { return f < Chunk::CHUNK_SIZE; });
         }
 
         const int height = VecUtils::sum(secondStride - glm::ivec3(x, y, z));
