@@ -2,11 +2,10 @@
 #define MYGE_CHUNK_MANAGER_H
 
 #include <vector>
-#include <array>
 #include <memory>
 #include "chunk.h"
 #include "src/render/mesh-context.h"
-#include "src/utils/size.h"
+#include "src/utils/vec.h"
 
 /**
  * Class responsible for managing chunks in the world -- most importantly
@@ -48,6 +47,8 @@ class ChunkManager {
      * this should always be of size `2 * renderDistance + gracePeriodWidth + 1`.
      */
     std::vector<ChunkSlot> chunkSlots;
+
+    std::unordered_map<glm::ivec3, ChunkPtr, VecUtils::VecHash> loadedChunkPosMapping;
 
     // optional because we want to specially handle the si
     glm::ivec3 lastOccupiedChunkPos = {0, 0, 0};
@@ -134,6 +135,8 @@ private:
      * Takes up to `MAX_CHUNKS_SERVE_PER_PRAME` chunks from the `loadableChunks` list and loads them.
      */
     void updateLoadList();
+
+    bool isCompletelyOccluded(const ChunkPtr& chunk) const;
 
     /**
      * Updates which chunks are actually visible and renderrable.

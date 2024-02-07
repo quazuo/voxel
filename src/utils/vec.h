@@ -10,7 +10,19 @@
  * Collection of various utils for handling GLM 3-dimensional vectors.
  */
 namespace VecUtils {
-    int sum(const glm::ivec3 &v);
+    struct VecHash {
+        size_t operator()(const glm::vec3 &a) const {
+            const size_t h1 = std::hash<double>()(a.x);
+            const size_t h2 = std::hash<double>()(a.y);
+            const size_t h3 = std::hash<double>()(a.z);
+            return (h1 ^ (h2 << 1)) ^ h3;
+        }
+    };
+
+    template<typename T>
+    T sum(const glm::vec<3, T> &v) {
+        return v.x + v.y + v.z;
+    }
 
     template<typename T>
     std::string toString(const glm::vec<3, T> &vec) {
@@ -42,9 +54,17 @@ namespace VecUtils {
         return vec;
     }
 
-    glm::vec3 floor(const glm::vec3 &vec);
+    template<typename T>
+    glm::vec3 floor(const glm::vec<3, T> &vec) {
+        static const VecFunctor f = [](const T x) { return std::floor(x); };
+        return map<T>(vec, f);
+    }
 
-    glm::vec3 abs(const glm::vec3 &vec);
+    template<typename T>
+    glm::vec3 abs(const glm::vec<3, T> &vec) {
+        static const VecFunctor f = [](const T x) { return std::abs(x); };
+        return map<T>(vec, f);
+    }
 }
 
 #endif //VOXEL_VEC_H

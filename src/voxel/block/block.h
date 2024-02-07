@@ -28,7 +28,7 @@ public:
      */
     static constexpr float RENDER_SIZE = 1.0f;
 
-    EBlockType blockType = EBlockType::BlockType_Grass;
+    EBlockType blockType = EBlockType::BlockType_None;
 
     /*
         the below offsets signify a standardized specific ordering of vertices of a cube,

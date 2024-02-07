@@ -7,12 +7,9 @@
 void Chunk::generate(const std::shared_ptr<WorldGen> &worldGen) {
     worldGen->setChunkGenCtx(pos);
 
-    blocks.forEach([&](const int x, const int y, const int z, Block &b) {
-        b.blockType = worldGen->getBlockTypeAt({x, y, z});
-
-        if (!b.isNone()) {
-            activeBlockCount++;
-        }
+    blocks.forEach([&](const int x, const int y, const int z, const Block &b) {
+        (void) b;
+        updateBlock(x, y, z, worldGen->getBlockTypeAt({x, y, z}));
     });
 
     _isLoaded = true;
@@ -27,10 +24,33 @@ void Chunk::updateBlock(const glm::ivec3 &block, const EBlockType type) {
 }
 
 void Chunk::updateBlock(const int x, const int y, const int z, const EBlockType type) {
+    int diff = 0;
+
     if (!blocks[x][y][z].isNone() && type == BlockType_None) {
         activeBlockCount--;
+        diff = -1;
+
     } else if (blocks[x][y][z].isNone() && type != BlockType_None) {
         activeBlockCount++;
+        diff = 1;
+    }
+
+    if (z == CHUNK_SIZE - 1) {
+        wallActiveBlockCount[Front] += diff;
+    } else if (z == 0) {
+        wallActiveBlockCount[Back] += diff;
+    }
+
+    if (x == CHUNK_SIZE - 1) {
+        wallActiveBlockCount[Right] += diff;
+    } else if (x == 0) {
+        wallActiveBlockCount[Left] += diff;
+    }
+
+    if (y == CHUNK_SIZE - 1) {
+        wallActiveBlockCount[Top] += diff;
+    } else if (y == 0) {
+        wallActiveBlockCount[Bottom] += diff;
     }
 
     blocks[x][y][z].blockType = type;

@@ -3,6 +3,7 @@
 #include "chunk-manager.h"
 #include "src/render/renderer.h"
 #include "src/render/gui.h"
+#include "src/utils/size.h"
 
 void ChunkManager::ChunkSlot::bind(std::shared_ptr<Chunk> c) {
     if (isBound())
@@ -107,6 +108,7 @@ void ChunkManager::unloadFarChunks() {
         );
 
         if (isOutsideRenderDistance) {
+            loadedChunkPosMapping.erase(slot.chunk->getPos());
             slot.unbind();
         }
     }
@@ -178,6 +180,7 @@ void ChunkManager::updateLoadList() {
     for (const ChunkPtr &chunk: loadableChunks) {
         if (!chunk->isLoaded()) {
             chunk->generate(worldGen); // todo - this should load from disk, not always generate.
+            loadedChunkPosMapping.emplace(chunk->getPos(), chunk);
             nChunksLoaded++;
         }
 
@@ -189,6 +192,24 @@ void ChunkManager::updateLoadList() {
     erase_if(loadableChunks, [](const ChunkPtr &chunk) { return chunk->isLoaded(); });
 }
 
+bool ChunkManager::isCompletelyOccluded(const ChunkPtr &chunk) const {
+    const auto pos = chunk->getPos();
+
+    const auto isOccludedOnSide = [&](const glm::ivec3 &delta, const EBlockFace face) {
+        const glm::ivec3 neighbor = pos + delta;
+        if (!loadedChunkPosMapping.contains(neighbor)) return false;
+        return loadedChunkPosMapping.at(neighbor)->isWholeWallActive(face);
+    };
+
+    if (!isOccludedOnSide(glm::ivec3(0, 0, -1), Front)) return false;
+    if (!isOccludedOnSide(glm::ivec3(0, 0, 1), Back)) return false;
+    if (!isOccludedOnSide(glm::ivec3(-1, 0, 0), Right)) return false;
+    if (!isOccludedOnSide(glm::ivec3(1, 0, 0), Left)) return false;
+    if (!isOccludedOnSide(glm::ivec3(0, -1, 0), Top)) return false;
+    if (!isOccludedOnSide(glm::ivec3(0, 1, 0), Bottom)) return false;
+    return true;
+}
+
 void ChunkManager::updateRenderList() {
     // clear the render list each frame BEFORE we do our tests to see what chunks should be rendered
     visibleChunks.clear();
@@ -197,6 +218,8 @@ void ChunkManager::updateRenderList() {
         if (!slot.isBound())
             continue;
         if (!slot.chunk->shouldRender()) // early flags check, so we don't always have to do the frustum check...
+            continue;
+        if (isCompletelyOccluded(slot.chunk))
             continue;
         if (!renderer->isChunkInFrustum(*slot.chunk))
             continue;

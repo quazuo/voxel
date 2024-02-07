@@ -31,10 +31,10 @@ private:
 
     CubeArray<Block, CHUNK_SIZE> blocks;
     size_t activeBlockCount = 0;
+    std::unordered_map<EBlockFace, size_t> wallActiveBlockCount;
 
 public:
-    explicit Chunk(const glm::ivec3 &p) : pos(p) {
-    }
+    explicit Chunk(const glm::ivec3 &p) : pos(p) {}
 
     [[nodiscard]]
     glm::ivec3 getPos() const { return pos; }
@@ -47,6 +47,9 @@ public:
 
     [[nodiscard]]
     bool isLoaded() const { return _isLoaded; }
+
+    [[nodiscard]]
+    bool isWholeWallActive(const EBlockFace face) { return wallActiveBlockCount[face] == CHUNK_SIZE * CHUNK_SIZE; }
 
     [[nodiscard]]
     bool shouldRender() const;

@@ -36,7 +36,7 @@ static glm::uint32 getFaceIndex(const EBlockFace face) {
             return 4;
         case Bottom:
             return 5;
-        case N_FACES:
+        default:
             throw std::runtime_error("invalid switch branch in ChunkVertexArray::writeToBuffers");
     }
 }
