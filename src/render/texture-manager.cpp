@@ -18,6 +18,8 @@ static constexpr std::array blockFaces = {
 };
 
 void TextureManager::loadBlockTextures(const BlockTexPathMapping &blockTexPathMappings) {
+    int currNextFreeUnit = nextFreeUnit;
+
     for (const auto &[block, faceTexPathMapping]: blockTexPathMappings) {
         // if all faces are textured the same, just load one texture and share it
         if (faceTexPathMapping.contains(ALL_FACES)) {
@@ -80,29 +82,40 @@ int TextureManager::getBlockSamplerID(const EBlockType blockType, const EBlockFa
     return textureUnits.at(texID);
 }
 
-void TextureManager::bindBlockTextures(const GLuint blockShaderID) const {
-    std::vector<GLint> handles(nextFreeUnit);
+void TextureManager::bindBlockTextures(GLShader& blockShader) {
+    if (!blockTexCache) {
+        std::vector<GLint> handles(nextFreeUnit);
+        std::vector<GLuint> texIDs(nextFreeUnit);
 
-    for (auto &[key, id]: blockTextures) {
-        auto &[type, face] = key;
-        const int samplerID = getBlockSamplerID(type, face);
+        for (const auto &[key, id]: blockTextures) {
+            auto &[type, face] = key;
+            const int samplerID = getBlockSamplerID(type, face);
 
-        glActiveTexture(GL_TEXTURE0 + samplerID);
-        glBindTexture(GL_TEXTURE_2D, id);
-        handles[samplerID] = samplerID;
+            handles[samplerID] = samplerID;;
+            texIDs[samplerID] = id;
+        }
+
+        blockTexCache = { handles, texIDs };
+
+        blockShader.setUniform("texSampler", handles);
     }
 
-    glUniform1iv(
-        glGetUniformLocation(blockShaderID, "texSampler"),
-        static_cast<GLint>(blockTextures.size()),
-        handles.data()
-    );
+    for (size_t i = 0; i < blockTexCache->handles.size(); i++) {
+        glActiveTexture(GL_TEXTURE0 + blockTexCache->handles[i]);
+        glBindTexture(GL_TEXTURE_2D, blockTexCache->texIDs[i]);
+    }
 }
 
-void TextureManager::bindSkyboxTextures(const GLuint skyboxShaderID) const {
+void TextureManager::bindSkyboxTextures(GLShader& skyboxShader) const {
+    static bool isFirstTime = true;
+
+    if (isFirstTime) {
+        skyboxShader.setUniform("skyboxTexSampler", 0);
+        isFirstTime = false;
+    }
+
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxCubemap);
-    glUniform1i(glGetUniformLocation(skyboxShaderID, "skyboxTexSampler"), 0);
 }
 
 GLuint TextureManager::getBlockTextureID(const EBlockType blockType, const EBlockFace face) const {

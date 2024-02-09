@@ -1,5 +1,9 @@
 #include <utility>
 
+#include "glm/glm.hpp"
+#include "glm/ext.hpp"
+#include "glm/gtx/norm.hpp"
+
 #include "chunk-manager.h"
 #include "src/render/renderer.h"
 #include "src/render/gui.h"
@@ -168,8 +172,8 @@ void ChunkManager::loadNearChunks() {
 void ChunkManager::sortLoadList() {
     const glm::vec3 cameraPos = renderer->getCameraPos();
     std::ranges::sort(loadableChunks, [&](const ChunkPtr &a, const ChunkPtr &b) {
-        const auto aDist = glm::length(cameraPos - static_cast<glm::vec3>(a->getPos() * Chunk::CHUNK_SIZE));
-        const auto bDist = glm::length(cameraPos - static_cast<glm::vec3>(b->getPos() * Chunk::CHUNK_SIZE));
+        const auto aDist = glm::length2(cameraPos - static_cast<glm::vec3>(a->getPos() * Chunk::CHUNK_SIZE));
+        const auto bDist = glm::length2(cameraPos - static_cast<glm::vec3>(b->getPos() * Chunk::CHUNK_SIZE));
         return aDist < bDist;
     });
 }

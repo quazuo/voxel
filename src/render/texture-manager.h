@@ -7,6 +7,8 @@
 #include <unordered_map>
 #include <filesystem>
 
+#include "gl/gl-shader.h"
+
 /**
  * Class managing all the textures used by the renderer.
  * This currently includes only textures for blocks as well as for text.
@@ -18,6 +20,12 @@ class TextureManager {
     int nextFreeUnit = 0;
 
     std::map<std::pair<EBlockType, EBlockFace>, GLuint> blockTextures;
+
+    struct BlockTexCache {
+        std::vector<GLint> handles;
+        std::vector<GLuint> texIDs;
+    };
+    std::optional<BlockTexCache> blockTexCache;
 
     GLuint skyboxCubemap{};
 
@@ -43,14 +51,14 @@ public:
      *
      * @param blockShaderID ID of the shader program which will use all the textures.
      */
-    void bindBlockTextures(GLuint blockShaderID) const;
+    void bindBlockTextures(GLShader& blockShader);
 
     /**
      * Binds all managed skybox textures so that they can be used by the provided shader.
      *
      * @param skyboxShaderID ID of the shader program which will use all the textures.
      */
-    void bindSkyboxTextures(GLuint skyboxShaderID) const;
+    void bindSkyboxTextures(GLShader& skyboxShader) const;
 
     [[nodiscard]]
     GLuint getBlockTextureID(EBlockType blockType, EBlockFace face) const;

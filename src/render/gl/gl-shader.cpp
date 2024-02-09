@@ -92,6 +92,20 @@ void GLShader::enable() const {
     glUseProgram(shaderID);
 }
 
+void GLShader::setUniform(const std::string &name, const GLint value) {
+    const GLuint uniformID = getUniformID(name);
+    glUniform1i(uniformID, value);
+}
+
+void GLShader::setUniform(const std::string &name, const std::vector<GLint> &value) {
+    const GLuint uniformID = getUniformID(name);
+    glUniform1iv(
+            uniformID,
+            static_cast<GLint>(value.size()),
+            value.data()
+    );
+}
+
 void GLShader::setUniform(const std::string &name, const glm::vec3 &value) {
     const GLuint uniformID = getUniformID(name);
     glUniform3f(uniformID, value.x, value.y, value.z);

@@ -2,16 +2,12 @@
 
 in vec2 UV;
 flat in int texID;
-in vec3 Position_worldspace;
 in vec3 Normal_modelspace;
-in vec3 Normal_cameraspace;
-in vec3 EyeDirection_cameraspace;
 
 out vec4 color;
 
 uniform vec3 LightDirection_worldspace;
 uniform sampler2D texSampler[4];
-uniform mat4 MV;
 
 #define DEF_TEX_SAMPLER_ID(n) \
     if (texID == (n)) return texture(texSampler[(n)], UV).rgb;
@@ -35,10 +31,6 @@ void main() {
     vec3 n = normalize(Normal_modelspace);
     vec3 l = normalize(LightDirection_worldspace);
     float cosTheta = clamp(dot(n, l), 0, 1);
-
-    vec3 E = normalize(EyeDirection_cameraspace);
-    vec3 R = reflect(-l, n);
-    float cosAlpha = clamp(dot(E, R), 0, 1);
 
     vec3 opaqueColor =
         MaterialAmbientColor +

@@ -218,7 +218,7 @@ void OpenGLRenderer::renderSkybox() const {
     skyboxShader->setUniform("P", projectionMatrix);
     skyboxShader->setUniform("LightDirection_worldspace", skybox.lightDirection);
 
-    textureManager->bindSkyboxTextures(skyboxShader->getID());
+    textureManager->bindSkyboxTextures(*skyboxShader);
 
     skybox.vao->enable();
     glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -227,7 +227,7 @@ void OpenGLRenderer::renderSkybox() const {
 
 void OpenGLRenderer::renderChunk(const std::shared_ptr<ChunkMeshContext> &ctx) const {
     cubeShader->enable();
-    textureManager->bindBlockTextures(cubeShader->getID());
+    textureManager->bindBlockTextures(*cubeShader);
 
     // update buffers if needed
     if (ctx->isFreshlyUpdated) {
@@ -237,10 +237,6 @@ void OpenGLRenderer::renderChunk(const std::shared_ptr<ChunkMeshContext> &ctx) c
 
     const glm::mat4 modelMatrix = glm::translate(glm::identity<glm::mat4>(), ctx->modelTranslate);
     const glm::mat4 mvpMatrix = projectionMatrix * viewMatrix * modelMatrix;
-
-    cubeShader->setUniform("M", modelMatrix);
-    cubeShader->setUniform("V", viewMatrix);
-    // cubeShader->setUniform("P", projectionMatrix);
     cubeShader->setUniform("MVP", mvpMatrix);
 
     ctx->drawElements();
@@ -338,7 +334,7 @@ void OpenGLRenderer::renderHud() const {
     outlinesVao->writeToBuffers(vertices);
 
     lineShader->setUniform("MVP", glm::identity<glm::mat4>());
-    lineShader->setUniform("color", {1, 1, 1});
+    lineShader->setUniform("color", glm::vec3(1, 1, 1));
 
     outlinesVao->enable();
     glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(vertices.size()));
