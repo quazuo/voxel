@@ -250,23 +250,30 @@ glm::mat4 Camera::getProjectionMatrix() const {
 }
 
 std::vector<glm::ivec3> Camera::getLookedAtBlocks() const {
-    std::vector<glm::ivec3> result;
+    std::vector<glm::vec3> normalsToCheck;
 
-    for (int x = -TARGET_DISTANCE; x <= TARGET_DISTANCE; x++) {
-        for (int y = -TARGET_DISTANCE; y <= TARGET_DISTANCE; y++) {
-            for (int z = -TARGET_DISTANCE; z <= TARGET_DISTANCE; z++) {
-                const glm::ivec3 blockPos = VecUtils::floor(pos + glm::vec3(x, y, z));
+    for (const auto face: blockFaces) {
+        const glm::vec3 normal = getNormalFromFace(face);
 
-                if (isBlockLookedAt(blockPos)) {
-                    result.push_back(blockPos);
-                }
-            }
+        if (glm::dot(normal, front) > 0) {
+            normalsToCheck.push_back(normal);
         }
     }
 
-    std::ranges::sort(result, [&](const glm::vec3 &a, const glm::vec3 &b) {
-        return glm::length(a - pos) < glm::length(b - pos);
-    });
+    std::vector<glm::ivec3> result;
+    glm::vec3 currPos = VecUtils::floor(pos);
+    constexpr size_t MAX_TARGET_DISTANCE = 10;
+
+    for (size_t i = 0; i < MAX_TARGET_DISTANCE; i++) {
+        result.emplace_back(currPos);
+
+        for (const auto &normal: normalsToCheck) {
+            if (isBlockLookedAt(currPos + normal)) {
+                currPos += normal;
+                break;
+            }
+        }
+    }
 
     return result;
 }

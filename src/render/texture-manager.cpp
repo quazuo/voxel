@@ -8,18 +8,7 @@
 
 #include "deps/stb/stb_image.h"
 
-static constexpr std::array blockFaces = {
-    EBlockFace::Front,
-    EBlockFace::Back,
-    EBlockFace::Right,
-    EBlockFace::Left,
-    EBlockFace::Top,
-    EBlockFace::Bottom,
-};
-
 void TextureManager::loadBlockTextures(const BlockTexPathMapping &blockTexPathMappings) {
-    int currNextFreeUnit = nextFreeUnit;
-
     for (const auto &[block, faceTexPathMapping]: blockTexPathMappings) {
         // if all faces are textured the same, just load one texture and share it
         if (faceTexPathMapping.contains(ALL_FACES)) {
@@ -56,25 +45,6 @@ void TextureManager::loadBlockTextures(const BlockTexPathMapping &blockTexPathMa
 
 void TextureManager::loadSkyboxTextures(const FaceMapping<std::filesystem::path> &skyboxTexturePaths) {
     skyboxCubemap = loadCubemapTexture(skyboxTexturePaths);
-}
-
-static int getFaceIdOffset(const EBlockFace face) {
-    switch (face) {
-        case Front:
-            return 0;
-        case Back:
-            return 1;
-        case Right:
-            return 2;
-        case Left:
-            return 3;
-        case Top:
-            return 4;
-        case Bottom:
-            return 5;
-        default:
-            throw std::runtime_error("invalid switch branch in getFaceIdOffset");
-    }
 }
 
 int TextureManager::getBlockSamplerID(const EBlockType blockType, const EBlockFace face) const {

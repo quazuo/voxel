@@ -19,6 +19,15 @@ enum EBlockFace : std::uint8_t {
 static constexpr std::uint8_t ALL_FACES = Front | Back | Right | Left | Top | Bottom;
 static constexpr std::uint8_t ALL_SIDE_FACES = Front | Back | Right | Left;
 
+static constexpr std::array blockFaces = {
+    Front,
+    Back,
+    Right,
+    Left,
+    Top,
+    Bottom
+};
+
 /**
  * Utility class for various mappings between faces and other kinds of things.
  * Made mostly as a wrapper over std::unordered_map, but saving a bit of memory when using

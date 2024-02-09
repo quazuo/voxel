@@ -48,8 +48,6 @@ class ChunkManager {
      */
     std::vector<ChunkSlot> chunkSlots;
 
-    std::unordered_map<glm::ivec3, ChunkPtr, VecUtils::VecHash> loadedChunkPosMapping;
-
     // optional because we want to specially handle the si
     glm::ivec3 lastOccupiedChunkPos = {0, 0, 0};
 

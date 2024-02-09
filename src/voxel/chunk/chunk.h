@@ -32,13 +32,6 @@ private:
     CubeArray<Block, CHUNK_SIZE> blocks;
     size_t activeBlockCount = 0;
 
-    size_t frontWallActiveBlockCount = 0;
-    size_t backWallActiveBlockCount = 0;
-    size_t rightWallActiveBlockCount = 0;
-    size_t leftWallActiveBlockCount = 0;
-    size_t topWallActiveBlockCount = 0;
-    size_t bottomWallActiveBlockCount = 0;
-
 public:
     explicit Chunk(const glm::ivec3 &p) : pos(p) {}
 
@@ -53,9 +46,6 @@ public:
 
     [[nodiscard]]
     bool isLoaded() const { return _isLoaded; }
-
-    [[nodiscard]]
-    bool isWholeWallActive(EBlockFace face) const;
 
     [[nodiscard]]
     bool shouldRender() const;

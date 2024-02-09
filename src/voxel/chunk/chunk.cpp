@@ -24,58 +24,15 @@ void Chunk::updateBlock(const glm::ivec3 &block, const EBlockType type) {
 }
 
 void Chunk::updateBlock(const int x, const int y, const int z, const EBlockType type) {
-    int diff = 0;
-
     if (!blocks[x][y][z].isNone() && type == BlockType_None) {
         activeBlockCount--;
-        diff = -1;
 
     } else if (blocks[x][y][z].isNone() && type != BlockType_None) {
         activeBlockCount++;
-        diff = 1;
-    }
-
-    if (z == CHUNK_SIZE - 1) {
-        frontWallActiveBlockCount += diff;
-    } else if (z == 0) {
-        backWallActiveBlockCount += diff;
-    }
-
-    if (x == CHUNK_SIZE - 1) {
-        rightWallActiveBlockCount += diff;
-    } else if (x == 0) {
-        leftWallActiveBlockCount += diff;
-    }
-
-    if (y == CHUNK_SIZE - 1) {
-        topWallActiveBlockCount += diff;
-    } else if (y == 0) {
-        bottomWallActiveBlockCount += diff;
     }
 
     blocks[x][y][z].blockType = type;
     _isDirty = true;
-}
-
-bool Chunk::isWholeWallActive(const EBlockFace face) const {
-    constexpr size_t maxCount = CHUNK_SIZE * CHUNK_SIZE;
-
-    switch (face) {
-        case Front:
-            return frontWallActiveBlockCount == maxCount;
-        case Back:
-            return backWallActiveBlockCount == maxCount;
-        case Right:
-            return rightWallActiveBlockCount == maxCount;
-        case Left:
-            return leftWallActiveBlockCount == maxCount;
-        case Top:
-            return topWallActiveBlockCount == maxCount;
-        case Bottom:
-            return bottomWallActiveBlockCount == maxCount;
-        default:
-            throw std::runtime_error("invalid switch branch in Chunk::isWholeWallActive");
-    }
 }
 
 bool Chunk::shouldRender() const {
