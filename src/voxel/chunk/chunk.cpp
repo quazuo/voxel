@@ -36,25 +36,46 @@ void Chunk::updateBlock(const int x, const int y, const int z, const EBlockType 
     }
 
     if (z == CHUNK_SIZE - 1) {
-        wallActiveBlockCount[Front] += diff;
+        frontWallActiveBlockCount += diff;
     } else if (z == 0) {
-        wallActiveBlockCount[Back] += diff;
+        backWallActiveBlockCount += diff;
     }
 
     if (x == CHUNK_SIZE - 1) {
-        wallActiveBlockCount[Right] += diff;
+        rightWallActiveBlockCount += diff;
     } else if (x == 0) {
-        wallActiveBlockCount[Left] += diff;
+        leftWallActiveBlockCount += diff;
     }
 
     if (y == CHUNK_SIZE - 1) {
-        wallActiveBlockCount[Top] += diff;
+        topWallActiveBlockCount += diff;
     } else if (y == 0) {
-        wallActiveBlockCount[Bottom] += diff;
+        bottomWallActiveBlockCount += diff;
     }
 
     blocks[x][y][z].blockType = type;
     _isDirty = true;
+}
+
+bool Chunk::isWholeWallActive(const EBlockFace face) const {
+    constexpr size_t maxCount = CHUNK_SIZE * CHUNK_SIZE;
+
+    switch (face) {
+        case Front:
+            return frontWallActiveBlockCount == maxCount;
+        case Back:
+            return backWallActiveBlockCount == maxCount;
+        case Right:
+            return rightWallActiveBlockCount == maxCount;
+        case Left:
+            return leftWallActiveBlockCount == maxCount;
+        case Top:
+            return topWallActiveBlockCount == maxCount;
+        case Bottom:
+            return bottomWallActiveBlockCount == maxCount;
+        default:
+            throw std::runtime_error("invalid switch branch in Chunk::isWholeWallActive");
+    }
 }
 
 bool Chunk::shouldRender() const {
