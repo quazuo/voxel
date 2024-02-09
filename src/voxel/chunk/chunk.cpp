@@ -4,14 +4,17 @@
 #include "src/render/mesh-context.h"
 #include "src/voxel/world-gen.h"
 
-void Chunk::generate(const std::shared_ptr<WorldGen> &worldGen) {
-    worldGen->setChunkGenCtx(pos);
+void Chunk::generate(const OpenGLRenderer &renderer, WorldGen &worldGen) {
+    worldGen.fillChunk(pos, blocks);
 
     blocks.forEach([&](const int x, const int y, const int z, const Block &b) {
-        (void) b;
-        updateBlock(x, y, z, worldGen->getBlockTypeAt({x, y, z}));
+        (void)(x + y + z); // warning silencer
+        if (!b.isNone()) {
+            activeBlockCount++;
+        }
     });
 
+    createMesh(renderer.getTextureManager());
     _isLoaded = true;
 }
 
@@ -39,17 +42,16 @@ bool Chunk::shouldRender() const {
     return activeBlockCount != 0 && _isLoaded;
 }
 
-void Chunk::render(const std::shared_ptr<OpenGLRenderer> &renderer) {
+void Chunk::render(const OpenGLRenderer &renderer) {
     if (activeBlockCount == 0)
         return;
 
     if (_isDirty) {
-        createMesh(renderer->getTextureManager());
-        _isDirty = false;
+        createMesh(renderer.getTextureManager());
     }
 
     if (isMesh) {
-        renderer->renderChunk(meshContext);
+        renderer.renderChunk(meshContext);
     }
 }
 
@@ -70,6 +72,7 @@ void Chunk::createMesh(const TextureManager &textureManager) {
     meshContext->triangulateQuads();
     meshContext->makeIndexed();
     meshContext->isFreshlyUpdated = true;
+    _isDirty = false;
     isMesh = true;
 }
 

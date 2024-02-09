@@ -50,7 +50,7 @@ public:
     [[nodiscard]]
     bool shouldRender() const;
 
-    void bindMeshContext(std::shared_ptr<class ChunkMeshContext> ctx) { meshContext = std::move(ctx); }
+    void bindMeshContext(std::shared_ptr<ChunkMeshContext> ctx) { meshContext = std::move(ctx); }
 
     void markDirty() { _isDirty = true; }
 
@@ -61,14 +61,14 @@ public:
     /**
      * Uses a provided world generation module to generate the contents of this chunk.
      */
-    void generate(const std::shared_ptr<class WorldGen> &worldGen);
+    void generate(const class OpenGLRenderer &renderer, class WorldGen &worldGen);
 
     /**
      * Unloads this chunk from memory, letting the ChunkManager free a ChunkSlot in which this chunk resides.
      */
     void unload();
 
-    void render(const std::shared_ptr<class OpenGLRenderer> &renderer);
+    void render(const OpenGLRenderer &renderer);
 
 private:
     /**

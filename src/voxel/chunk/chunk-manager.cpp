@@ -46,12 +46,12 @@ ChunkManager::ChunkManager(std::shared_ptr<OpenGLRenderer> r, std::shared_ptr<Wo
         }
     }
 
-    sortLoadList();
+    sortChunks(loadableChunks);
 }
 
 void ChunkManager::renderChunks() const {
     for (const ChunkPtr &chunk: visibleChunks) {
-        chunk->render(renderer);
+        chunk->render(*renderer);
     }
 }
 
@@ -165,12 +165,13 @@ void ChunkManager::loadNearChunks() {
         slotIt->bind(newChunk);
     });
 
-    sortLoadList();
+    sortChunks(loadableChunks);
 }
 
-void ChunkManager::sortLoadList() {
+void ChunkManager::sortChunks(std::vector<ChunkPtr>& chunks) const {
     const glm::vec3 cameraPos = renderer->getCameraPos();
-    std::ranges::sort(loadableChunks, [&](const ChunkPtr &a, const ChunkPtr &b) {
+
+    std::ranges::sort(chunks, [&](const ChunkPtr &a, const ChunkPtr &b) {
         const auto aDist = glm::length2(cameraPos - static_cast<glm::vec3>(a->getPos() * Chunk::CHUNK_SIZE));
         const auto bDist = glm::length2(cameraPos - static_cast<glm::vec3>(b->getPos() * Chunk::CHUNK_SIZE));
         return aDist < bDist;
@@ -182,11 +183,11 @@ void ChunkManager::updateLoadList() {
 
     for (const ChunkPtr &chunk: loadableChunks) {
         if (!chunk->isLoaded()) {
-            chunk->generate(worldGen); // todo - this should load from disk, not always generate.
+            chunk->generate(*renderer, *worldGen); // todo - this should load from disk, not always generate.
             nChunksLoaded++;
         }
 
-        if (nChunksLoaded == MAX_CHUNKS_SERVE_PER_PRAME) {
+        if (nChunksLoaded == MAX_CHUNKS_SERVE_PER_FRAME) {
             break;
         }
     }
@@ -210,8 +211,7 @@ void ChunkManager::updateRenderList() {
     }
 }
 
-std::optional<glm::ivec3>
-ChunkManager::getTargetedBlock(const std::vector<glm::ivec3> &lookedAtBlocks) const {
+std::optional<glm::ivec3> ChunkManager::getTargetedBlock(const std::vector<glm::ivec3> &lookedAtBlocks) const {
     for (auto &block: lookedAtBlocks) {
         const ChunkPtr chunk = getOwningChunk(block);
         if (!chunk) continue;

@@ -53,9 +53,9 @@ private:
     };
     std::unordered_map<LineType, std::vector<glm::vec3>> tempLineVertexGroups;
 
-    // cached view and projection matrices for the current render tick
+    // cached view and projection matrices and their product for the current render tick.
     // model matrix can't be cached because it's different for each chunk
-    glm::mat4 viewMatrix{}, projectionMatrix{};
+    glm::mat4 viewMatrix{}, projectionMatrix{}, vpMatrix;
 
 public:
     OpenGLRenderer(int windowWidth, int windowHeight);

@@ -13,7 +13,7 @@ void main()
     vec3 diff = normalize(texCoords) - normalize(LightDirection_worldspace);
     float eps = 0.03;
 
-    if (diff.x < eps && diff.x >= -eps && diff.y < eps && diff.y >= -eps && diff.z < eps && diff.z >= -eps) {
+    if (abs(diff.x) < eps && abs(diff.y) < eps && abs(diff.z) < eps) {
         color = sunColor;
     } else {
         color = texture(skyboxTexSampler, texCoords);

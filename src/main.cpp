@@ -64,7 +64,6 @@ public:
         // rendering
         renderer->startRendering();
 
-        renderer->renderSkybox();
         chunkManager->renderChunks();
 
         if (doRenderChunkOutlines) {
@@ -77,6 +76,8 @@ public:
         }
 
         renderer->renderOutlines();
+
+        renderer->renderSkybox();
 
         // following functions HAVE TO be called as the last thing, because while rendering overlays we clear
         // the z-buffer so that the gui is on top of everything.

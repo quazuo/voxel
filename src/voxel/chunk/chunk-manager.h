@@ -55,7 +55,7 @@ class ChunkManager {
     std::shared_ptr<class WorldGen> worldGen;
 
     // this limits how many chunks can be handled each frame to prevent big stutters
-    static constexpr size_t MAX_CHUNKS_SERVE_PER_PRAME = 2;
+    static constexpr size_t MAX_CHUNKS_SERVE_PER_FRAME = 2;
 
 public:
     explicit ChunkManager(std::shared_ptr<OpenGLRenderer> r, std::shared_ptr<WorldGen> wg);
@@ -125,16 +125,14 @@ private:
     void loadNearChunks();
 
     /**
-     * Sorts the loadable so that the chunks closest to the camera get loaded first.
+     * Sorts a given list of chunks with respect to distance to the camera.
      */
-    void sortLoadList();
+    void sortChunks(std::vector<ChunkPtr>& chunks) const;
 
     /**
      * Takes up to `MAX_CHUNKS_SERVE_PER_PRAME` chunks from the `loadableChunks` list and loads them.
      */
     void updateLoadList();
-
-    bool isCompletelyOccluded(const ChunkPtr& chunk) const;
 
     /**
      * Updates which chunks are actually visible and renderrable.

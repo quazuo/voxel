@@ -103,7 +103,7 @@ OpenGLRenderer::OpenGLRenderer(const int windowWidth, const int windowHeight) {
     // Enable depth test
     glEnable(GL_DEPTH_TEST);
     // Accept fragment if it closer to the camera than the former one
-    glDepthFunc(GL_LESS);
+    glDepthFunc(GL_LEQUAL);
 
     // Cull triangles which normal is not towards the camera
     glEnable(GL_CULL_FACE);
@@ -178,6 +178,7 @@ void OpenGLRenderer::startRendering() {
 
     viewMatrix = camera->getViewMatrix();
     projectionMatrix = camera->getProjectionMatrix();
+    vpMatrix = projectionMatrix * viewMatrix;
 
     cubeShader->enable();
     cubeShader->setUniform("LightDirection_worldspace", skybox.lightDirection);
@@ -236,18 +237,15 @@ void OpenGLRenderer::renderChunk(const std::shared_ptr<ChunkMeshContext> &ctx) c
     }
 
     const glm::mat4 modelMatrix = glm::translate(glm::identity<glm::mat4>(), ctx->modelTranslate);
-    const glm::mat4 mvpMatrix = projectionMatrix * viewMatrix * modelMatrix;
+    const glm::mat4 mvpMatrix = vpMatrix * modelMatrix;
     cubeShader->setUniform("MVP", mvpMatrix);
 
     ctx->drawElements();
 }
 
 void OpenGLRenderer::renderOutlines() {
-    constexpr auto modelMatrix = glm::identity<glm::mat4>();
-    const glm::mat4 mvpMatrix = projectionMatrix * viewMatrix * modelMatrix;
-
     lineShader->enable();
-    lineShader->setUniform("MVP", mvpMatrix);
+    lineShader->setUniform("MVP", vpMatrix); // model matrix is the identity matrix so no need to multiply it in
 
     for (const auto &[gid, vertices]: tempLineVertexGroups) {
         outlinesVao->writeToBuffers(vertices);
@@ -449,5 +447,7 @@ void OpenGLRenderer::windowRefreshCallback(GLFWwindow *window) {
 }
 
 void OpenGLRenderer::framebufferSizeCallback(GLFWwindow *window, const int width, const int height) {
-    glViewport(0, 0, width, height);
+    if (width && height) {
+        glViewport(0, 0, width, height);
+    }
 }
