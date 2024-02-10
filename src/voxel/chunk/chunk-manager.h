@@ -33,7 +33,7 @@ class ChunkManager {
     std::vector<ChunkPtr> visibleChunks;
 
     // how many chunks around the camera should always be loaded
-    int renderDistance = 8;
+    int renderDistance = 4;
 
     /*
      * this prevents jittering around a chunk's border to cause chunks to be repeatedly loaded and unloaded.

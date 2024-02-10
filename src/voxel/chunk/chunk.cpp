@@ -9,7 +9,7 @@
 void Chunk::generate(const OpenGLRenderer &renderer, WorldGen &worldGen) {
     worldGen.fillChunk(pos, blocks);
 
-    blocks.forEach([&](const int x, const int y, const int z, const Block &b) {
+    blocks.forEach([&](const int x, const int y, const int z, Block &b) {
         (void)(x + y + z); // warning silencer
         if (!b.isNone()) {
             activeBlockCount++;
@@ -45,15 +45,11 @@ bool Chunk::shouldRender() const {
 }
 
 void Chunk::render(const OpenGLRenderer &renderer) {
-    if (activeBlockCount == 0) return;
-
     if (_isDirty) {
         createMesh(renderer.getTextureManager());
     }
 
-    if (isMesh) {
-        renderer.renderChunk(meshContext);
-    }
+    renderer.renderChunk(meshContext);
 }
 
 void Chunk::createMesh(const TextureManager &textureManager) {
@@ -61,9 +57,9 @@ void Chunk::createMesh(const TextureManager &textureManager) {
         throw std::runtime_error("tried to call createMesh() with no bound meshContext");
     }
 
-    meshContext->clear();
     meshContext->modelTranslate = pos * CHUNK_SIZE;
 
+    // mesh context is already empty so we can just start adding cubes
     blocks.forEach([&](const int x, const int y, const int z, const Block &b) {
         if (b.isNone()) return;
         createCube(x, y, z, textureManager);
@@ -72,7 +68,8 @@ void Chunk::createMesh(const TextureManager &textureManager) {
     meshContext->mergeQuads();
     meshContext->triangulateQuads();
     meshContext->makeIndexed();
-    meshContext->isFreshlyUpdated = true;
+    meshContext->writeToBuffers();
+    meshContext->clear();
     _isDirty = false;
     isMesh = true;
 }
@@ -108,20 +105,11 @@ void Chunk::createCube(const int x, const int y, const int z, const TextureManag
 
 void Chunk::createFace(const glm::ivec3 &cubePos, const EBlockFace face, const EBlockType blockType,
                        const TextureManager &textureManager) const {
-    static const std::unordered_map<EBlockFace, glm::vec3> faceNormals = {
-        {Front, {0, 0, 1}},
-        {Back, {0, 0, -1}},
-        {Right, {1, 0, 0}},
-        {Left, {-1, 0, 0}},
-        {Top, {0, 1, 0}},
-        {Bottom, {0, -1, 0}}
-    };
-
     const auto [bottomLeft, topRight] = Block::getFaceCorners(face);
     const glm::ivec3 minPos = cubePos + bottomLeft;
     const glm::ivec3 maxPos = cubePos + topRight;
 
-    const glm::vec3 normal = faceNormals.at(face);
+    const glm::vec3 normal = getNormalFromFace(face);
     const int samplerID = textureManager.getBlockSamplerID(blockType, face);
 
     const Vertex min{minPos, {0, 1}, normal, samplerID};

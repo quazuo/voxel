@@ -18,11 +18,15 @@ protected:
     /// are being stored at the moment.
     static constexpr size_t BASE_CAPACITY = 9;
     GLsizeiptr capacity = BASE_CAPACITY;
+    GLsizeiptr size = 0;
 
     GLuint bufferID {};
 
 public:
     virtual ~GLBuffer();
+
+    [[nodiscard]]
+    decltype(size) getSize() const { return size; }
 
     /**
      * Writes the given data to the buffer, possibly reallocating it to contain all the data.

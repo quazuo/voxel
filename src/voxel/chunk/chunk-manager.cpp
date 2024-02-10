@@ -149,15 +149,13 @@ void ChunkManager::loadNearChunks() {
 
         const glm::ivec3 relPos = slot.chunk->getPos() - lastOccupiedChunkPos;
 
-        // relPos components shifted so that they are non-negative
-        const size_t x = relPos.x + renderDistance;
-        const size_t y = relPos.y + renderDistance;
-        const size_t z = relPos.z + renderDistance;
+        // relPos shifted so that it's non-negative
+        const glm::ivec3 shiftedRelPos = relPos + renderDistance;
 
         // we're interested only in positions within render distance -- we don't care about chunks that are
         // still loaded only because they're in the grace period
-        if (x < newChunkLoadCubeWidth && y < newChunkLoadCubeWidth && z < newChunkLoadCubeWidth) {
-            loadedChunksMap[x][y][z] = true;
+        if (VecUtils::all<int>(shiftedRelPos, [&](const int x) { return x < newChunkLoadCubeWidth; })) {
+            loadedChunksMap[shiftedRelPos] = true;
         }
     }
 
@@ -197,13 +195,13 @@ void ChunkManager::updateLoadList() {
     int nChunksLoaded = 0;
 
     for (const ChunkPtr &chunk: loadableChunks) {
+        if (nChunksLoaded == chunksServePerFrame) {
+            break;
+        }
+
         if (!chunk->isLoaded()) {
             chunk->generate(*renderer, *worldGen); // todo - this should load from disk, not always generate.
             nChunksLoaded++;
-        }
-
-        if (nChunksLoaded == chunksServePerFrame) {
-            break;
         }
     }
 

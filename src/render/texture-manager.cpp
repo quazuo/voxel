@@ -66,7 +66,6 @@ void TextureManager::bindBlockTextures(GLShader& blockShader) {
         }
 
         blockTexCache = { handles, texIDs };
-
         blockShader.setUniform("texSampler", handles);
     }
 

@@ -117,8 +117,9 @@ void GLShader::setUniform(const std::string &name, const glm::mat4 &value) {
 }
 
 GLuint GLShader::getUniformID(const std::string &name) {
-    if (uniformIDs.contains(name)) {
-        return uniformIDs.at(name);
+    const auto it = uniformIDs.find(name);
+    if (it != uniformIDs.end()) {
+        return it->second;
     }
 
     const auto id = glGetUniformLocation(shaderID, name.c_str());

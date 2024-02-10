@@ -232,12 +232,6 @@ void OpenGLRenderer::startRenderingChunks() const {
 }
 
 void OpenGLRenderer::renderChunk(const std::shared_ptr<ChunkMeshContext> &ctx) const {
-    // update buffers if needed
-    if (ctx->isFreshlyUpdated) {
-        ctx->writeToBuffers();
-        ctx->isFreshlyUpdated = false;
-    }
-
     const glm::mat4 modelMatrix = glm::translate(glm::identity<glm::mat4>(), ctx->modelTranslate);
     const glm::mat4 mvpMatrix = vpMatrix * modelMatrix;
     cubeShader->setUniform("MVP", mvpMatrix);

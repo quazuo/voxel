@@ -3,15 +3,11 @@
 
 #include "GL/glew.h"
 
-#include <string>
 #include <vector>
-#include <map>
 #include <filesystem>
 
 #include "src/voxel/chunk/chunk.h"
 #include "texture-manager.h"
-#include "glm/ext/matrix_float4x4.hpp"
-#include "glm/trigonometric.hpp"
 #include "camera.h"
 #include "mesh-context.h"
 #include "gl/gl-shader.h"

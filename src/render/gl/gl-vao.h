@@ -41,6 +41,9 @@ class ChunkVertexArray final : public GLVertexArray {
 public:
     ChunkVertexArray();
 
+    [[nodiscard]]
+    GLsizeiptr getIndicesCount() const { return indices->getSize(); }
+
     void writeToBuffers(const IndexedMeshData& data) const;
 };
 

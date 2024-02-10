@@ -5,8 +5,8 @@
 ChunkMeshContext::ChunkMeshContext() : vao(std::make_unique<ChunkVertexArray>()) {}
 
 void ChunkMeshContext::clear() {
-    quads = {};
-    triangles = {};
+    quads.clear();
+    triangles.clear();
     indexedData = {};
 }
 
@@ -60,7 +60,7 @@ void ChunkMeshContext::writeToBuffers() const {
 
 void ChunkMeshContext::drawElements() const {
     vao->enable();
-    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indexedData->indices.size()), GL_UNSIGNED_SHORT, nullptr);
+    glDrawElements(GL_TRIANGLES, vao->getIndicesCount(), GL_UNSIGNED_SHORT, nullptr);
 }
 
 void ChunkMeshContext::triangulateQuads() {
