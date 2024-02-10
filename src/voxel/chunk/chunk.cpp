@@ -1,5 +1,7 @@
 #include "chunk.h"
 
+#include <iostream>
+
 #include "src/render/renderer.h"
 #include "src/render/mesh-context.h"
 #include "src/voxel/world-gen.h"
@@ -43,8 +45,7 @@ bool Chunk::shouldRender() const {
 }
 
 void Chunk::render(const OpenGLRenderer &renderer) {
-    if (activeBlockCount == 0)
-        return;
+    if (activeBlockCount == 0) return;
 
     if (_isDirty) {
         createMesh(renderer.getTextureManager());

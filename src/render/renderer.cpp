@@ -197,7 +197,7 @@ void OpenGLRenderer::renderGuiSection() {
     constexpr auto sectionFlags = ImGuiTreeNodeFlags_DefaultOpen;
 
     if (ImGui::CollapsingHeader("Renderer ", sectionFlags)) {
-        ImGui::Text("Light: ");
+        ImGui::Text("Sun direction: ");
         ImGui::SameLine();
         ImGui::PushItemWidth(50.0f);
         ImGui::DragFloat("X", &skybox.lightDirection.x, 0.01f, -1.0f, 1.0f, "%.2f");
@@ -222,14 +222,16 @@ void OpenGLRenderer::renderSkybox() const {
     textureManager->bindSkyboxTextures(*skyboxShader);
 
     skybox.vao->enable();
-    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(skyboxVerticesList.size()));
     glDepthMask(GL_TRUE);
 }
 
-void OpenGLRenderer::renderChunk(const std::shared_ptr<ChunkMeshContext> &ctx) const {
+void OpenGLRenderer::startRenderingChunks() const {
     cubeShader->enable();
     textureManager->bindBlockTextures(*cubeShader);
+}
 
+void OpenGLRenderer::renderChunk(const std::shared_ptr<ChunkMeshContext> &ctx) const {
     // update buffers if needed
     if (ctx->isFreshlyUpdated) {
         ctx->writeToBuffers();
@@ -319,7 +321,7 @@ void OpenGLRenderer::renderHud() const {
     vertices.push_back(left);
     vertices.push_back(right);
 
-    glm::vec<2, int> windowSize{};
+    glm::ivec2 windowSize;
     glfwGetWindowSize(window, &windowSize.x, &windowSize.y);
 
     vertices.push_back(top * static_cast<float>(windowSize.x) / static_cast<float>(windowSize.y));
@@ -332,7 +334,7 @@ void OpenGLRenderer::renderHud() const {
     outlinesVao->writeToBuffers(vertices);
 
     lineShader->setUniform("MVP", glm::identity<glm::mat4>());
-    lineShader->setUniform("color", glm::vec3(1, 1, 1));
+    lineShader->setUniform("color", glm::vec3(1));
 
     outlinesVao->enable();
     glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(vertices.size()));

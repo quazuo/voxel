@@ -5,6 +5,7 @@
 #include "glm/gtx/norm.hpp"
 
 #include "chunk-manager.h"
+
 #include "src/render/renderer.h"
 #include "src/render/gui.h"
 #include "src/utils/size.h"
@@ -21,8 +22,10 @@ void ChunkManager::ChunkSlot::unbind() {
     if (!isBound())
         throw std::runtime_error("tried to call unbind() while not bound");
 
-    if (chunk->isLoaded())
+    if (chunk->isLoaded()) {
         chunk->unload();
+    }
+
     chunk = nullptr;
 }
 
@@ -50,6 +53,8 @@ ChunkManager::ChunkManager(std::shared_ptr<OpenGLRenderer> r, std::shared_ptr<Wo
 }
 
 void ChunkManager::renderChunks() const {
+    renderer->startRenderingChunks();
+
     for (const ChunkPtr &chunk: visibleChunks) {
         chunk->render(*renderer);
     }
@@ -81,9 +86,19 @@ void ChunkManager::renderGuiSection() {
     if (ImGui::CollapsingHeader("ChunkManager ", sectionFlags)) {
         ImGui::Text("Render distance: %d ", renderDistance);
         ImGui::SameLine();
-        if (ImGui::ArrowButton("##left", ImGuiDir_Left)) { setRenderDistance(std::max(renderDistance - 1, 1)); }
+        if (ImGui::ArrowButton("cm_left1", ImGuiDir_Left)) { setRenderDistance(std::max(renderDistance - 1, 0)); }
         ImGui::SameLine();
-        if (ImGui::ArrowButton("##right", ImGuiDir_Right)) { setRenderDistance(renderDistance + 1); }
+        if (ImGui::ArrowButton("cm_right1", ImGuiDir_Right)) { setRenderDistance(renderDistance + 1); }
+
+        ImGui::Text("Chunks served per frame: %d ", chunksServePerFrame);
+        ImGui::SameLine();
+        if (ImGui::ArrowButton("cm_left2", ImGuiDir_Left)) { chunksServePerFrame = std::max(chunksServePerFrame - 1, 0); }
+        ImGui::SameLine();
+        if (ImGui::ArrowButton("cm_right2", ImGuiDir_Right)) { chunksServePerFrame++; }
+
+        ImGui::Text("Loadable chunks: %d", loadableChunks.size());
+        ImGui::Text("Visible chunks: %d", visibleChunks.size());
+        ImGui::Text("Chunk slots: %d", chunkSlots.size());
     }
 }
 
@@ -187,7 +202,7 @@ void ChunkManager::updateLoadList() {
             nChunksLoaded++;
         }
 
-        if (nChunksLoaded == MAX_CHUNKS_SERVE_PER_FRAME) {
+        if (nChunksLoaded == chunksServePerFrame) {
             break;
         }
     }

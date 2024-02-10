@@ -55,7 +55,7 @@ private:
 
     // cached view and projection matrices and their product for the current render tick.
     // model matrix can't be cached because it's different for each chunk
-    glm::mat4 viewMatrix{}, projectionMatrix{}, vpMatrix;
+    glm::mat4 viewMatrix{}, projectionMatrix{}, vpMatrix{};
 
 public:
     OpenGLRenderer(int windowWidth, int windowHeight);
@@ -101,6 +101,8 @@ public:
     void renderGuiSection();
 
     void renderSkybox() const;
+
+    void startRenderingChunks() const;
 
     void renderChunk(const std::shared_ptr<ChunkMeshContext>& ctx) const;
 

@@ -36,7 +36,6 @@ void WorldGen::fillChunk(const glm::ivec3 &chunkPos, CubeArray<Block, Chunk::CHU
 void WorldGen::setChunkGenCtx(const glm::ivec3 &chunkPos) {
     heightMap = {};
 
-    const noise::module::Perlin noiseModule;
     noiseutils::NoiseMapBuilderPlane heightMapBuilder;
 
     heightMapBuilder.SetSourceModule(noiseModule);

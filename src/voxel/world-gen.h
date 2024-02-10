@@ -7,6 +7,7 @@
 #include "src/utils/cube-array.h"
 
 class WorldGen {
+    const noise::module::Perlin noiseModule;
     noiseutils::NoiseMap heightMap;
 
 public:

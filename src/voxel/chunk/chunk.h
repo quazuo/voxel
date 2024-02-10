@@ -10,7 +10,6 @@
 #include "src/utils/vec.h"
 #include "src/utils/cube-array.h"
 
-class TextureManager;
 /**
  * A chunk groups up nearby blocks into cubes of `CHUNK_SIZE` width.
  * It's used primarily as an optimization tool, as managing singular blocks is very ineffective.
@@ -77,7 +76,7 @@ private:
      *
      * @param textureManager Reference to the texture manager, so that we can deduce which texture each block uses.
      */
-    void createMesh(const TextureManager &textureManager);
+    void createMesh(const class TextureManager &textureManager);
 
     /**
      * Adds a specific cube at coordinates [x, y, z] relative to the chunk's `pos` coordinates.

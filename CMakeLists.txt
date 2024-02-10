@@ -35,10 +35,6 @@ add_definitions(
         -D_CRT_SECURE_NO_WARNINGS
 )
 
-#set(CMAKE_CXX_FLAGS "-Wall -Wextra -Werror -Wpedantic -Wcast-align          \
-#    -Wdouble-promotion -Wmissing-declarations -Wmissing-include-dirs        \
-#    -Wnon-virtual-dtor -Wredundant-decls -Wodr -Wunreachable-code -Wshadow")
-
 file(GLOB IMGUI_SRCS
         "deps/imgui/*.h"
         "deps/imgui/*.cpp"

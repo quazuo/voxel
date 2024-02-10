@@ -49,14 +49,14 @@ public:
     /**
      * Binds all managed block textures so that they can be used by the provided shader.
      *
-     * @param blockShaderID ID of the shader program which will use all the textures.
+     * @param blockShader The shader program which will use all the textures.
      */
     void bindBlockTextures(GLShader& blockShader);
 
     /**
      * Binds all managed skybox textures so that they can be used by the provided shader.
      *
-     * @param skyboxShaderID ID of the shader program which will use all the textures.
+     * @param skyboxShader The shader program which will use all the textures.
      */
     void bindSkyboxTextures(GLShader& skyboxShader) const;
 

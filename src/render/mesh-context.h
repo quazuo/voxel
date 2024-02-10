@@ -39,7 +39,7 @@ struct IndexedMeshData {
     // I'm currently ignoring these edge cases, as transparent blocks aren't implemented yet, and due to the
     // fact that I can't come up with a pattern that would make this buffer overflow, I just assume there isn't one.
     // hopefully, the problem will just disappear in the future when I come up with some more elaborate ways to
-    // exclude unseen blocks from rendering or implement face merging.
+    // exclude unseen blocks from rendering.
     std::vector<unsigned short> indices;
 };
 

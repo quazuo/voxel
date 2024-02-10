@@ -15,13 +15,13 @@ class ChunkManager {
     using ChunkPtr = std::shared_ptr<Chunk>;
 
     struct ChunkSlot {
-        std::shared_ptr<Chunk> chunk;
+        ChunkPtr chunk;
         std::shared_ptr<ChunkMeshContext> mesh = std::make_shared<ChunkMeshContext>();
 
         [[nodiscard]]
         bool isBound() const { return chunk != nullptr; }
 
-        void bind(std::shared_ptr<Chunk> c);
+        void bind(ChunkPtr c);
 
         void unbind();
     };
@@ -33,7 +33,7 @@ class ChunkManager {
     std::vector<ChunkPtr> visibleChunks;
 
     // how many chunks around the camera should always be loaded
-    int renderDistance = 3;
+    int renderDistance = 8;
 
     /*
      * this prevents jittering around a chunk's border to cause chunks to be repeatedly loaded and unloaded.
@@ -44,18 +44,17 @@ class ChunkManager {
 
     /*
      * list of slots in which currently loaded (or only loadable) chunks may reside.
-     * this should always be of size `2 * renderDistance + gracePeriodWidth + 1`.
+     * this should always be of size `2 * renderDistance + gracePeriodWidth + 1` cubed.
      */
     std::vector<ChunkSlot> chunkSlots;
 
-    // optional because we want to specially handle the si
     glm::ivec3 lastOccupiedChunkPos = {0, 0, 0};
 
     std::shared_ptr<OpenGLRenderer> renderer;
-    std::shared_ptr<class WorldGen> worldGen;
+    std::shared_ptr<WorldGen> worldGen;
 
-    // this limits how many chunks can be handled each frame to prevent big stutters
-    static constexpr size_t MAX_CHUNKS_SERVE_PER_FRAME = 2;
+    // this limits how many chunks can be loaded each frame to prevent big stutters
+    int chunksServePerFrame = 8;
 
 public:
     explicit ChunkManager(std::shared_ptr<OpenGLRenderer> r, std::shared_ptr<WorldGen> wg);
