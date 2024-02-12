@@ -97,6 +97,7 @@ public:
     void processTargetedBlocks() {
         const std::vector<glm::ivec3> lookedAtBlocks = renderer->getLookedAtBlocks();
 
+        nextBlockPos = {};
         targetedBlockPos = chunkManager->getTargetedBlock(lookedAtBlocks);
         if (!targetedBlockPos) {
             return;
@@ -105,7 +106,6 @@ public:
         renderer->addTargetedBlockOutline(*targetedBlockPos);
 
         const glm::vec3 cameraPos = renderer->getCameraPos();
-        nextBlockPos = {};
 
         for (const auto face: blockFaces) {
             const glm::ivec3 normal = getNormalFromFace(face);

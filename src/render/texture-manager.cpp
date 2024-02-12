@@ -114,17 +114,20 @@ static TextureData readTexture(const std::filesystem::path &path) {
 }
 
 GLuint TextureManager::loadTexture(const std::filesystem::path &path) {
-    if (loadedTextures.contains(path.string())) {
-        return loadedTextures.at(path.string());
+    std::filesystem::path newPath = "../assets/";
+    newPath += path;
+
+    if (loadedTextures.contains(newPath.string())) {
+        return loadedTextures.at(newPath.string());
     }
 
-    const auto &[width, height, nrChannels, data] = readTexture(path);
+    const auto &[width, height, nrChannels, data] = readTexture(newPath);
 
     unsigned int texID;
     glGenTextures(1, &texID);
     glBindTexture(GL_TEXTURE_2D, texID);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -132,7 +135,7 @@ GLuint TextureManager::loadTexture(const std::filesystem::path &path) {
 
     stbi_image_free(data);
 
-    loadedTextures.emplace(path.string(), texID);
+    loadedTextures.emplace(newPath.string(), texID);
     textureUnits.emplace(texID, nextFreeUnit++);
 
     return texID;
@@ -163,7 +166,9 @@ GLuint TextureManager::loadCubemapTexture(const FaceMapping<std::filesystem::pat
     glBindTexture(GL_TEXTURE_CUBE_MAP, texID);
 
     for (const auto face: blockFaces) {
-        const auto path = skyboxTexturePaths.get(face);
+        std::filesystem::path path = "../assets/";
+        path += skyboxTexturePaths.get(face);
+
         const auto &[width, height, nrChannels, data] = readTexture(path);
 
         glTexImage2D(getCubemapSide(face), 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);

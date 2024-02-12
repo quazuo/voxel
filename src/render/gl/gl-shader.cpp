@@ -8,8 +8,12 @@ GLShader::GLShader(const std::filesystem::path &vertexShaderPath, const std::fil
     GLuint vertexShaderID = glCreateShader(GL_VERTEX_SHADER);
     GLuint fragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
 
+    const std::filesystem::path basePath = "../shaders/";
+
     // read the vertex shader code from the file
-    std::ifstream vertexShaderStream(vertexShaderPath, std::ios::in);
+    std::filesystem::path path = basePath;
+    path += vertexShaderPath;
+    std::ifstream vertexShaderStream(path, std::ios::in);
     if (!vertexShaderStream.is_open()) {
         throw std::runtime_error("Impossible to open vertex shader file");
     }
@@ -20,7 +24,9 @@ GLShader::GLShader(const std::filesystem::path &vertexShaderPath, const std::fil
     vertexShaderStream.close();
 
     // read the fragment shader code from the file
-    std::ifstream fragmentShaderStream(fragmentShaderPath, std::ios::in);
+    path = basePath;
+    path += fragmentShaderPath;
+    std::ifstream fragmentShaderStream(path, std::ios::in);
     if (!fragmentShaderStream.is_open()) {
         throw std::runtime_error("Impossible to open fragment shader file");
     }
@@ -95,6 +101,11 @@ void GLShader::enable() const {
 void GLShader::setUniform(const std::string &name, const GLint value) {
     const GLuint uniformID = getUniformID(name);
     glUniform1i(uniformID, value);
+}
+
+void GLShader::setUniform(const std::string &name, const float value) {
+    const GLuint uniformID = getUniformID(name);
+    glUniform1f(uniformID, value);
 }
 
 void GLShader::setUniform(const std::string &name, const std::vector<GLint> &value) {

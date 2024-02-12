@@ -115,9 +115,11 @@ OpenGLRenderer::OpenGLRenderer(const int windowWidth, const int windowHeight) {
     glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 
     // load & compile shaders
-    cubeShader = std::make_unique<GLShader>("shaders/cube-shader.vert", "shaders/cube-shader.frag");
-    skyboxShader = std::make_unique<GLShader>("shaders/skybox-shader.vert", "shaders/skybox-shader.frag");
-    lineShader = std::make_unique<GLShader>("shaders/line-shader.vert", "shaders/line-shader.frag");
+    cubeShader = std::make_unique<GLShader>("cube-shader.vert", "cube-shader.frag");
+    skyboxShader = std::make_unique<GLShader>("skybox-shader.vert", "skybox-shader.frag");
+    lineShader = std::make_unique<GLShader>("line-shader.vert", "line-shader.frag");
+    depthShader = std::make_unique<GLShader>("depth-shader.vert", "depth-shader.frag");
+    debugDepthShader = std::make_unique<GLShader>("debug-depth-quad.vert", "debug-depth-quad.frag");
     cubeShader->enable();
 
     loadTextures();
@@ -129,6 +131,9 @@ OpenGLRenderer::OpenGLRenderer(const int windowWidth, const int windowHeight) {
 
     // init peripheral structures
     camera = std::make_unique<Camera>(window);
+
+    depthMap = std::make_unique<GLFrameBuffer>();
+    depthMap->attachDepth(depthMapSize);
 }
 
 OpenGLRenderer::~OpenGLRenderer() {
@@ -146,27 +151,27 @@ void OpenGLRenderer::loadTextures() const {
     const std::unordered_map<EBlockType, FacePathMapping> blockTexturePathMappings{
         {
             BlockType_Grass, FacePathMapping(
-                std::make_pair(ALL_SIDE_FACES, "assets/grass-side.png"),
-                std::make_pair(Top, "assets/grass-top.png"),
-                std::make_pair(Bottom, "assets/dirt.png")
+                std::make_pair(ALL_SIDE_FACES, "grass-side.png"),
+                std::make_pair(Top, "grass-top.png"),
+                std::make_pair(Bottom, "dirt.png")
             )
         },
         {
             BlockType_Dirt, FacePathMapping(
-                std::make_pair(ALL_FACES, "assets/dirt.png")
+                std::make_pair(ALL_FACES, "dirt.png")
             )
         },
         {
             BlockType_Stone, FacePathMapping(
-                std::make_pair(ALL_FACES, "assets/stone.png")
+                std::make_pair(ALL_FACES, "stone.png")
             )
         }
     };
 
     const FacePathMapping skyboxTexturePaths{
-        std::make_pair(ALL_SIDE_FACES, "assets/sky-side.png"),
-        std::make_pair(Top, "assets/sky-top.png"),
-        std::make_pair(Bottom, "assets/sky-bottom.png")
+        std::make_pair(ALL_SIDE_FACES, "sky-side.png"),
+        std::make_pair(Top, "sky-top.png"),
+        std::make_pair(Bottom, "sky-bottom.png")
     };
 
     textureManager->loadBlockTextures(blockTexturePathMappings);
@@ -226,17 +231,99 @@ void OpenGLRenderer::renderSkybox() const {
     glDepthMask(GL_TRUE);
 }
 
+void OpenGLRenderer::startRenderingShadowMap() {
+    // todo - make these dependent on the render distance
+    constexpr float frustumRadius = 160.f, nearPlane = 1.f, farPlane = 1000.f;
+    const glm::mat4 lightProjection = glm::ortho(
+        -frustumRadius, frustumRadius,
+        -frustumRadius, frustumRadius,
+        nearPlane, farPlane
+    );
+
+    const glm::vec3 lightOffset = camera->getPos();
+    const glm::mat4 lightView = glm::lookAt(
+        lightOffset + glm::normalize(skybox.lightDirection) * 200.f,
+        lightOffset,
+        glm::vec3(0.f, 1.f, 0.f)
+    );
+
+    lightVpMatrix = lightProjection * lightView;
+
+    glViewport(0, 0, depthMapSize.x, depthMapSize.y);
+    depthMap->enable();
+    glClear(GL_DEPTH_BUFFER_BIT);
+    depthShader->enable();
+
+    glDisable(GL_CULL_FACE);
+}
+
+void OpenGLRenderer::makeChunkShadowMap(const ChunkMeshContext &ctx) const {
+    const glm::mat4 modelMatrix = glm::translate(glm::identity<glm::mat4>(), ctx.modelTranslate);
+    depthShader->setUniform("MVP", lightVpMatrix * modelMatrix);
+
+    ctx.drawElements();
+}
+
+void OpenGLRenderer::finishRenderingShadowMap() const {
+    depthMap->disable();
+
+    glm::ivec2 windowSize;
+    glfwGetWindowSize(window, &windowSize.x, &windowSize.y);
+    glViewport(0, 0, windowSize.x, windowSize.y);
+
+    glEnable(GL_CULL_FACE);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // // debug
+    //
+    // debugDepthShader->enable();
+    // debugDepthShader->setUniform("depthMap", 0);
+    // glActiveTexture(GL_TEXTURE0);
+    // glBindTexture(GL_TEXTURE_2D, depthMap->getDepth());
+    //
+    // static GLuint quadVAO = 0;
+    // static GLuint quadVBO;
+    // if (quadVAO == 0)
+    // {
+    //     float quadVertices[] = {
+    //         // positions      // texture coords
+    //         0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
+    //         0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+    //         1.0f, 1.0f, 0.0f, 1.0f, 1.0f,
+    //         1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+    //     };
+    //     // setup plane VAO
+    //     glGenVertexArrays(1, &quadVAO);
+    //     glGenBuffers(1, &quadVBO);
+    //     glBindVertexArray(quadVAO);
+    //     glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    //     glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+    //     glEnableVertexAttribArray(0);
+    //     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    //     glEnableVertexAttribArray(1);
+    //     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    // }
+    // glBindVertexArray(quadVAO);
+    // glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    // glBindVertexArray(0);
+}
+
 void OpenGLRenderer::startRenderingChunks() const {
     cubeShader->enable();
     textureManager->bindBlockTextures(*cubeShader);
+
+    // todo - move to tex manager
+    glActiveTexture(GL_TEXTURE0 + textureManager->getNextFreeUnit());
+    glBindTexture(GL_TEXTURE_2D, depthMap->getDepth());
+    cubeShader->setUniform("shadowMap", textureManager->getNextFreeUnit());
 }
 
-void OpenGLRenderer::renderChunk(const std::shared_ptr<ChunkMeshContext> &ctx) const {
-    const glm::mat4 modelMatrix = glm::translate(glm::identity<glm::mat4>(), ctx->modelTranslate);
-    const glm::mat4 mvpMatrix = vpMatrix * modelMatrix;
-    cubeShader->setUniform("MVP", mvpMatrix);
+void OpenGLRenderer::renderChunk(const ChunkMeshContext &ctx) const {
+    const glm::mat4 modelMatrix = glm::translate(glm::identity<glm::mat4>(), ctx.modelTranslate);
+    cubeShader->setUniform("MVP", vpMatrix * modelMatrix);
+    cubeShader->setUniform("lightMVP", lightVpMatrix * modelMatrix); // todo - don't recalculate, just use the prev one
 
-    ctx->drawElements();
+    ctx.drawElements();
 }
 
 void OpenGLRenderer::renderOutlines() {
@@ -337,7 +424,7 @@ void OpenGLRenderer::renderHud() const {
 }
 
 void OpenGLRenderer::finishRendering() const {
-    glFlush();
+    //glFlush();
     glfwSwapBuffers(window);
     glfwPollEvents();
 }

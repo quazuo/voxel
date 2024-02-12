@@ -22,6 +22,8 @@ public:
 
     void setUniform(const std::string& name, GLint value);
 
+    void setUniform(const std::string& name, float value);
+
     void setUniform(const std::string& name, const std::vector<GLint>& value);
 
     void setUniform(const std::string& name, const glm::vec3& value);

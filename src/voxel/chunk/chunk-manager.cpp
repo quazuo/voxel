@@ -15,7 +15,6 @@ void ChunkManager::ChunkSlot::bind(std::shared_ptr<Chunk> c) {
         throw std::runtime_error("tried to call bind() while already bound");
 
     chunk = std::move(c);
-    chunk->bindMeshContext(mesh);
 }
 
 void ChunkManager::ChunkSlot::unbind() {
@@ -31,46 +30,48 @@ void ChunkManager::ChunkSlot::unbind() {
 
 ChunkManager::ChunkManager(std::shared_ptr<OpenGLRenderer> r, std::shared_ptr<WorldGen> wg)
     : renderer(std::move(r)), worldGen(std::move(wg)) {
+
     const size_t visibleAreaWidth = 2 * renderDistance + gracePeriodWidth + 1;
-    chunkSlots = std::vector<ChunkSlot>(SizeUtils::pow(visibleAreaWidth, 3));
-
-    auto slotIter = chunkSlots.begin();
-
-    for (int x = -renderDistance; x <= renderDistance; x++) {
-        for (int y = -renderDistance; y <= renderDistance; y++) {
-            for (int z = -renderDistance; z <= renderDistance; z++) {
-                const auto newChunk = std::make_shared<Chunk>(glm::ivec3(x, y, z));
-
-                loadableChunks.push_back(newChunk);
-
-                slotIter->bind(newChunk);
-                slotIter++;
-            }
-        }
+    for (size_t i = 0; i < SizeUtils::pow(visibleAreaWidth, 3); i++) {
+        chunkSlots.emplace_back(std::make_shared<ChunkSlot>());
     }
 
-    sortChunks(loadableChunks);
+    loadNearChunks();
+    sortChunkSlots(loadableChunks);
 }
 
 void ChunkManager::renderChunks() const {
+    renderer->startRenderingShadowMap();
+
+    for (const auto &slot: chunkSlots) {
+        if (!slot->isBound())
+            continue;
+        if (!slot->chunk->shouldRender())
+            continue;
+
+        slot->chunk->createMesh(*slot->mesh, renderer->getTextureManager());
+        renderer->makeChunkShadowMap(*slot->mesh);
+    }
+
+    renderer->finishRenderingShadowMap();
     renderer->startRenderingChunks();
 
-    for (const ChunkPtr &chunk: visibleChunks) {
-        chunk->render(*renderer);
+    for (const auto &slot: visibleChunks) {
+        renderer->renderChunk(*slot->mesh);
     }
 }
 
 void ChunkManager::renderChunkOutlines() const {
     for (auto &slot: chunkSlots) {
-        if (!slot.isBound())
+        if (!slot->isBound())
             continue;
 
         OpenGLRenderer::LineType lineType = OpenGLRenderer::CHUNK_OUTLINE;
-        if (std::ranges::find(visibleChunks, slot.chunk) == visibleChunks.end()) {
+        if (std::ranges::find(visibleChunks, slot) == visibleChunks.end()) {
             lineType = OpenGLRenderer::EMPTY_CHUNK_OUTLINE;
         }
 
-        renderer->addChunkOutline(slot.chunk->getPos() * Chunk::CHUNK_SIZE, lineType);
+        renderer->addChunkOutline(slot->chunk->getPos() * Chunk::CHUNK_SIZE, lineType);
     }
 }
 
@@ -117,23 +118,23 @@ void ChunkManager::updateChunkSlots() {
 }
 
 void ChunkManager::unloadFarChunks() {
-    for (auto &slot: chunkSlots) {
-        if (!slot.isBound()) continue;
+    for (const auto &slot: chunkSlots) {
+        if (!slot->isBound()) continue;
 
-        const glm::ivec3 chunkPosDist = VecUtils::abs(slot.chunk->getPos() - lastOccupiedChunkPos);
+        const glm::ivec3 chunkPosDist = VecUtils::abs(slot->chunk->getPos() - lastOccupiedChunkPos);
         const bool isOutsideRenderDistance = VecUtils::any<float>(
             chunkPosDist,
             [&](const float x) { return x > static_cast<float>(renderDistance + gracePeriodWidth); }
         );
 
         if (isOutsideRenderDistance) {
-            slot.unbind();
+            slot->unbind();
         }
     }
 
-    erase_if(loadableChunks, [&](const ChunkPtr &chunk) {
-        return VecUtils::any<float>(
-            VecUtils::abs(chunk->getPos() - lastOccupiedChunkPos),
+    erase_if(loadableChunks, [&](const ChunkSlotPtr &slot) {
+        return !slot->isBound() || VecUtils::any<float>(
+            VecUtils::abs(slot->chunk->getPos() - lastOccupiedChunkPos),
             [&](const float x) { return x > static_cast<float>(renderDistance + gracePeriodWidth); }
         );
     });
@@ -144,10 +145,10 @@ void ChunkManager::loadNearChunks() {
     CubeVector<uint8_t> loadedChunksMap{newChunkLoadCubeWidth}; // uint8_t instead of bool because vector<bool> sucks
 
     // check which positions, relative to ours, are occupied by loaded chunks
-    for (auto &slot: chunkSlots) {
-        if (!slot.isBound()) continue;
+    for (const auto &slot: chunkSlots) {
+        if (!slot->isBound()) continue;
 
-        const glm::ivec3 relPos = slot.chunk->getPos() - lastOccupiedChunkPos;
+        const glm::ivec3 relPos = slot->chunk->getPos() - lastOccupiedChunkPos;
 
         // relPos shifted so that it's non-negative
         const glm::ivec3 shiftedRelPos = relPos + renderDistance;
@@ -168,25 +169,25 @@ void ChunkManager::loadNearChunks() {
         // chunk at `newChunkPos` is unloaded but should be -- we'll load it
         const glm::ivec3 newChunkPos = lastOccupiedChunkPos + glm::ivec3(x, y, z) - renderDistance;
         const auto newChunk = std::make_shared<Chunk>(newChunkPos);
-        loadableChunks.push_back(newChunk);
 
         // find a free slot and bind it with the new chunk
-        while (slotIt->isBound()) {
+        while ((*slotIt)->isBound()) {
             slotIt++;
         }
 
-        slotIt->bind(newChunk);
+        (*slotIt)->bind(newChunk);
+        loadableChunks.push_back(*slotIt);
     });
 
-    sortChunks(loadableChunks);
+    sortChunkSlots(loadableChunks);
 }
 
-void ChunkManager::sortChunks(std::vector<ChunkPtr>& chunks) const {
+void ChunkManager::sortChunkSlots(std::vector<ChunkSlotPtr>& chunks) const {
     const glm::vec3 cameraPos = renderer->getCameraPos();
 
-    std::ranges::sort(chunks, [&](const ChunkPtr &a, const ChunkPtr &b) {
-        const auto aDist = glm::length2(cameraPos - static_cast<glm::vec3>(a->getPos() * Chunk::CHUNK_SIZE));
-        const auto bDist = glm::length2(cameraPos - static_cast<glm::vec3>(b->getPos() * Chunk::CHUNK_SIZE));
+    std::ranges::sort(chunks, [&](const ChunkSlotPtr &a, const ChunkSlotPtr &b) {
+        const auto aDist = glm::length2(cameraPos - static_cast<glm::vec3>(a->chunk->getPos() * Chunk::CHUNK_SIZE));
+        const auto bDist = glm::length2(cameraPos - static_cast<glm::vec3>(b->chunk->getPos() * Chunk::CHUNK_SIZE));
         return aDist < bDist;
     });
 }
@@ -194,18 +195,19 @@ void ChunkManager::sortChunks(std::vector<ChunkPtr>& chunks) const {
 void ChunkManager::updateLoadList() {
     int nChunksLoaded = 0;
 
-    for (const ChunkPtr &chunk: loadableChunks) {
+    for (const ChunkSlotPtr &slot: loadableChunks) {
         if (nChunksLoaded == chunksServePerFrame) {
             break;
         }
 
-        if (!chunk->isLoaded()) {
-            chunk->generate(*renderer, *worldGen); // todo - this should load from disk, not always generate.
+        if (!slot->chunk->isLoaded()) {
+            slot->chunk->generate(*worldGen); // todo - this should load from disk, not always generate.
+            slot->chunk->createMesh(*slot->mesh, renderer->getTextureManager());
             nChunksLoaded++;
         }
     }
 
-    erase_if(loadableChunks, [](const ChunkPtr &chunk) { return chunk->isLoaded(); });
+    erase_if(loadableChunks, [](const ChunkSlotPtr &slot) { return slot->chunk->isLoaded(); });
 }
 
 void ChunkManager::updateRenderList() {
@@ -213,20 +215,20 @@ void ChunkManager::updateRenderList() {
     visibleChunks.clear();
 
     for (auto &slot: chunkSlots) {
-        if (!slot.isBound())
+        if (!slot->isBound())
             continue;
-        if (!slot.chunk->shouldRender()) // early flags check, so we don't always have to do the frustum check...
+        if (!slot->chunk->shouldRender()) // early flags check, so we don't always have to do the frustum check...
             continue;
-        if (!renderer->isChunkInFrustum(*slot.chunk))
+        if (!renderer->isChunkInFrustum(*slot->chunk))
             continue;
 
-        visibleChunks.push_back(slot.chunk);
+        visibleChunks.push_back(slot);
     }
 }
 
 std::optional<glm::ivec3> ChunkManager::getTargetedBlock(const std::vector<glm::ivec3> &lookedAtBlocks) const {
     for (auto &block: lookedAtBlocks) {
-        const ChunkPtr chunk = getOwningChunk(block);
+        const std::shared_ptr<Chunk> chunk = getOwningChunk(block);
         if (!chunk) continue;
 
         const glm::ivec3 relativeBlockPos = block - chunk->getPos() * Chunk::CHUNK_SIZE;
@@ -241,7 +243,7 @@ std::optional<glm::ivec3> ChunkManager::getTargetedBlock(const std::vector<glm::
 }
 
 void ChunkManager::updateBlock(const glm::ivec3 &block, const EBlockType type) const {
-    const ChunkPtr chunk = getOwningChunk(block);
+    const std::shared_ptr<Chunk> chunk = getOwningChunk(block);
     if (!chunk) return;
 
     const glm::ivec3 relativeBlockPos = block - chunk->getPos() * Chunk::CHUNK_SIZE;
@@ -249,23 +251,44 @@ void ChunkManager::updateBlock(const glm::ivec3 &block, const EBlockType type) c
 }
 
 void ChunkManager::setRenderDistance(const int newRenderDistance) {
-    renderDistance = newRenderDistance;
-    const size_t visibleAreaWidth = 2 * renderDistance + gracePeriodWidth + 1;
-    chunkSlots = std::vector<ChunkSlot>(SizeUtils::pow(visibleAreaWidth, 3));
-    loadNearChunks();
+    const size_t visibleAreaWidth = 2 * newRenderDistance + gracePeriodWidth + 1;
+    const size_t newSlotsCount = SizeUtils::pow(visibleAreaWidth, 3);
 
-    // todo - copy already loaded closest chunks into this new list
+    if (newRenderDistance > renderDistance) {
+        const size_t slotsToAdd = newSlotsCount - chunkSlots.size();
+
+        for (size_t i = 0; i < slotsToAdd; i++) {
+            chunkSlots.emplace_back(std::make_shared<ChunkSlot>());
+        }
+
+    } else {
+        sortChunkSlots(chunkSlots);
+        chunkSlots.resize(newSlotsCount);
+
+        chunkSlots.clear();
+        loadableChunks.clear();
+        visibleChunks.clear();
+
+        for (size_t i = 0; i < newSlotsCount; i++) {
+            chunkSlots.emplace_back(std::make_shared<ChunkSlot>());
+        }
+
+        // todo - copy already loaded closest chunks into this new list
+    }
+
+    loadNearChunks();
+    renderDistance = newRenderDistance;
 }
 
-ChunkManager::ChunkPtr ChunkManager::getOwningChunk(const glm::ivec3 &block) const {
+std::shared_ptr<Chunk> ChunkManager::getOwningChunk(const glm::ivec3 &block) const {
     const glm::ivec3 owningChunkPos =
             VecUtils::floor(static_cast<glm::vec3>(block) * (1.0f / Chunk::CHUNK_SIZE));
 
-    const auto it = std::ranges::find_if(chunkSlots, [&](const ChunkSlot &slot) {
-        return slot.isBound() && slot.chunk->isLoaded() && slot.chunk->getPos() == owningChunkPos;
+    const auto it = std::ranges::find_if(chunkSlots, [&](const ChunkSlotPtr &slot) {
+        return slot->isBound() && slot->chunk->isLoaded() && slot->chunk->getPos() == owningChunkPos;
     });
 
     return it != chunkSlots.end()
-               ? it->chunk
+               ? (*it)->chunk
                : nullptr;
 }

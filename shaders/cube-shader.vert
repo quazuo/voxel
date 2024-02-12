@@ -6,13 +6,11 @@ layout(location = 1) in int textureID;
 out vec2 UV;
 flat out int texID;
 out vec3 Normal_modelspace;
+out vec4 vertexPosition_lightSpace;
 
-uniform vec3 LightDirection_worldspace;
 uniform mat4 MVP;
-
-float rand(vec3 co) {
-    return fract(sin(dot(co.xyz, vec3(12.9898, 78.233, 54.321))) * 43758.5453);
-}
+uniform mat4 lightMVP;
+uniform vec3 LightDirection_worldspace;
 
 vec3 unpackVertexPosition(uint packedVertex) {
     return vec3(
@@ -46,16 +44,13 @@ void main() {
     vec3 vertexNormal_modelspace = unpackVertexNormal(packedVertex);
     vec2 vertexUV = unpackVertexUV(packedVertex);
 
-    // Output position of the vertex, in clip space: MVP * position
     gl_Position = MVP * vec4(vertexPosition_modelspace, 1);
 
-    // Normal of the the vertex, in camera space
-    // Only correct if ModelMatrix does not scale the model! Use its inverse transpose if not.
+    vertexPosition_lightSpace = lightMVP * vec4(vertexPosition_modelspace, 1.0);
+
     Normal_modelspace = vertexNormal_modelspace;
 
-    // UV of the vertex. No special space for this one.
     UV = vertexUV;
 
-    // ID of the texture used by this vertex. Always equal for all vertices on the same face.
     texID = textureID;
 }

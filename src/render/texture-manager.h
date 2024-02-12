@@ -11,7 +11,7 @@
 
 /**
  * Class managing all the textures used by the renderer.
- * This currently includes only textures for blocks as well as for text.
+ * This currently includes only textures for blocks and the skybox.
  */
 class TextureManager {
     std::unordered_map<std::string, GLuint> loadedTextures;
@@ -65,6 +65,9 @@ public:
 
     [[nodiscard]]
     int getBlockSamplerID(EBlockType blockType, EBlockFace face) const;
+
+    [[nodiscard]]
+    int getNextFreeUnit() const { return nextFreeUnit; }
 
 private:
     /**

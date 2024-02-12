@@ -1,22 +1,19 @@
 #include "chunk.h"
 
-#include <iostream>
-
 #include "src/render/renderer.h"
 #include "src/render/mesh-context.h"
 #include "src/voxel/world-gen.h"
 
-void Chunk::generate(const OpenGLRenderer &renderer, WorldGen &worldGen) {
+void Chunk::generate(WorldGen &worldGen) {
     worldGen.fillChunk(pos, blocks);
 
     blocks.forEach([&](const int x, const int y, const int z, Block &b) {
-        (void)(x + y + z); // warning silencer
+        (void) (x + y + z); // warning silencer
         if (!b.isNone()) {
             activeBlockCount++;
         }
     });
 
-    createMesh(renderer.getTextureManager());
     _isLoaded = true;
 }
 
@@ -44,67 +41,58 @@ bool Chunk::shouldRender() const {
     return activeBlockCount != 0 && _isLoaded;
 }
 
-void Chunk::render(const OpenGLRenderer &renderer) {
-    if (_isDirty) {
-        createMesh(renderer.getTextureManager());
-    }
+void Chunk::createMesh(ChunkMeshContext &meshContext, const TextureManager &textureManager) {
+    if (!_isDirty) return;
 
-    renderer.renderChunk(meshContext);
-}
-
-void Chunk::createMesh(const TextureManager &textureManager) {
-    if (!meshContext) {
-        throw std::runtime_error("tried to call createMesh() with no bound meshContext");
-    }
-
-    meshContext->modelTranslate = pos * CHUNK_SIZE;
+    meshContext.modelTranslate = pos * CHUNK_SIZE;
 
     // mesh context is already empty so we can just start adding cubes
     blocks.forEach([&](const int x, const int y, const int z, const Block &b) {
         if (b.isNone()) return;
-        createCube(x, y, z, textureManager);
+        createCube(x, y, z, meshContext, textureManager);
     });
 
-    meshContext->mergeQuads();
-    meshContext->triangulateQuads();
-    meshContext->makeIndexed();
-    meshContext->writeToBuffers();
-    meshContext->clear();
+    meshContext.mergeQuads();
+    meshContext.triangulateQuads();
+    meshContext.makeIndexed();
+    meshContext.writeToBuffers();
+    meshContext.clear();
     _isDirty = false;
     isMesh = true;
 }
 
-void Chunk::createCube(const int x, const int y, const int z, const TextureManager &textureManager) {
+void Chunk::createCube(const int x, const int y, const int z, ChunkMeshContext &meshContext,
+                       const TextureManager &textureManager) {
     const glm::ivec3 cubePos = {x, y, z};
     const EBlockType blockType = blocks[x][y][z].blockType;
 
     if (z == CHUNK_SIZE - 1 || blocks[x][y][z + 1].isNone()) {
-        createFace(cubePos, Front, blockType, textureManager);
+        createFace(cubePos, Front, blockType, meshContext, textureManager);
     }
 
     if (z == 0 || blocks[x][y][z - 1].isNone()) {
-        createFace(cubePos, Back, blockType, textureManager);
+        createFace(cubePos, Back, blockType, meshContext, textureManager);
     }
 
     if (x == CHUNK_SIZE - 1 || blocks[x + 1][y][z].isNone()) {
-        createFace(cubePos, Right, blockType, textureManager);
+        createFace(cubePos, Right, blockType, meshContext, textureManager);
     }
 
     if (x == 0 || blocks[x - 1][y][z].isNone()) {
-        createFace(cubePos, Left, blockType, textureManager);
+        createFace(cubePos, Left, blockType, meshContext, textureManager);
     }
 
     if (y == CHUNK_SIZE - 1 || blocks[x][y + 1][z].isNone()) {
-        createFace(cubePos, Top, blockType, textureManager);
+        createFace(cubePos, Top, blockType, meshContext, textureManager);
     }
 
     if (y == 0 || blocks[x][y - 1][z].isNone()) {
-        createFace(cubePos, Bottom, blockType, textureManager);
+        createFace(cubePos, Bottom, blockType, meshContext, textureManager);
     }
 }
 
 void Chunk::createFace(const glm::ivec3 &cubePos, const EBlockFace face, const EBlockType blockType,
-                       const TextureManager &textureManager) const {
+                       ChunkMeshContext& meshContext, const TextureManager &textureManager) const {
     const auto [bottomLeft, topRight] = Block::getFaceCorners(face);
     const glm::ivec3 minPos = cubePos + bottomLeft;
     const glm::ivec3 maxPos = cubePos + topRight;
@@ -114,5 +102,5 @@ void Chunk::createFace(const glm::ivec3 &cubePos, const EBlockFace face, const E
 
     const Vertex min{minPos, {0, 1}, normal, samplerID};
     const Vertex max{maxPos, {1, 0}, normal, samplerID};
-    meshContext->addQuad(min, max);
+    meshContext.addQuad(min, max);
 }

@@ -7,8 +7,8 @@
 #include <optional>
 
 #include "GL/glew.h"
-#include "src/voxel/chunk/chunk.h"
 #include "gl/gl-vao.h"
+#include "src/voxel/chunk/chunk.h"
 
 /**
  * Structure holding all data describing a vertex.

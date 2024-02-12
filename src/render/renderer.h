@@ -33,7 +33,7 @@ private:
 
     std::unique_ptr<Camera> camera;
 
-    std::unique_ptr<GLShader> cubeShader, skyboxShader, lineShader;
+    std::unique_ptr<GLShader> cubeShader, skyboxShader, lineShader, depthShader, debugDepthShader{}; // todo - remove!
 
     struct Skybox {
         std::unique_ptr<BasicVertexArray> vao;
@@ -49,9 +49,12 @@ private:
     };
     std::unordered_map<LineType, std::vector<glm::vec3>> tempLineVertexGroups;
 
+    std::unique_ptr<GLFrameBuffer> depthMap;
+    static constexpr glm::ivec2 depthMapSize = {4096, 4096};
+
     // cached view and projection matrices and their product for the current render tick.
     // model matrix can't be cached because it's different for each chunk
-    glm::mat4 viewMatrix{}, projectionMatrix{}, vpMatrix{};
+    glm::mat4 viewMatrix{}, projectionMatrix{}, vpMatrix{}, lightVpMatrix{};
 
 public:
     OpenGLRenderer(int windowWidth, int windowHeight);
@@ -98,9 +101,15 @@ public:
 
     void renderSkybox() const;
 
+    void startRenderingShadowMap();
+
+    void makeChunkShadowMap(const ChunkMeshContext& ctx) const;
+
+    void finishRenderingShadowMap() const;
+
     void startRenderingChunks() const;
 
-    void renderChunk(const std::shared_ptr<ChunkMeshContext>& ctx) const;
+    void renderChunk(const ChunkMeshContext& ctx) const;
 
     /**
      * Adds a given chunk's outline to the list of lines that will be rendered later.
@@ -119,7 +128,6 @@ public:
 
     /**
      * Renders the HUD, containing mostly text.
-     * TODO: Will be later mostly replaced by the addition of ImGUI.
      */
     void renderHud() const;
 
