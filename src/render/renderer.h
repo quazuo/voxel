@@ -52,6 +52,13 @@ private:
     std::unique_ptr<GLFrameBuffer> depthMap;
     static constexpr glm::ivec2 depthMapSize = {4096, 4096};
 
+    struct {
+        bool doDrawShadows = true;
+        float frustumRadius = 160.f, nearPlane = 1.f, farPlane = 1000.f;
+        float lightDistance = 200.f;
+    } shadowConfig;
+    float biasMin = 0.0005, biasFactor = 0.0007;
+
     // cached view and projection matrices and their product for the current render tick.
     // model matrix can't be cached because it's different for each chunk
     glm::mat4 viewMatrix{}, projectionMatrix{}, vpMatrix{}, lightVpMatrix{};
@@ -90,6 +97,9 @@ public:
     [[nodiscard]]
     bool isChunkInFrustum(const Chunk& chunk) const { return camera->isChunkInFrustum(chunk.getPos()); }
 
+    [[nodiscard]]
+    bool shouldDrawShadows() const { return shadowConfig.doDrawShadows; }
+
     /**
      * Locks or unlocks the cursor. When the cursor is locked, it's confined to the center
      * of the screen and camera rotates according to its movement. When it's unlocked, it's
@@ -103,7 +113,7 @@ public:
 
     void startRenderingShadowMap();
 
-    void makeChunkShadowMap(const ChunkMeshContext& ctx) const;
+    void makeChunkShadowMap(ChunkMeshContext &ctx) const;
 
     void finishRenderingShadowMap() const;
 

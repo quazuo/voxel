@@ -46,6 +46,9 @@ public:
     [[nodiscard]]
     bool shouldRender() const;
 
+    [[nodiscard]]
+    bool isDirty() const { return _isDirty; }
+
     void markDirty() { _isDirty = true; }
 
     void updateBlock(const glm::ivec3 &block, EBlockType type);

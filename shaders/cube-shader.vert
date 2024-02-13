@@ -41,16 +41,12 @@ vec2 unpackVertexUV(uint packedVertex) {
 
 void main() {
     vec3 vertexPosition_modelspace = unpackVertexPosition(packedVertex);
-    vec3 vertexNormal_modelspace = unpackVertexNormal(packedVertex);
-    vec2 vertexUV = unpackVertexUV(packedVertex);
+    Normal_modelspace = unpackVertexNormal(packedVertex);
+    UV = unpackVertexUV(packedVertex);
 
     gl_Position = MVP * vec4(vertexPosition_modelspace, 1);
 
     vertexPosition_lightSpace = lightMVP * vec4(vertexPosition_modelspace, 1.0);
-
-    Normal_modelspace = vertexNormal_modelspace;
-
-    UV = vertexUV;
 
     texID = textureID;
 }

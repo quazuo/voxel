@@ -187,6 +187,7 @@ void OpenGLRenderer::startRendering() {
 
     cubeShader->enable();
     cubeShader->setUniform("LightDirection_worldspace", skybox.lightDirection);
+    cubeShader->setUniform("doDrawShadows", shadowConfig.doDrawShadows);
 
     for (auto &vertices: tempLineVertexGroups | std::views::values) {
         vertices.clear();
@@ -211,6 +212,13 @@ void OpenGLRenderer::renderGuiSection() {
         ImGui::SameLine();
         ImGui::DragFloat("Z", &skybox.lightDirection.z, 0.01f, -1.0f, 1.0f, "%.2f");
         ImGui::PopItemWidth();
+
+        ImGui::Text("Shadows: ");
+        ImGui::Checkbox("draw?", &shadowConfig.doDrawShadows);
+        ImGui::DragFloat("frustum radius", &shadowConfig.frustumRadius, 1.f, 0.f, 1000.f, "%.0f");
+        ImGui::DragFloat("near plane", &shadowConfig.nearPlane, 0.1f, 0.f, 1000.f, "%.1f");
+        ImGui::DragFloat("far plane", &shadowConfig.farPlane, 1.f, 0.f, 1000.f, "%.0f");
+        ImGui::DragFloat("light distance", &shadowConfig.lightDistance, 1.f, 0.f, 1000.f, "%.0f");
     }
 
     camera->renderGuiSection();
@@ -233,16 +241,18 @@ void OpenGLRenderer::renderSkybox() const {
 
 void OpenGLRenderer::startRenderingShadowMap() {
     // todo - make these dependent on the render distance
-    constexpr float frustumRadius = 160.f, nearPlane = 1.f, farPlane = 1000.f;
+    const auto [doDrawShadows, frustumRadius, nearPlane, farPlane, lightDistance] = shadowConfig;
+
     const glm::mat4 lightProjection = glm::ortho(
         -frustumRadius, frustumRadius,
         -frustumRadius, frustumRadius,
         nearPlane, farPlane
     );
 
-    const glm::vec3 lightOffset = camera->getPos();
+    const glm::vec3 lightOffset =
+        VecUtils::floor(camera->getPos() * (1.0f / Chunk::CHUNK_SIZE)) * static_cast<float>(Chunk::CHUNK_SIZE);
     const glm::mat4 lightView = glm::lookAt(
-        lightOffset + glm::normalize(skybox.lightDirection) * 200.f,
+        lightOffset + glm::normalize(skybox.lightDirection) * lightDistance,
         lightOffset,
         glm::vec3(0.f, 1.f, 0.f)
     );
@@ -254,13 +264,16 @@ void OpenGLRenderer::startRenderingShadowMap() {
     glClear(GL_DEPTH_BUFFER_BIT);
     depthShader->enable();
 
-    glDisable(GL_CULL_FACE);
+    //glCullFace(GL_FRONT);
+    //glDisable(GL_CULL_FACE);
 }
 
-void OpenGLRenderer::makeChunkShadowMap(const ChunkMeshContext &ctx) const {
+void OpenGLRenderer::makeChunkShadowMap(ChunkMeshContext &ctx) const {
     const glm::mat4 modelMatrix = glm::translate(glm::identity<glm::mat4>(), ctx.modelTranslate);
-    depthShader->setUniform("MVP", lightVpMatrix * modelMatrix);
+    ctx.cachedLightMVP = lightVpMatrix * modelMatrix;
+    depthShader->setUniform("MVP", ctx.cachedLightMVP);
 
+    // todo idea: redraw only if something changed!
     ctx.drawElements();
 }
 
@@ -271,41 +284,9 @@ void OpenGLRenderer::finishRenderingShadowMap() const {
     glfwGetWindowSize(window, &windowSize.x, &windowSize.y);
     glViewport(0, 0, windowSize.x, windowSize.y);
 
-    glEnable(GL_CULL_FACE);
+    //glCullFace(GL_BACK);
+    //glEnable(GL_CULL_FACE);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    // // debug
-    //
-    // debugDepthShader->enable();
-    // debugDepthShader->setUniform("depthMap", 0);
-    // glActiveTexture(GL_TEXTURE0);
-    // glBindTexture(GL_TEXTURE_2D, depthMap->getDepth());
-    //
-    // static GLuint quadVAO = 0;
-    // static GLuint quadVBO;
-    // if (quadVAO == 0)
-    // {
-    //     float quadVertices[] = {
-    //         // positions      // texture coords
-    //         0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-    //         0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-    //         1.0f, 1.0f, 0.0f, 1.0f, 1.0f,
-    //         1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-    //     };
-    //     // setup plane VAO
-    //     glGenVertexArrays(1, &quadVAO);
-    //     glGenBuffers(1, &quadVBO);
-    //     glBindVertexArray(quadVAO);
-    //     glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-    //     glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
-    //     glEnableVertexAttribArray(0);
-    //     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-    //     glEnableVertexAttribArray(1);
-    //     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-    // }
-    // glBindVertexArray(quadVAO);
-    // glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-    // glBindVertexArray(0);
 }
 
 void OpenGLRenderer::startRenderingChunks() const {
@@ -321,7 +302,10 @@ void OpenGLRenderer::startRenderingChunks() const {
 void OpenGLRenderer::renderChunk(const ChunkMeshContext &ctx) const {
     const glm::mat4 modelMatrix = glm::translate(glm::identity<glm::mat4>(), ctx.modelTranslate);
     cubeShader->setUniform("MVP", vpMatrix * modelMatrix);
-    cubeShader->setUniform("lightMVP", lightVpMatrix * modelMatrix); // todo - don't recalculate, just use the prev one
+
+    if (shadowConfig.doDrawShadows) {
+        cubeShader->setUniform("lightMVP", ctx.cachedLightMVP);
+    }
 
     ctx.drawElements();
 }

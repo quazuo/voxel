@@ -41,22 +41,32 @@ ChunkManager::ChunkManager(std::shared_ptr<OpenGLRenderer> r, std::shared_ptr<Wo
 }
 
 void ChunkManager::renderChunks() const {
-    renderer->startRenderingShadowMap();
+    if (renderer->shouldDrawShadows()) {
+        renderer->startRenderingShadowMap();
 
-    for (const auto &slot: chunkSlots) {
-        if (!slot->isBound())
-            continue;
-        if (!slot->chunk->shouldRender())
-            continue;
+        for (const auto &slot: chunkSlots) {
+            if (!slot->isBound())
+                continue;
+            if (!slot->chunk->shouldRender())
+                continue;
 
-        slot->chunk->createMesh(*slot->mesh, renderer->getTextureManager());
-        renderer->makeChunkShadowMap(*slot->mesh);
+            if (slot->chunk->isDirty()) {
+                slot->chunk->createMesh(*slot->mesh, renderer->getTextureManager());
+            }
+
+            renderer->makeChunkShadowMap(*slot->mesh);
+        }
+
+        renderer->finishRenderingShadowMap();
     }
 
-    renderer->finishRenderingShadowMap();
     renderer->startRenderingChunks();
 
     for (const auto &slot: visibleChunks) {
+        if (slot->chunk->isDirty()) {
+            slot->chunk->createMesh(*slot->mesh, renderer->getTextureManager());
+        }
+
         renderer->renderChunk(*slot->mesh);
     }
 }
@@ -251,6 +261,8 @@ void ChunkManager::updateBlock(const glm::ivec3 &block, const EBlockType type) c
 }
 
 void ChunkManager::setRenderDistance(const int newRenderDistance) {
+    if (renderDistance == newRenderDistance) return;
+
     const size_t visibleAreaWidth = 2 * newRenderDistance + gracePeriodWidth + 1;
     const size_t newSlotsCount = SizeUtils::pow(visibleAreaWidth, 3);
 
@@ -262,9 +274,6 @@ void ChunkManager::setRenderDistance(const int newRenderDistance) {
         }
 
     } else {
-        sortChunkSlots(chunkSlots);
-        chunkSlots.resize(newSlotsCount);
-
         chunkSlots.clear();
         loadableChunks.clear();
         visibleChunks.clear();
@@ -273,11 +282,13 @@ void ChunkManager::setRenderDistance(const int newRenderDistance) {
             chunkSlots.emplace_back(std::make_shared<ChunkSlot>());
         }
 
-        // todo - copy already loaded closest chunks into this new list
+        // todo - copy already loaded closest chunks into this new list instead of wiping everything
+        // sortChunkSlots(chunkSlots);
+        // chunkSlots.resize(newSlotsCount);
     }
 
-    loadNearChunks();
     renderDistance = newRenderDistance;
+    loadNearChunks();
 }
 
 std::shared_ptr<Chunk> ChunkManager::getOwningChunk(const glm::ivec3 &block) const {

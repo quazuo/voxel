@@ -6,6 +6,7 @@
 #include <map>
 #include <optional>
 
+#include "glm/glm.hpp"
 #include "GL/glew.h"
 #include "gl/gl-vao.h"
 #include "src/voxel/chunk/chunk.h"
@@ -58,6 +59,7 @@ class ChunkMeshContext {
 
 public:
     glm::vec3 modelTranslate{};
+    glm::mat4 cachedLightMVP{};
 
     bool isFreshlyUpdated = false;
 
