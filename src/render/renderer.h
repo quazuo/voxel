@@ -11,6 +11,7 @@
 #include "camera.h"
 #include "mesh-context.h"
 #include "gl/gl-shader.h"
+#include "gl/gl-vao.h"
 
 /**
  * The main renderer of the program. There should only be one instance of this class, as it
@@ -35,6 +36,8 @@ private:
 
     std::unique_ptr<GLShader> cubeShader, skyboxShader, lineShader, depthShader, debugDepthShader{}; // todo - remove!
 
+    std::unique_ptr<ChunksVertexArray> chunksVao;
+
     struct Skybox {
         std::unique_ptr<BasicVertexArray> vao;
         glm::vec3 lightDirection = { 0.2, 0.3, 0.4 };
@@ -53,7 +56,7 @@ private:
     static constexpr glm::ivec2 depthMapSize = {4096, 4096};
 
     struct {
-        bool doDrawShadows = true;
+        bool doDrawShadows = false;
         float frustumRadius = 160.f, nearPlane = 1.f, farPlane = 1000.f;
         float lightDistance = 200.f;
     } shadowConfig;
@@ -107,6 +110,10 @@ public:
      */
     void setIsCursorLocked(bool b) const;
 
+    void writeChunkMesh(const Chunk::ChunkID id, const IndexedMeshData& mesh) const { chunksVao->writeChunk(id, mesh); }
+
+    void freeChunkMesh(const Chunk::ChunkID id) const { chunksVao->eraseChunk(id); }
+
     void renderGuiSection();
 
     void renderSkybox() const;
@@ -117,9 +124,7 @@ public:
 
     void finishRenderingShadowMap() const;
 
-    void startRenderingChunks() const;
-
-    void renderChunk(const ChunkMeshContext& ctx) const;
+    void renderChunks(const std::vector<Chunk::ChunkID>& targets) const;
 
     /**
      * Adds a given chunk's outline to the list of lines that will be rendered later.

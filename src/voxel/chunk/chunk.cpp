@@ -55,8 +55,6 @@ void Chunk::createMesh(ChunkMeshContext &meshContext, const TextureManager &text
     meshContext.mergeQuads();
     meshContext.triangulateQuads();
     meshContext.makeIndexed();
-    meshContext.writeToBuffers();
-    meshContext.clear();
     _isDirty = false;
     isMesh = true;
 }
@@ -94,8 +92,8 @@ void Chunk::createCube(const int x, const int y, const int z, ChunkMeshContext &
 void Chunk::createFace(const glm::ivec3 &cubePos, const EBlockFace face, const EBlockType blockType,
                        ChunkMeshContext& meshContext, const TextureManager &textureManager) const {
     const auto [bottomLeft, topRight] = Block::getFaceCorners(face);
-    const glm::ivec3 minPos = cubePos + bottomLeft;
-    const glm::ivec3 maxPos = cubePos + topRight;
+    const glm::ivec3 minPos = CHUNK_SIZE * pos + cubePos + bottomLeft;
+    const glm::ivec3 maxPos = CHUNK_SIZE * pos + cubePos + topRight;
 
     const glm::vec3 normal = getNormalFromFace(face);
     const int samplerID = textureManager.getBlockSamplerID(blockType, face);

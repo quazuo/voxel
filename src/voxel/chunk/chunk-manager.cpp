@@ -10,7 +10,7 @@
 #include "src/render/gui.h"
 #include "src/utils/size.h"
 
-void ChunkManager::ChunkSlot::bind(std::shared_ptr<Chunk> c) {
+void ChunkManager::ChunkSlot::bind(std::unique_ptr<Chunk>&& c) {
     if (isBound())
         throw std::runtime_error("tried to call bind() while already bound");
 
@@ -41,34 +41,36 @@ ChunkManager::ChunkManager(std::shared_ptr<OpenGLRenderer> r, std::shared_ptr<Wo
 }
 
 void ChunkManager::renderChunks() const {
-    if (renderer->shouldDrawShadows()) {
-        renderer->startRenderingShadowMap();
+    // if (renderer->shouldDrawShadows()) {
+    //     renderer->startRenderingShadowMap();
+    //
+    //     for (const auto &slot: chunkSlots) {
+    //         if (!slot->isBound())
+    //             continue;
+    //         if (!slot->chunk->shouldRender())
+    //             continue;
+    //
+    //         if (slot->chunk->isDirty()) {
+    //             makeChunkMesh(*slot);
+    //         }
+    //
+    //         renderer->makeChunkShadowMap(*slot->mesh);
+    //     }
+    //
+    //     renderer->finishRenderingShadowMap();
+    // }
 
-        for (const auto &slot: chunkSlots) {
-            if (!slot->isBound())
-                continue;
-            if (!slot->chunk->shouldRender())
-                continue;
-
-            if (slot->chunk->isDirty()) {
-                slot->chunk->createMesh(*slot->mesh, renderer->getTextureManager());
-            }
-
-            renderer->makeChunkShadowMap(*slot->mesh);
-        }
-
-        renderer->finishRenderingShadowMap();
-    }
-
-    renderer->startRenderingChunks();
+    std::vector<Chunk::ChunkID> targets;
 
     for (const auto &slot: visibleChunks) {
         if (slot->chunk->isDirty()) {
-            slot->chunk->createMesh(*slot->mesh, renderer->getTextureManager());
+            makeChunkMesh(*slot);
         }
 
-        renderer->renderChunk(*slot->mesh);
+        targets.push_back(slot->chunk->getID());
     }
+
+    renderer->renderChunks(targets);
 }
 
 void ChunkManager::renderChunkOutlines() const {
@@ -79,9 +81,9 @@ void ChunkManager::renderChunkOutlines() const {
         OpenGLRenderer::LineType lineType = OpenGLRenderer::CHUNK_OUTLINE;
         if (std::ranges::find(visibleChunks, slot) == visibleChunks.end()) {
             lineType = OpenGLRenderer::EMPTY_CHUNK_OUTLINE;
+        } else {
+            renderer->addChunkOutline(slot->chunk->getPos() * Chunk::CHUNK_SIZE, lineType);
         }
-
-        renderer->addChunkOutline(slot->chunk->getPos() * Chunk::CHUNK_SIZE, lineType);
     }
 }
 
@@ -138,6 +140,7 @@ void ChunkManager::unloadFarChunks() {
         );
 
         if (isOutsideRenderDistance) {
+            renderer->freeChunkMesh(slot->chunk->getID());
             slot->unbind();
         }
     }
@@ -178,14 +181,13 @@ void ChunkManager::loadNearChunks() {
 
         // chunk at `newChunkPos` is unloaded but should be -- we'll load it
         const glm::ivec3 newChunkPos = lastOccupiedChunkPos + glm::ivec3(x, y, z) - renderDistance;
-        const auto newChunk = std::make_shared<Chunk>(newChunkPos);
 
         // find a free slot and bind it with the new chunk
         while ((*slotIt)->isBound()) {
             slotIt++;
         }
 
-        (*slotIt)->bind(newChunk);
+        (*slotIt)->bind(std::make_unique<Chunk>(nextFreeID++, newChunkPos));
         loadableChunks.push_back(*slotIt);
     });
 
@@ -212,7 +214,7 @@ void ChunkManager::updateLoadList() {
 
         if (!slot->chunk->isLoaded()) {
             slot->chunk->generate(*worldGen); // todo - this should load from disk, not always generate.
-            slot->chunk->createMesh(*slot->mesh, renderer->getTextureManager());
+            makeChunkMesh(*slot);
             nChunksLoaded++;
         }
     }
@@ -238,7 +240,7 @@ void ChunkManager::updateRenderList() {
 
 std::optional<glm::ivec3> ChunkManager::getTargetedBlock(const std::vector<glm::ivec3> &lookedAtBlocks) const {
     for (auto &block: lookedAtBlocks) {
-        const std::shared_ptr<Chunk> chunk = getOwningChunk(block);
+        const Chunk* chunk = getOwningChunk(block);
         if (!chunk) continue;
 
         const glm::ivec3 relativeBlockPos = block - chunk->getPos() * Chunk::CHUNK_SIZE;
@@ -253,7 +255,7 @@ std::optional<glm::ivec3> ChunkManager::getTargetedBlock(const std::vector<glm::
 }
 
 void ChunkManager::updateBlock(const glm::ivec3 &block, const EBlockType type) const {
-    const std::shared_ptr<Chunk> chunk = getOwningChunk(block);
+    Chunk* chunk = getOwningChunk(block);
     if (!chunk) return;
 
     const glm::ivec3 relativeBlockPos = block - chunk->getPos() * Chunk::CHUNK_SIZE;
@@ -284,22 +286,30 @@ void ChunkManager::setRenderDistance(const int newRenderDistance) {
 
         // todo - copy already loaded closest chunks into this new list instead of wiping everything
         // sortChunkSlots(chunkSlots);
-        // chunkSlots.resize(newSlotsCount);
+        // chunkSlots.resize(newSlotsCount);`
     }
 
     renderDistance = newRenderDistance;
     loadNearChunks();
 }
 
-std::shared_ptr<Chunk> ChunkManager::getOwningChunk(const glm::ivec3 &block) const {
-    const glm::ivec3 owningChunkPos =
-            VecUtils::floor(static_cast<glm::vec3>(block) * (1.0f / Chunk::CHUNK_SIZE));
+Chunk* ChunkManager::getOwningChunk(const glm::ivec3 &block) const {
+    const glm::ivec3 owningChunkPos = VecUtils::floor(static_cast<glm::vec3>(block) * (1.0f / Chunk::CHUNK_SIZE));
 
     const auto it = std::ranges::find_if(chunkSlots, [&](const ChunkSlotPtr &slot) {
         return slot->isBound() && slot->chunk->isLoaded() && slot->chunk->getPos() == owningChunkPos;
     });
 
-    return it != chunkSlots.end()
-               ? (*it)->chunk
-               : nullptr;
+    if (it == chunkSlots.end()) {
+        return nullptr;
+    }
+
+    return (*it)->chunk.get();
+}
+
+void ChunkManager::makeChunkMesh(const ChunkSlot &slot) const {
+    ChunkMeshContext& meshCtx = *slot.mesh;
+    slot.chunk->createMesh(meshCtx, renderer->getTextureManager());
+    renderer->writeChunkMesh(slot.chunk->getID(), meshCtx.getIndexedData());
+    meshCtx.clear();
 }

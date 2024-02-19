@@ -124,6 +124,9 @@ OpenGLRenderer::OpenGLRenderer(const int windowWidth, const int windowHeight) {
 
     loadTextures();
 
+    // init VAOs
+    chunksVao = std::make_unique<ChunksVertexArray>();
+
     skybox.vao = std::make_unique<BasicVertexArray>();
     skybox.vao->writeToBuffers(skyboxVerticesList);
 
@@ -274,7 +277,7 @@ void OpenGLRenderer::makeChunkShadowMap(ChunkMeshContext &ctx) const {
     depthShader->setUniform("MVP", ctx.cachedLightMVP);
 
     // todo idea: redraw only if something changed!
-    ctx.drawElements();
+    // ctx.drawElements();
 }
 
 void OpenGLRenderer::finishRenderingShadowMap() const {
@@ -289,25 +292,19 @@ void OpenGLRenderer::finishRenderingShadowMap() const {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-void OpenGLRenderer::startRenderingChunks() const {
+void OpenGLRenderer::renderChunks(const std::vector<Chunk::ChunkID>& targets) const {
     cubeShader->enable();
     textureManager->bindBlockTextures(*cubeShader);
 
-    // todo - move to tex manager
-    glActiveTexture(GL_TEXTURE0 + textureManager->getNextFreeUnit());
-    glBindTexture(GL_TEXTURE_2D, depthMap->getDepth());
-    cubeShader->setUniform("shadowMap", textureManager->getNextFreeUnit());
-}
+    // // todo - move to tex manager
+    // glActiveTexture(GL_TEXTURE0 + textureManager->getNextFreeUnit());
+    // glBindTexture(GL_TEXTURE_2D, depthMap->getDepth());
+    // cubeShader->setUniform("shadowMap", textureManager->getNextFreeUnit());
 
-void OpenGLRenderer::renderChunk(const ChunkMeshContext &ctx) const {
-    const glm::mat4 modelMatrix = glm::translate(glm::identity<glm::mat4>(), ctx.modelTranslate);
-    cubeShader->setUniform("MVP", vpMatrix * modelMatrix);
+    cubeShader->setUniform("MVP", vpMatrix); // M is the identity matrix
 
-    if (shadowConfig.doDrawShadows) {
-        cubeShader->setUniform("lightMVP", ctx.cachedLightMVP);
-    }
-
-    ctx.drawElements();
+    chunksVao->enable();
+    chunksVao->render(targets);
 }
 
 void OpenGLRenderer::renderOutlines() {
@@ -322,8 +319,6 @@ void OpenGLRenderer::renderOutlines() {
         outlinesVao->enable();
         glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(vertices.size()));
     }
-
-    cubeShader->enable();
 }
 
 void OpenGLRenderer::addCubeOutline(const glm::vec3 &minVec, const float sideLength, const LineType gid) {

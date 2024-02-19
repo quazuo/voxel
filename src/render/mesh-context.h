@@ -4,11 +4,11 @@
 #include <vector>
 #include <cstring>
 #include <map>
+#include <memory>
 #include <optional>
 
+#include "gl/gl-buffer.h"
 #include "glm/glm.hpp"
-#include "GL/glew.h"
-#include "gl/gl-vao.h"
 #include "src/voxel/chunk/chunk.h"
 
 /**
@@ -33,15 +33,10 @@ struct IndexedMeshData {
     std::vector<glm::ivec2> uvs;
     std::vector<glm::vec3> normals;
     std::vector<int> texIDs;
+    std::vector<GLElementBuffer::ElemType> indices;
 
-    // the indices are currently kept as unsigned shorts. this leads to a problem, because in an edge case
-    // a chunk with `CHUNK_SIZE == 16` may contain more than USHRT_MAX rendered vertices.
-    //
-    // I'm currently ignoring these edge cases, as transparent blocks aren't implemented yet, and due to the
-    // fact that I can't come up with a pattern that would make this buffer overflow, I just assume there isn't one.
-    // hopefully, the problem will just disappear in the future when I come up with some more elaborate ways to
-    // exclude unseen blocks from rendering.
-    std::vector<unsigned short> indices;
+    [[nodiscard]]
+    std::vector<glm::uint32> serialize() const;
 };
 
 /**
@@ -55,15 +50,10 @@ class ChunkMeshContext {
     std::vector<Triangle> triangles{};
     std::optional<IndexedMeshData> indexedData;
 
-    std::unique_ptr<ChunkVertexArray> vao;
-
 public:
     glm::vec3 modelTranslate{};
-    glm::mat4 cachedLightMVP{};
 
     bool isFreshlyUpdated = false;
-
-    ChunkMeshContext();
 
     /**
      * Clears all the quads, triangles and indexed vertices from this mesh, only leaving
@@ -103,14 +93,10 @@ public:
     void makeIndexed();
 
     /**
-     * Moves the indexed data to the GL buffers. This required `makeIndexed` to be called beforehand.
+     * Returns this mesh' indexed data. This throws a runtime_error if this mesh wasn't indexed beforehand.
      */
-    void writeToBuffers() const;
-
-    /**
-     * Renders this mesh. This required `makeIndexed` to be called beforehand.
-     */
-    void drawElements() const;
+    [[nodiscard]]
+    const IndexedMeshData& getIndexedData() const { return *indexedData; }
 
 private:
     /**

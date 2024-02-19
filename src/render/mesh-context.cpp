@@ -2,7 +2,29 @@
 
 #include <iostream>
 
-ChunkMeshContext::ChunkMeshContext() : vao(std::make_unique<ChunkVertexArray>()) {}
+#include "gl/gl-vao.h"
+
+std::vector<glm::uint32> IndexedMeshData::serialize() const {
+    std::vector<glm::uint32> packedVerticesData;
+
+    for (size_t i = 0; i < vertices.size(); i++) {
+        glm::uint32 packedVertex = 0;
+
+        packedVertex |= (static_cast<glm::uint32>(vertices[i].x) & 0x1F) << 27;
+        packedVertex |= (static_cast<glm::uint32>(vertices[i].y) & 0x1F) << 22;
+        packedVertex |= (static_cast<glm::uint32>(vertices[i].z) & 0x1F) << 17;
+
+        const glm::uint32 faceIndex = getFaceIndex(getFaceFromNormal(normals[i]));
+        packedVertex |= (faceIndex & 0x7) << 14;
+
+        packedVertex |= (static_cast<glm::uint32>(uvs[i].x) & 0x1F) << 9;
+        packedVertex |= (static_cast<glm::uint32>(uvs[i].y) & 0x1F) << 4;
+
+        packedVerticesData.push_back(packedVertex);
+    }
+
+    return packedVerticesData;
+}
 
 void ChunkMeshContext::clear() {
     quads.clear();
@@ -20,7 +42,7 @@ void ChunkMeshContext::addTriangle(const Vertex &vertex1, const Vertex &vertex2,
 }
 
 static void indexVertex(const Vertex &vertex, IndexedMeshData &data,
-                        std::map<Vertex, unsigned short> &vertexToOutIndex) {
+                        std::map<Vertex, GLElementBuffer::ElemType> &vertexToOutIndex) {
     const auto it = vertexToOutIndex.find(vertex);
 
     if (it != vertexToOutIndex.end()) {
@@ -33,7 +55,12 @@ static void indexVertex(const Vertex &vertex, IndexedMeshData &data,
         data.uvs.push_back(vertex.uv);
         data.normals.push_back(vertex.normal);
         data.texIDs.push_back(vertex.texSamplerID);
-        const unsigned short newIndex = static_cast<unsigned short>(data.vertices.size()) - 1;
+
+        if (data.vertices.size() - 1 >= std::numeric_limits<GLElementBuffer::ElemType>::max()) {
+            throw std::runtime_error("Detected overflow during mesh indexing. Please use a larger type for indices");
+        }
+
+        const auto newIndex = static_cast<GLElementBuffer::ElemType>(data.vertices.size() - 1);
         data.indices.push_back(newIndex);
         vertexToOutIndex.emplace(vertex, newIndex);
     }
@@ -41,26 +68,13 @@ static void indexVertex(const Vertex &vertex, IndexedMeshData &data,
 
 void ChunkMeshContext::makeIndexed() {
     indexedData = IndexedMeshData();
-    std::map<Vertex, unsigned short> vertexToOutIndex;
+    std::map<Vertex, GLElementBuffer::ElemType> vertexToOutIndex;
 
     for (const auto &[v1, v2, v3]: triangles) {
         indexVertex(v1, *indexedData, vertexToOutIndex);
         indexVertex(v2, *indexedData, vertexToOutIndex);
         indexVertex(v3, *indexedData, vertexToOutIndex);
     }
-}
-
-void ChunkMeshContext::writeToBuffers() const {
-    if (!indexedData) {
-        throw std::runtime_error("tried to call writeToBuffers() without prior indexing");
-    }
-
-    vao->writeToBuffers(*indexedData);
-}
-
-void ChunkMeshContext::drawElements() const {
-    vao->enable();
-    glDrawElements(GL_TRIANGLES, vao->getIndicesCount(), GL_UNSIGNED_SHORT, nullptr);
 }
 
 void ChunkMeshContext::triangulateQuads() {
@@ -101,6 +115,8 @@ void ChunkMeshContext::triangulateQuads() {
 }
 
 void ChunkMeshContext::mergeQuads() {
+    if (quads.empty()) return;
+
     /*
      * `front[x][y][z] == -1` iff there's no quad facing the [0, 0, 1] normal at [x, y, z] coords,
      * a non-zero value is the ID of the texture used by the quad. other ones work analogically.
@@ -109,25 +125,26 @@ void ChunkMeshContext::mergeQuads() {
 
     for (auto &[v1, v2]: quads) {
         const EBlockFace face = getFaceFromNormal(v1.normal);
-        const glm::ivec3 coords = v1.position - Block::getFaceCorners(face).first;
+        const glm::ivec3 absCoords = v1.position - Block::getFaceCorners(face).first;
+        const glm::ivec3 relCoords = absCoords - glm::ivec3(modelTranslate);
 
         if (face == Front) {
-            front[coords] = v1.texSamplerID;
+            front[relCoords] = v1.texSamplerID;
 
         } else if (face == Back) {
-            back[coords] = v1.texSamplerID;
+            back[relCoords] = v1.texSamplerID;
 
         } else if (face == Right) {
-            right[coords] = v1.texSamplerID;
+            right[relCoords] = v1.texSamplerID;
 
         } else if (face == Left) {
-            left[coords] = v1.texSamplerID;
+            left[relCoords] = v1.texSamplerID;
 
         } else if (face == Top) {
-            top[coords] = v1.texSamplerID;
+            top[relCoords] = v1.texSamplerID;
 
         } else { // face == Bottom
-            bottom[coords] = v1.texSamplerID;
+            bottom[relCoords] = v1.texSamplerID;
         }
     }
 
@@ -150,6 +167,11 @@ void ChunkMeshContext::mergeQuads() {
 
     const auto newBottomQuads = mergeQuadMap(bottom, getNormalFromFace(Bottom));
     quads.insert(quads.end(), newBottomQuads.begin(), newBottomQuads.end());
+
+    for (auto& [first, second]: quads) {
+        first.position += modelTranslate;
+        second.position += modelTranslate;
+    }
 }
 
 std::vector<ChunkMeshContext::Quad>

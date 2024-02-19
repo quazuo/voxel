@@ -1,48 +1,23 @@
 #version 330 core
 
-layout(location = 0) in uint packedVertex;
-layout(location = 1) in int textureID;
+layout(location = 0) in ivec3 vertexPosition;
+layout(location = 1) in vec3 vertexNormal;
+layout(location = 2) in ivec2 vertexUV;
+layout(location = 3) in int textureID;
 
+out vec4 vertexPosition_lightSpace;
+out vec3 Normal_modelspace;
 out vec2 UV;
 flat out int texID;
-out vec3 Normal_modelspace;
-out vec4 vertexPosition_lightSpace;
 
 uniform mat4 MVP;
 uniform mat4 lightMVP;
 uniform vec3 LightDirection_worldspace;
 
-vec3 unpackVertexPosition(uint packedVertex) {
-    return vec3(
-        float((packedVertex & 0xF8000000u) >> 27),
-        float((packedVertex & 0x07C00000u) >> 22),
-        float((packedVertex & 0x003E0000u) >> 17)
-    );
-}
-
-vec3 unpackVertexNormal(uint packedVertex) {
-    uint normalIndex = (packedVertex & 0x0001C000u) >> 14;
-
-    if (normalIndex == 0u) return vec3(0, 0, 1);
-    if (normalIndex == 1u) return vec3(0, 0, -1);
-    if (normalIndex == 2u) return vec3(1, 0, 0);
-    if (normalIndex == 3u) return vec3(-1, 0, 0);
-    if (normalIndex == 4u) return vec3(0, 1, 0);
-    if (normalIndex == 5u) return vec3(0, -1, 0);
-    return vec3(0);
-}
-
-vec2 unpackVertexUV(uint packedVertex) {
-    return vec2(
-        float((packedVertex & 0x00003E00u) >> 9),
-        float((packedVertex & 0x000001F0u) >> 4)
-    );
-}
-
 void main() {
-    vec3 vertexPosition_modelspace = unpackVertexPosition(packedVertex);
-    Normal_modelspace = unpackVertexNormal(packedVertex);
-    UV = unpackVertexUV(packedVertex);
+    vec3 vertexPosition_modelspace = vertexPosition;
+    Normal_modelspace = vertexNormal;
+    UV = vertexUV;
 
     gl_Position = MVP * vec4(vertexPosition_modelspace, 1);
 

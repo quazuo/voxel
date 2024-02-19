@@ -6,7 +6,6 @@
 #include "chunk.h"
 #include "src/render/mesh-context.h"
 #include "src/render/renderer.h"
-#include "src/utils/vec.h"
 
 /**
  * Class responsible for managing chunks in the world -- most importantly
@@ -14,13 +13,13 @@
  */
 class ChunkManager {
     struct ChunkSlot {
-        std::shared_ptr<Chunk> chunk;
-        std::shared_ptr<ChunkMeshContext> mesh = std::make_shared<ChunkMeshContext>();
+        std::unique_ptr<Chunk> chunk;
+        std::unique_ptr<ChunkMeshContext> mesh = std::make_unique<ChunkMeshContext>();
 
         [[nodiscard]]
         bool isBound() const { return chunk != nullptr; }
 
-        void bind(std::shared_ptr<Chunk> c);
+        void bind(std::unique_ptr<Chunk>&& c);
 
         void unbind();
     };
@@ -43,6 +42,12 @@ class ChunkManager {
      */
     int gracePeriodWidth = 1;
 
+    // this limits how many chunks can be loaded each frame to prevent big stutters
+    int chunksServePerFrame = 8;
+
+    // ID given to the next newly created chunk
+    Chunk::ChunkID nextFreeID = 0;
+
     /*
      * list of slots in which currently loaded (or only loadable) chunks may reside.
      * this should always be of size `2 * renderDistance + gracePeriodWidth + 1` cubed.
@@ -53,9 +58,6 @@ class ChunkManager {
 
     std::shared_ptr<OpenGLRenderer> renderer;
     std::shared_ptr<WorldGen> worldGen;
-
-    // this limits how many chunks can be loaded each frame to prevent big stutters
-    int chunksServePerFrame = 8;
 
 public:
     explicit ChunkManager(std::shared_ptr<OpenGLRenderer> r, std::shared_ptr<WorldGen> wg);
@@ -106,7 +108,10 @@ private:
      * @return Pointer to the owning chunk.
      */
     [[nodiscard]]
-    std::shared_ptr<Chunk> getOwningChunk(const glm::ivec3 &block) const;
+    Chunk* getOwningChunk(const glm::ivec3 &block) const;
+
+
+    void makeChunkMesh(const ChunkSlot& slot) const;
 
     /**
      * Checks if any chunks should be loaded or unloaded, and does so if that's the case.
@@ -127,7 +132,7 @@ private:
     /**
      * Sorts a given list of chunks with respect to distance to the camera.
      */
-    void sortChunkSlots(std::vector<ChunkSlotPtr>& chunks) const;
+    void sortChunkSlots(std::vector<ChunkSlotPtr> &chunks) const;
 
     /**
      * Takes up to `MAX_CHUNKS_SERVE_PER_PRAME` chunks from the `loadableChunks` list and loads them.

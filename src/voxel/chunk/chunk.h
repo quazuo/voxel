@@ -14,9 +14,13 @@
  */
 class Chunk {
 public:
+    using ChunkID = unsigned int;
+
     static constexpr int CHUNK_SIZE = 16;
 
 private:
+    ChunkID id;
+
     // coordinates of the block with the lowest coordinates
     glm::ivec3 pos{};
 
@@ -29,7 +33,10 @@ private:
     size_t activeBlockCount = 0;
 
 public:
-    explicit Chunk(const glm::ivec3 &p) : pos(p) {}
+    explicit Chunk(const ChunkID i, const glm::ivec3 &p) : id(i), pos(p) {}
+
+    [[nodiscard]]
+    ChunkID getID() const { return id; }
 
     [[nodiscard]]
     glm::ivec3 getPos() const { return pos; }

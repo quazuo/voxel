@@ -126,4 +126,23 @@ static EBlockFace getFaceFromNormal(const glm::vec3& normal) {
     throw std::runtime_error("invalid normal in getFaceFromNormal()");
 }
 
+static glm::uint32 getFaceIndex(const EBlockFace face) {
+    switch (face) {
+        case Front:
+            return 0;
+        case Back:
+            return 1;
+        case Right:
+            return 2;
+        case Left:
+            return 3;
+        case Top:
+            return 4;
+        case Bottom:
+            return 5;
+        default:
+            throw std::runtime_error("invalid switch branch in ChunkVertexArray::writeToBuffers");
+    }
+}
+
 #endif //FACE_H

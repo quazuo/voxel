@@ -19,10 +19,10 @@ protected:
     /// The buffers always store `BASE_CAPACITY * 2^N` elements for some `N` depending on how many elements
     /// are being stored at the moment.
     static constexpr size_t BASE_CAPACITY = 9;
-    GLsizeiptr capacity = BASE_CAPACITY;
-    GLsizeiptr size = 0;
+    size_t capacity = BASE_CAPACITY;
+    size_t size = 0;
 
-    GLuint bufferID {};
+    GLuint bufferID{};
 
 public:
     virtual ~GLBuffer();
@@ -34,8 +34,10 @@ public:
      * Writes the given data to the buffer, possibly reallocating it to contain all the data.
      *
      * @param data The data to be copied.
+     * @param count Number of elements to be copied.
+     * @param offset Offset (in number of elements) from the start of the buffer at which writing should start.
      */
-    virtual void write(const std::vector<T> &data) = 0;
+    virtual void write(const T* data, size_t count, size_t offset) = 0;
 
     /**
      * Enables the buffer. Used while rendering to inform OpenGL that we're using this buffer.
@@ -46,9 +48,12 @@ protected:
     /**
      * Adjusts the buffer's capacity to fit at least `dataSize` elements.
      *
-     * @param dataSize Number of elements the buffer should be able to hold after calling this function.
+     * @param desiredCapacity Number of elements the buffer should be able to hold after calling this function.
      */
-    void updateBufferCapacity(GLsizeiptr dataSize);
+    void updateBufferCapacity(size_t desiredCapacity);
+
+    [[nodiscard]]
+    virtual GLenum getGlTarget() const { return GL_ARRAY_BUFFER; }
 };
 
 /**
@@ -59,13 +64,13 @@ protected:
  */
 template<typename T>
 class GLArrayBuffer final : public GLBuffer<T> {
-    GLuint bufferIndex {};
-    GLint compCount {};
+    GLuint bufferIndex{};
+    GLint compCount{};
 
 public:
     GLArrayBuffer(GLuint index, GLint count);
 
-    void write(const std::vector<T> &data) override;
+    void write(const T* data, size_t count, size_t offset) override;
 
     void enable() override;
 
@@ -74,28 +79,47 @@ public:
 
 /**
  * A specialization over the GLBuffer class, using OpenGL's GL_ELEMENT_BUFFER type.
- * Used for storing indices for indexed vertices. As such, it's restricted to holding specifically
- * elements of type `unsigned short`.
+ * Used for storing indices for indexed vertices.
+ *
+ * When the indices are kept as unsigned shorts, this leads to a problem, because in an edge case
+ * a chunk with `CHUNK_SIZE == 16` may contain more than USHORT_MAX rendered vertices.
+ * I'm currently ignoring these edge cases, as transparent blocks aren't implemented yet, and due to the
+ * fact that I can't come up with a pattern that would make this buffer overflow, I just assume there isn't one.
+ * hopefully, the problem will just disappear in the future when I come up with some more elaborate ways to
+ * exclude unseen blocks from rendering.
  */
-class GLElementBuffer final : public GLBuffer<unsigned short> {
-    using elemType = unsigned short;
-
+class GLElementBuffer final : public GLBuffer<unsigned int> {
 public:
+    using ElemType = unsigned int;
+
+    static unsigned int getGlElemType() { return GL_UNSIGNED_INT; }
+
     GLElementBuffer();
 
-    void write(const std::vector<elemType> &data) override;
+    void write(const ElemType* data, size_t count, size_t offset) override;
 
     void enable() override;
+
+protected:
+    [[nodiscard]]
+    GLenum getGlTarget() const override { return GL_ELEMENT_ARRAY_BUFFER; }
 };
 
+/**
+ * This doesn't derive from GLBuffer mostly because we don't really expect a framebuffer
+ * to use the same interface as the buffers above, since these expect to be directly written to,
+ * which framebuffers do not.
+ *
+ * So far, this implementation is VERY barebones and rudimentary. It's definitely subject for improvement.
+ */
 class GLFrameBuffer final {
-    GLuint bufferID {};
+    GLuint bufferID{};
 
     // attachments
-    GLuint texture {};
-    GLuint depth {};
-    GLuint stencil {};
-    GLuint depthStencil {};
+    GLuint texture{};
+    GLuint depth{};
+    GLuint stencil{};
+    GLuint depthStencil{};
 
 public:
     GLFrameBuffer();
