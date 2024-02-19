@@ -16,9 +16,7 @@ void GLVertexArray::enable() {
 }
 
 ChunksVertexArray::ChunksVertexArray() : posBuffer(std::make_unique<GLArrayBuffer<glm::ivec3> >(0, 3)),
-                                         normalBuffer(std::make_unique<GLArrayBuffer<glm::vec3> >(1, 3)),
-                                         uvBuffer(std::make_unique<GLArrayBuffer<glm::ivec2> >(2, 2)),
-                                         texIDsBuffer(std::make_unique<GLArrayBuffer<int> >(3, 1)),
+                                         normalUvTexBuffer(std::make_unique<GLArrayBuffer<glm::uint32> >(1, 1)),
                                          indicesBuffer(std::make_unique<GLElementBuffer>()) {
     static_assert(MIN_SECTOR_SIZE % 3 == 0);
     static_assert(MIN_SECTOR_SIZE <= MAX_SECTOR_SIZE);
@@ -27,6 +25,8 @@ ChunksVertexArray::ChunksVertexArray() : posBuffer(std::make_unique<GLArrayBuffe
 
 void ChunksVertexArray::writeChunk(const Chunk::ChunkID chunkID, const IndexedMeshData &mesh) {
     if (mesh.indices.empty()) return;
+
+    const std::vector<glm::uint32> packedNormalUvTexData = mesh.packNormalUvTex();
 
     glBindVertexArray(objectID);
 
@@ -48,10 +48,7 @@ void ChunksVertexArray::writeChunk(const Chunk::ChunkID chunkID, const IndexedMe
         const size_t indexAbsOffset = indexSector.slabID * SLAB_SIZE + indexSector.offset;
 
         posBuffer->write(mesh.vertices.data(), vertexSector.size, vertexAbsOffset);
-        normalBuffer->write(mesh.normals.data(), vertexSector.size, vertexAbsOffset);
-        uvBuffer->write(mesh.uvs.data(), vertexSector.size, vertexAbsOffset);
-        texIDsBuffer->write(mesh.texIDs.data(), vertexSector.size, vertexAbsOffset);
-
+        normalUvTexBuffer->write(packedNormalUvTexData.data(), vertexSector.size, vertexAbsOffset);
         indicesBuffer->write(mesh.indices.data(), indexSector.size, indexAbsOffset);
 
         const ChunkSectorsData newSectorsData{

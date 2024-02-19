@@ -44,9 +44,7 @@ public:
  */
 class ChunksVertexArray final : public GLVertexArray {
     std::unique_ptr<GLArrayBuffer<glm::ivec3>> posBuffer;
-    std::unique_ptr<GLArrayBuffer<glm::vec3>> normalBuffer;
-    std::unique_ptr<GLArrayBuffer<glm::ivec2>> uvBuffer;
-    std::unique_ptr<GLArrayBuffer<int>> texIDsBuffer;
+    std::unique_ptr<GLArrayBuffer<glm::uint32>> normalUvTexBuffer;
     std::unique_ptr<GLElementBuffer> indicesBuffer;
 
     // min number of indices in a non-empty chunk is 3, because there are 3 indices in just one triangle.

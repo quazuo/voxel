@@ -1,7 +1,7 @@
 #version 330 core
 
 in vec2 UV;
-flat in int texID;
+flat in uint texID;
 in vec3 Normal_modelspace;
 in vec4 vertexPosition_lightSpace;
 
@@ -15,12 +15,12 @@ uniform sampler2D shadowMap;
 #define DEF_TEX_SAMPLER_ID(n) \
     if (texID == (n)) return texture(texSampler[(n)], UV).rgb;
 
-vec3 getTexSample(int id) {
+vec3 getTexSample(uint id) {
     // there's 4 textures currently
-    DEF_TEX_SAMPLER_ID(0)
-    DEF_TEX_SAMPLER_ID(1)
-    DEF_TEX_SAMPLER_ID(2)
-    DEF_TEX_SAMPLER_ID(3)
+    DEF_TEX_SAMPLER_ID(0u)
+    DEF_TEX_SAMPLER_ID(1u)
+    DEF_TEX_SAMPLER_ID(2u)
+    DEF_TEX_SAMPLER_ID(3u)
     return vec3(0);
 }
 

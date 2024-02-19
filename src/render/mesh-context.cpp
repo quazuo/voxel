@@ -4,26 +4,24 @@
 
 #include "gl/gl-vao.h"
 
-std::vector<glm::uint32> IndexedMeshData::serialize() const {
-    std::vector<glm::uint32> packedVerticesData;
+std::vector<glm::uint32> IndexedMeshData::packNormalUvTex() const {
+    std::vector<glm::uint32> packedData;
 
     for (size_t i = 0; i < vertices.size(); i++) {
         glm::uint32 packedVertex = 0;
 
-        packedVertex |= (static_cast<glm::uint32>(vertices[i].x) & 0x1F) << 27;
-        packedVertex |= (static_cast<glm::uint32>(vertices[i].y) & 0x1F) << 22;
-        packedVertex |= (static_cast<glm::uint32>(vertices[i].z) & 0x1F) << 17;
-
         const glm::uint32 faceIndex = getFaceIndex(getFaceFromNormal(normals[i]));
-        packedVertex |= (faceIndex & 0x7) << 14;
+        packedVertex |= (faceIndex & 0x7) << 29;
 
-        packedVertex |= (static_cast<glm::uint32>(uvs[i].x) & 0x1F) << 9;
-        packedVertex |= (static_cast<glm::uint32>(uvs[i].y) & 0x1F) << 4;
+        packedVertex |= (static_cast<glm::uint32>(uvs[i].x) & 0x1F) << 24;
+        packedVertex |= (static_cast<glm::uint32>(uvs[i].y) & 0x1F) << 19;
 
-        packedVerticesData.push_back(packedVertex);
+        packedVertex |= static_cast<glm::uint32>(texIDs[i]) & 0xFF;
+
+        packedData.push_back(packedVertex);
     }
 
-    return packedVerticesData;
+    return packedData;
 }
 
 void ChunkMeshContext::clear() {

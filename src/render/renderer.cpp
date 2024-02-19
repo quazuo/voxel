@@ -272,9 +272,9 @@ void OpenGLRenderer::startRenderingShadowMap() {
 }
 
 void OpenGLRenderer::makeChunkShadowMap(ChunkMeshContext &ctx) const {
-    const glm::mat4 modelMatrix = glm::translate(glm::identity<glm::mat4>(), ctx.modelTranslate);
-    ctx.cachedLightMVP = lightVpMatrix * modelMatrix;
-    depthShader->setUniform("MVP", ctx.cachedLightMVP);
+    // const glm::mat4 modelMatrix = glm::translate(glm::identity<glm::mat4>(), ctx.modelTranslate);
+    // ctx.cachedLightMVP = lightVpMatrix * modelMatrix;
+    // depthShader->setUniform("MVP", ctx.cachedLightMVP);
 
     // todo idea: redraw only if something changed!
     // ctx.drawElements();

@@ -36,7 +36,7 @@ struct IndexedMeshData {
     std::vector<GLElementBuffer::ElemType> indices;
 
     [[nodiscard]]
-    std::vector<glm::uint32> serialize() const;
+    std::vector<glm::uint32> packNormalUvTex() const;
 };
 
 /**
