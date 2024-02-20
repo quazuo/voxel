@@ -132,14 +132,14 @@ public:
         keyManager.bindCallback(GLFW_MOUSE_BUTTON_LEFT, EActivationType::PRESS_ONCE, [&](const float deltaTime) {
             (void) deltaTime;
             if (targetedBlockPos && doLockCursor) {
-                //chunkManager->updateBlock(*targetedBlockPos, BlockType_None);
+                chunkManager->updateBlock(*targetedBlockPos, BlockType_None);
             }
         });
 
         keyManager.bindCallback(GLFW_MOUSE_BUTTON_RIGHT, EActivationType::PRESS_ONCE, [&](const float deltaTime) {
             (void) deltaTime;
             if (nextBlockPos && doLockCursor) {
-                //chunkManager->updateBlock(*nextBlockPos, chosenBlockType);
+                chunkManager->updateBlock(*nextBlockPos, chosenBlockType);
             }
         });
 

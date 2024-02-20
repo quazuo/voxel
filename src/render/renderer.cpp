@@ -242,7 +242,7 @@ void OpenGLRenderer::renderSkybox() const {
     glDepthMask(GL_TRUE);
 }
 
-void OpenGLRenderer::startRenderingShadowMap() {
+void OpenGLRenderer::makeChunksShadowMap(const std::vector<Chunk::ChunkID>& targets) {
     // todo - make these dependent on the render distance
     const auto [doDrawShadows, frustumRadius, nearPlane, farPlane, lightDistance] = shadowConfig;
 
@@ -260,35 +260,25 @@ void OpenGLRenderer::startRenderingShadowMap() {
         glm::vec3(0.f, 1.f, 0.f)
     );
 
-    lightVpMatrix = lightProjection * lightView;
-
     glViewport(0, 0, depthMapSize.x, depthMapSize.y);
+
     depthMap->enable();
+
     glClear(GL_DEPTH_BUFFER_BIT);
+
     depthShader->enable();
+    lightVpMatrix = lightProjection * lightView;
+    depthShader->setUniform("MVP", lightVpMatrix);
 
-    //glCullFace(GL_FRONT);
-    //glDisable(GL_CULL_FACE);
-}
+    chunksVao->enable();
+    chunksVao->render(targets); // todo idea: maybe redraw only if something changed?
 
-void OpenGLRenderer::makeChunkShadowMap(ChunkMeshContext &ctx) const {
-    // const glm::mat4 modelMatrix = glm::translate(glm::identity<glm::mat4>(), ctx.modelTranslate);
-    // ctx.cachedLightMVP = lightVpMatrix * modelMatrix;
-    // depthShader->setUniform("MVP", ctx.cachedLightMVP);
-
-    // todo idea: redraw only if something changed!
-    // ctx.drawElements();
-}
-
-void OpenGLRenderer::finishRenderingShadowMap() const {
     depthMap->disable();
 
     glm::ivec2 windowSize;
     glfwGetWindowSize(window, &windowSize.x, &windowSize.y);
     glViewport(0, 0, windowSize.x, windowSize.y);
 
-    //glCullFace(GL_BACK);
-    //glEnable(GL_CULL_FACE);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
@@ -296,12 +286,13 @@ void OpenGLRenderer::renderChunks(const std::vector<Chunk::ChunkID>& targets) co
     cubeShader->enable();
     textureManager->bindBlockTextures(*cubeShader);
 
-    // // todo - move to tex manager
-    // glActiveTexture(GL_TEXTURE0 + textureManager->getNextFreeUnit());
-    // glBindTexture(GL_TEXTURE_2D, depthMap->getDepth());
-    // cubeShader->setUniform("shadowMap", textureManager->getNextFreeUnit());
+    // todo - move to tex manager
+    glActiveTexture(GL_TEXTURE0 + textureManager->getNextFreeUnit());
+    glBindTexture(GL_TEXTURE_2D, depthMap->getDepth());
+    cubeShader->setUniform("shadowMap", textureManager->getNextFreeUnit());
 
     cubeShader->setUniform("MVP", vpMatrix); // M is the identity matrix
+    cubeShader->setUniform("lightMVP", lightVpMatrix); // M is the identity matrix
 
     chunksVao->enable();
     chunksVao->render(targets);

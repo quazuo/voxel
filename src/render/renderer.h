@@ -118,11 +118,7 @@ public:
 
     void renderSkybox() const;
 
-    void startRenderingShadowMap();
-
-    void makeChunkShadowMap(ChunkMeshContext &ctx) const;
-
-    void finishRenderingShadowMap() const;
+    void makeChunksShadowMap(const std::vector<Chunk::ChunkID>& targets);
 
     void renderChunks(const std::vector<Chunk::ChunkID>& targets) const;
 

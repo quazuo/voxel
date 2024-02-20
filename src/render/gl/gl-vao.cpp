@@ -26,37 +26,54 @@ ChunksVertexArray::ChunksVertexArray() : posBuffer(std::make_unique<GLArrayBuffe
 void ChunksVertexArray::writeChunk(const Chunk::ChunkID chunkID, const IndexedMeshData &mesh) {
     if (mesh.indices.empty()) return;
 
-    const std::vector<glm::uint32> packedNormalUvTexData = mesh.packNormalUvTex();
-
     glBindVertexArray(objectID);
 
+    const std::vector<glm::uint32> packedNormalUvTexData = mesh.packNormalUvTex();
+
+    const SectorLevel vertexSectorLevel = calcSectorLevel(mesh.vertices.size());
+    const SectorLevel indexSectorLevel = calcSectorLevel(mesh.indices.size());
+
     if (chunkSectorMapping.contains(chunkID)) {
-        throw std::runtime_error("unimplemented");
-        // todo - update existing chunk data
+        auto& [vertexSector, indexSector] = chunkSectorMapping.at(chunkID);
 
-    } else {
-        const SectorLevel vertexSectorLevel = calcSectorLevel(mesh.vertices.size());
-        const SectorLevel indexSectorLevel = calcSectorLevel(mesh.indices.size());
+        if (vertexSectorLevel == vertexSector.level && indexSectorLevel == indexSector.level) {
+            vertexSector.size = mesh.vertices.size();
+            indexSector.size = mesh.indices.size();
 
-        SectorData vertexSector = vertexSlabsState.requestNewSector(vertexSectorLevel);
-        SectorData indexSector = indexSlabsState.requestNewSector(indexSectorLevel);
+            const size_t vertexAbsOffset = vertexSector.slabID * SLAB_SIZE + vertexSector.offset;
+            const size_t indexAbsOffset = indexSector.slabID * SLAB_SIZE + indexSector.offset;
 
-        vertexSector.size = mesh.vertices.size();
-        indexSector.size = mesh.indices.size();
+            posBuffer->write(mesh.vertices.data(), vertexSector.size, vertexAbsOffset);
+            normalUvTexBuffer->write(packedNormalUvTexData.data(), vertexSector.size, vertexAbsOffset);
+            indicesBuffer->write(mesh.indices.data(), indexSector.size, indexAbsOffset);
 
-        const size_t vertexAbsOffset = vertexSector.slabID * SLAB_SIZE + vertexSector.offset;
-        const size_t indexAbsOffset = indexSector.slabID * SLAB_SIZE + indexSector.offset;
+            return;
+        }
 
-        posBuffer->write(mesh.vertices.data(), vertexSector.size, vertexAbsOffset);
-        normalUvTexBuffer->write(packedNormalUvTexData.data(), vertexSector.size, vertexAbsOffset);
-        indicesBuffer->write(mesh.indices.data(), indexSector.size, indexAbsOffset);
-
-        const ChunkSectorsData newSectorsData{
-            .vertexSector = vertexSector,
-            .indexSector = indexSector
-        };
-        chunkSectorMapping.emplace(chunkID, newSectorsData);
+        // todo - don't reclaim both if only one doesn't match
+        vertexSlabsState.reclaimSector(vertexSector);
+        indexSlabsState.reclaimSector(indexSector);
+        chunkSectorMapping.erase(chunkID);
     }
+
+    SectorData vertexSector = vertexSlabsState.requestNewSector(vertexSectorLevel);
+    SectorData indexSector = indexSlabsState.requestNewSector(indexSectorLevel);
+
+    vertexSector.size = mesh.vertices.size();
+    indexSector.size = mesh.indices.size();
+
+    const size_t vertexAbsOffset = vertexSector.slabID * SLAB_SIZE + vertexSector.offset;
+    const size_t indexAbsOffset = indexSector.slabID * SLAB_SIZE + indexSector.offset;
+
+    posBuffer->write(mesh.vertices.data(), vertexSector.size, vertexAbsOffset);
+    normalUvTexBuffer->write(packedNormalUvTexData.data(), vertexSector.size, vertexAbsOffset);
+    indicesBuffer->write(mesh.indices.data(), indexSector.size, indexAbsOffset);
+
+    const ChunkSectorsData newSectorsData{
+        .vertexSector = vertexSector,
+        .indexSector = indexSector
+    };
+    chunkSectorMapping.emplace(chunkID, newSectorsData);
 }
 
 void ChunksVertexArray::eraseChunk(const Chunk::ChunkID chunkID) {

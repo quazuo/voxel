@@ -41,24 +41,25 @@ ChunkManager::ChunkManager(std::shared_ptr<OpenGLRenderer> r, std::shared_ptr<Wo
 }
 
 void ChunkManager::renderChunks() const {
-    // if (renderer->shouldDrawShadows()) {
-    //     renderer->startRenderingShadowMap();
-    //
-    //     for (const auto &slot: chunkSlots) {
-    //         if (!slot->isBound())
-    //             continue;
-    //         if (!slot->chunk->shouldRender())
-    //             continue;
-    //
-    //         if (slot->chunk->isDirty()) {
-    //             makeChunkMesh(*slot);
-    //         }
-    //
-    //         renderer->makeChunkShadowMap(*slot->mesh);
-    //     }
-    //
-    //     renderer->finishRenderingShadowMap();
-    // }
+    if (renderer->shouldDrawShadows()) {
+
+        std::vector<Chunk::ChunkID> targets;
+
+        for (const auto &slot: chunkSlots) {
+            if (!slot->isBound())
+                continue;
+            if (!slot->chunk->shouldRender())
+                continue;
+
+            if (slot->chunk->isDirty()) {
+                makeChunkMesh(*slot);
+            }
+
+            targets.push_back(slot->chunk->getID());
+        }
+
+        renderer->makeChunksShadowMap(targets);
+    }
 
     std::vector<Chunk::ChunkID> targets;
 

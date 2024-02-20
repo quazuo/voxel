@@ -1,17 +1,9 @@
 #version 330 core
-layout(location = 0) in uint packedVertex;
+layout(location = 0) in ivec3 vertexPosition;
 
 uniform mat4 MVP;
 
-vec3 unpackVertexPosition(uint packedVertex) {
-    return vec3(
-        float((packedVertex & 0xF8000000u) >> 27),
-        float((packedVertex & 0x07C00000u) >> 22),
-        float((packedVertex & 0x003E0000u) >> 17)
-    );
-}
-
 void main() {
-    vec3 vertexPosition_modelspace = unpackVertexPosition(packedVertex);
+    vec3 vertexPosition_modelspace = vertexPosition;
     gl_Position = MVP * vec4(vertexPosition_modelspace, 1);
 }
